@@ -15,17 +15,11 @@ export async function GET({ url }) {
     return json({ error: 'Missing Azure DevOps PAT' }, { status: 500 });
   }
 
-  // Hardcoded org and project
-  const org = import.meta.env.AZURE_DEVOPS_ORGANIZATION;
-  const project = import.meta.env.AZURE_DEVOPS_PROJECT;
-  
-  if (!org || !project) {
-    return json({ error: 'Missing Azure DevOps organization or project in env' }, { status: 500 });
-  }
+  const org = import.meta.env.VITE_AZURE_DEVOPS_ORGANIZATION || import.meta.env.AZURE_DEVOPS_ORGANIZATION;
+  const project = import.meta.env.VITE_AZURE_DEVOPS_PROJECT || import.meta.env.AZURE_DEVOPS_PROJECT;
+
   // Get up to 100 releases for the pipeline (increase if needed)
   const pipelineUrl = `https://vsrm.dev.azure.com/${org}/${project}/_apis/release/releases?definitionId=${definitionId}&$top=100&api-version=7.1-preview.8`;
-
- 
 
   const auth = btoa(':' + pat);
 
