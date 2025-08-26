@@ -1,7 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { AZURE_DEVOPS_PAT } from '$env/static/private';
-import { AZURE_DEVOPS_ORGANIZATION } from '$env/static/private';
-import { AZURE_DEVOPS_PROJECT } from '$env/static/private';
+import { env } from '$env/dynamic/private'; 
 
 // Accepts ?definitionId=... and constructs the Azure DevOps REST API URL
 export async function GET({ url }) {
@@ -11,8 +9,9 @@ export async function GET({ url }) {
     return json({ error: 'Missing definitionId' }, { status: 400 });
   }
 
-
- // Use import.meta.env for SvelteKit env vars
+  const { AZURE_DEVOPS_PAT, AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT } = env;
+  
+  // Use import.meta.env for SvelteKit env vars
   const pat = AZURE_DEVOPS_PAT;
   if (!pat) {
     return json({ error: 'Missing Azure DevOps PAT' }, { status: 500 });
@@ -20,6 +19,9 @@ export async function GET({ url }) {
 
   const org = AZURE_DEVOPS_ORGANIZATION
   const project = AZURE_DEVOPS_PROJECT
+  if (!org || !project) {
+    return json({ error: 'Missing Azure DevOps organization or project' }, { status: 500 });
+  }
 
   // Get up to 100 releases for the pipeline (increase if needed)
   const pipelineUrl = `https://vsrm.dev.azure.com/${org}/${project}/_apis/release/releases?definitionId=${definitionId}&$top=100&api-version=7.1-preview.8`;
