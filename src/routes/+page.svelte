@@ -58,41 +58,44 @@ $effect(() => {
 </script>
  
 
-<Card.Root style="max-width: 400px; margin: 1rem auto;">
-   <Card.Header>
+
+<div class="w-full h-full min-h-screen">
+  <Card.Root class="w-full h-full min-h-screen rounded-none">
+    <Card.Header>
       <Card.Title>Build Information</Card.Title>
-   </Card.Header>
-   <Card.Content>
+    </Card.Header>
+    <Card.Content>
       <Popover.Root>
-         <Popover.Trigger
-            class={cn(
-               buttonVariants({
-                  variant: "outline",
-                  class: "w-[280px] justify-start text-left font-normal"
-               }),
-               !value && "text-muted-foreground"
-            )}
-         >
-            <CalendarIcon />
-            {value ? df.format(value.toDate(getLocalTimeZone())) : "Pick a date"}
-         </Popover.Trigger>
-         <Popover.Content bind:ref={contentRef} class="w-auto p-0">
-            <Calendar type="single" bind:value />
-         </Popover.Content>
+        <Popover.Trigger
+          class={cn(
+            buttonVariants({
+              variant: "outline",
+              class: "w-full max-w-xs justify-start text-left font-normal"
+            }),
+            !value && "text-muted-foreground"
+          )}
+        >
+          <CalendarIcon />
+          {value ? df.format(value.toDate(getLocalTimeZone())) : "Pick a date"}
+        </Popover.Trigger>
+        <Popover.Content bind:ref={contentRef} class="w-auto p-0">
+          <Calendar type="single" bind:value />
+        </Popover.Content>
       </Popover.Root>
-      <div style="margin-top: 2rem;">
-         <BuildCard
-            pipelineName="ProdEval English"
-            status={pipelineStatuses["ProdEval English"] ?? undefined}
-         />
-         <BuildCard
-            pipelineName="ProdEval Chinese"
-            status={pipelineStatuses["ProdEval Chinese"] ?? undefined}
-         />
-         <BuildCard
-            pipelineName="ProdEval Debug"
-            status={pipelineStatuses["ProdEval Debug"] ?? undefined}
-         />
+      <div class="mt-8 flex flex-col gap-4 w-full">
+        <BuildCard
+          pipelineName="ProdEval English"
+          status={pipelineStatuses["ProdEval English"] ?? undefined}
+        />
+        <BuildCard
+          pipelineName="ProdEval Chinese"
+          status={pipelineStatuses["ProdEval Chinese"] ?? undefined}
+        />
+        <BuildCard
+          pipelineName="ProdEval Debug"
+          status={pipelineStatuses["ProdEval Debug"] ?? undefined}
+        />
       </div>
-   </Card.Content>
-</Card.Root>
+    </Card.Content>
+  </Card.Root>
+</div>
