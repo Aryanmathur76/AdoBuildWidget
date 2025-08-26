@@ -52,4 +52,4 @@ jobs:
           app-name: 'BWDev'
           slot-name: 'Production'
           package: .
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_20BC413C3C5E412C84160F9F5183824A }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_392DE815D03B445DADFD8C29987CBF9D }}
