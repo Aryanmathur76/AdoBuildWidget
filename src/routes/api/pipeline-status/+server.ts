@@ -8,6 +8,13 @@ export async function GET({ url }) {
     return json({ error: 'Missing definitionId' }, { status: 400 });
   }
 
+
+ // Use import.meta.env for SvelteKit env vars
+  const pat = import.meta.env.VITE_AZURE_DEVOPS_PAT || import.meta.env.AZURE_DEVOPS_PAT;
+  if (!pat) {
+    return json({ error: 'Missing Azure DevOps PAT' }, { status: 500 });
+  }
+
   // Hardcoded org and project
   const org = import.meta.env.AZURE_DEVOPS_ORGANIZATION;
   const project = import.meta.env.AZURE_DEVOPS_PROJECT;
@@ -18,11 +25,7 @@ export async function GET({ url }) {
   // Get up to 100 releases for the pipeline (increase if needed)
   const pipelineUrl = `https://vsrm.dev.azure.com/${org}/${project}/_apis/release/releases?definitionId=${definitionId}&$top=100&api-version=7.1-preview.8`;
 
-  // Use import.meta.env for SvelteKit env vars
-  const pat = import.meta.env.VITE_AZURE_DEVOPS_PAT || import.meta.env.AZURE_DEVOPS_PAT;
-  if (!pat) {
-    return json({ error: 'Missing Azure DevOps PAT' }, { status: 500 });
-  }
+ 
 
   const auth = btoa(':' + pat);
 
