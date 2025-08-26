@@ -39,15 +39,12 @@ let pipelineStatuses = $state<Record<string, string | null>>({
 async function getPipelineStatus(pipelineName: string, definitionId: number) {
    if (!value) {
       pipelineStatuses = { ...pipelineStatuses, [pipelineName]: null };
-      console.log(pipelineStatuses);
       return;
    }
    const dateStr = value ? value.toDate(getLocalTimeZone()).toISOString().split('T')[0] : '';
    const res = await fetch(`/api/pipeline-status?definitionId=${definitionId}&date=${dateStr}`);
    const data = await res.json();
    pipelineStatuses = { ...pipelineStatuses, [pipelineName]: data.status || null };
-   console.log("pipeline name:", pipelineName);
-   console.log("pipeline status:", data.status);
 }
 
 // Reactively fetch status when date changes

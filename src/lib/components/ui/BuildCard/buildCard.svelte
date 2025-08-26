@@ -6,7 +6,6 @@ import Badge from "$lib/components/ui/badge/badge.svelte";
 export let pipelineName: string = "PipelineName";
 export let status: string = "Unknown";
 
-console.log("Status Received:", status);
 </script>
  
 <Card.Root>

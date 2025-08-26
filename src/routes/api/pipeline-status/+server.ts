@@ -9,14 +9,17 @@ export async function GET({ url }) {
   }
 
   // Hardcoded org and project
-  const org = 'EmersonPSS';
-  const project = 'PSS';
+  const org = import.meta.env.AZURE_DEVOPS_ORGANIZATION;
+  const project = import.meta.env.AZURE_DEVOPS_PROJECT;
+  
+  if (!org || !project) {
+    return json({ error: 'Missing Azure DevOps organization or project in env' }, { status: 500 });
+  }
   // Get up to 100 releases for the pipeline (increase if needed)
   const pipelineUrl = `https://vsrm.dev.azure.com/${org}/${project}/_apis/release/releases?definitionId=${definitionId}&$top=100&api-version=7.1-preview.8`;
 
   // Use import.meta.env for SvelteKit env vars
-  //const pat = import.meta.env.VITE_AZURE_DEVOPS_PAT || import.meta.env.AZURE_DEVOPS_PAT;
-  const pat = '3wOjIBc0RQkOnzNMYfxHTjyYOpq7QkYo3GiKEPcyYEfiqOiGCrcjJQQJ99BGACAAAAAOHlUpAAASAZDO3tqA';
+  const pat = import.meta.env.VITE_AZURE_DEVOPS_PAT || import.meta.env.AZURE_DEVOPS_PAT;
   if (!pat) {
     return json({ error: 'Missing Azure DevOps PAT' }, { status: 500 });
   }
@@ -54,8 +57,6 @@ export async function GET({ url }) {
         if (detailsRes.ok) {
           const details = await detailsRes.json();
           const inProgressStatuses = ['inProgress', 'notDeployed', 'active', 'pending', 'queued', 'notStarted'];
-          console.log("Pipeline:", details.name);
-          console.log("Environment statuses:", details.environments.map((env: any) => env.status));
           if (details.environments && details.environments.length > 0) {
             if (details.environments.some((env: any) => inProgressStatuses.includes(env.status))) {
               // If the run is still in progress and today is after the release date, mark as 'not completed'
