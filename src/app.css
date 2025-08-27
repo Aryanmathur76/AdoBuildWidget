@@ -19,6 +19,7 @@
   --success: oklch(57.816% 0.19121 143.381);
   --failure: oklch(53.667% 0.22004 28.957);
   --in-progress: oklch(63.568% 0.12615 250.178);
+  --partially-succeeded: oklch(67.058% 0.13781 83.107);
   --muted: oklch(0.968 0.007 247.896);
   --muted-foreground: oklch(0.554 0.046 257.417);
   --accent: oklch(0.968 0.007 247.896);

@@ -28,12 +28,14 @@ const pipelineDefinitionIds = {
    "ProdEval English": 910,
    "ProdEval Chinese": 1034,
    "ProdEval Debug": 1042,
+   "Daily CR": 1054
 };
 
 let pipelineStatuses = $state<Record<string, string | null>>({
    "ProdEval English": null,
    "ProdEval Chinese": null,
    "ProdEval Debug": null,
+   "Daily CR": null
 });
 
 async function getPipelineStatus(pipelineName: string, definitionId: number) {
@@ -94,6 +96,10 @@ $effect(() => {
         <BuildCard
           pipelineName="ProdEval Debug"
           status={pipelineStatuses["ProdEval Debug"] ?? undefined}
+        />
+         <BuildCard
+          pipelineName="Daily CR"
+          status={pipelineStatuses["Daily CR"] ?? undefined}
         />
       </div>
     </Card.Content>

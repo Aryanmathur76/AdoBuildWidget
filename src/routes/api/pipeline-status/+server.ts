@@ -74,22 +74,29 @@ function getReleaseStatus(details: Release): string | null {
   //These statuses represent an in-progress release
   const inProgressStatuses = ['inProgress', 'notDeployed', 'active', 'pending', 'queued', 'notStarted'];
 
-  if (details.environments && details.environments.length <= 0){
+  if (!details.environments || details.environments.length <= 0) {
     return null;
   }
 
-  if (details.environments && details.environments.some((env) => inProgressStatuses.includes(env.status))) {
+  // Filter environments to only those related to tests
+  const testEnvironments = details.environments.filter(env => env.name.toLowerCase().includes('tests'));
+
+  if (testEnvironments && testEnvironments.some((env) => inProgressStatuses.includes(env.status))) {
     const today = new Date().toISOString().split('T')[0];
     const releaseDate = details.createdOn ? details.createdOn.split('T')[0] : null;
     if (releaseDate && today > releaseDate) return 'not completed';
     return 'in progress';
   }
 
-  if (details.environments && details.environments.some((env) => ['rejected', 'canceled', 'failed'].includes(env.status))) {
+  if (testEnvironments && testEnvironments.some((env) => ['rejected', 'canceled', 'failed'].includes(env.status))) {
     return 'failed';
   }
 
-  if (details.environments && details.environments.every((env) => env.status === 'succeeded')) {
+  if (testEnvironments && testEnvironments.some((env) => env.status === 'partiallySucceeded')) {
+    return 'partially succeeded';
+  }
+
+  if (testEnvironments && testEnvironments.every((env) => env.status === 'succeeded')) {
     return 'succeeded';
   }
 
