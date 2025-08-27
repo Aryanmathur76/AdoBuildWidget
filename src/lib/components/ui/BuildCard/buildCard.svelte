@@ -7,8 +7,8 @@ export let pipelineName: string = "PipelineName";
 export let status: string = "Unknown";
 
 </script>
- 
-<Card.Root>
+
+<Card.Root style="padding: 1rem;">
     <Card.Content>
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
             <span>{pipelineName}</span>
