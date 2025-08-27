@@ -45,7 +45,15 @@ async function fetchReleaseList(org: string, project: string, definitionId: stri
     }
   });
   if (!res.ok) throw { status: res.status, error: 'Failed to fetch pipeline status' };
-  return res.json();
+
+  const data = await res.json();
+  if (!data || typeof data !== 'object' || !Array.isArray(data.value)) {
+    throw { status: 502, error: 'Malformed response from Azure DevOps API' };
+  }
+  if (!data.value || data.value.length === 0) {
+    throw { status: 404, error: 'No releases found' };
+  }
+  return data;
 }
 
 async function fetchReleaseDetails(org: string, project: string, releaseId: number, pat: string) {
@@ -62,26 +70,30 @@ async function fetchReleaseDetails(org: string, project: string, releaseId: numb
 }
 
 function getReleaseStatus(details: Release): string | null {
+
+  //These statuses represent an in-progress release
   const inProgressStatuses = ['inProgress', 'notDeployed', 'active', 'pending', 'queued', 'notStarted'];
-  if (details.environments && details.environments.length > 0) {
-    if (details.environments.some((env) => inProgressStatuses.includes(env.status))) {
-      const today = new Date().toISOString().split('T')[0];
-      const releaseDate = details.createdOn ? details.createdOn.split('T')[0] : null;
-      if (releaseDate && today > releaseDate) {
-        return 'not completed';
-      } else {
-        return 'in progress';
-      }
-    } else if (details.environments.some((env) => ['rejected', 'canceled', 'failed'].includes(env.status))) {
-      return 'failed';
-    } else if (details.environments.every((env) => env.status === 'succeeded')) {
-      return 'succeeded';
-    } else {
-      return details.status || null;
-    }
-  } else {
-    return details.status || null;
+
+  if (details.environments && details.environments.length <= 0){
+    return null;
   }
+
+  if (details.environments && details.environments.some((env) => inProgressStatuses.includes(env.status))) {
+    const today = new Date().toISOString().split('T')[0];
+    const releaseDate = details.createdOn ? details.createdOn.split('T')[0] : null;
+    if (releaseDate && today > releaseDate) return 'not completed';
+    return 'in progress';
+  }
+
+  if (details.environments && details.environments.some((env) => ['rejected', 'canceled', 'failed'].includes(env.status))) {
+    return 'failed';
+  }
+
+  if (details.environments && details.environments.every((env) => env.status === 'succeeded')) {
+    return 'succeeded';
+  }
+
+  return details.status || null;
 }
 
 // --- Main Handler ---
@@ -104,27 +116,39 @@ export async function GET({ url }: { url: URL }) {
     let status: string | null = null;
     let foundRelease: Release | null = null;
 
-    if (data.value && data.value.length > 0 && date) {
-      const releasesForDate = data.value.filter((r: Release) => r.createdOn && r.createdOn.startsWith(date));
-      if (releasesForDate.length > 0) {
-        releasesForDate.sort((a: Release, b: Release) => b.createdOn.localeCompare(a.createdOn));
-        foundRelease = releasesForDate[0];
-        if (foundRelease) {
-          const details = await fetchReleaseDetails(org, project, foundRelease.id, pat);
-          if (details) {
-            status = getReleaseStatus(details);
-            foundRelease = details;
-          } else {
-            status = foundRelease.status || null;
-          }
-        }
-      }
+    //Only return releases for the specified date
+    const releasesForDate: Release[] = data.value.filter(
+      (r: Release) => r.createdOn && date && r.createdOn.startsWith(date)
+    );
+
+    if (releasesForDate.length <= 0) {
+      return errorJson('No releases found for the specified date', 404);
     }
+
+    releasesForDate.sort((a: Release, b: Release) => b.createdOn.localeCompare(a.createdOn));
+    
+    // Get the most recent release for the specified date (already sorted descending)
+    foundRelease = releasesForDate.at(0) ?? null;
+
+    if(!foundRelease){
+      return errorJson('No releases found for the specified date', 404);
+    }
+
+    const details = await fetchReleaseDetails(org, project, foundRelease.id, pat);
+    if (details) {
+      status = getReleaseStatus(details);
+      foundRelease = details;
+    } else {
+      status = foundRelease.status || null;
+    }
+
     if (!status && data.value && data.value.length > 0) {
       status = 'No Run Found';
       foundRelease = null;
     }
+
     return json({ status, raw: foundRelease || null });
+
   } catch (e: any) {
     if (e && typeof e === 'object' && 'error' in e && 'status' in e) {
       return errorJson(e.error, e.status);
