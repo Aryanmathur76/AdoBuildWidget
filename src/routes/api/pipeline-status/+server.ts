@@ -121,18 +121,13 @@ export async function GET({ url }: { url: URL }) {
       (r: Release) => r.createdOn && date && r.createdOn.startsWith(date)
     );
 
-    if (releasesForDate.length <= 0) {
-      return errorJson('No releases found for the specified date', 404);
+    if (releasesForDate.length <= 0 || !releasesForDate){
+      return json({ status: 'No Run Found', raw: null });
     }
 
+    //Sort releases by creation date descending and take the most recent one
     releasesForDate.sort((a: Release, b: Release) => b.createdOn.localeCompare(a.createdOn));
-    
-    // Get the most recent release for the specified date (already sorted descending)
-    foundRelease = releasesForDate.at(0) ?? null;
-
-    if(!foundRelease){
-      return errorJson('No releases found for the specified date', 404);
-    }
+    foundRelease = releasesForDate[0];
 
     const details = await fetchReleaseDetails(org, project, foundRelease.id, pat);
     if (details) {
