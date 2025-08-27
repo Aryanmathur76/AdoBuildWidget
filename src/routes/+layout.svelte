@@ -11,7 +11,7 @@
 </svelte:head>
 
 
-<div class="min-h-screen w-full flex flex-col bg-background overflow-auto">
+<div class="min-h-screen w-full flex flex-col bg-background">
   <ModeWatcher />
   <main class="flex-1 flex flex-col">
 	{@render children?.()}
