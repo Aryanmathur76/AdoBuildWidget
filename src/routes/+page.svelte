@@ -62,7 +62,7 @@ $effect(() => {
 
 
 <div class="w-full h-full min-h-screen">
-  <Card.Root class="w-full h-full min-h-screen rounded-none">
+  <Card.Root class="w-full h-screen min-h-screen rounded-none overflow-y-scroll">
     <Card.Header>
       <Card.Title>Build Information</Card.Title>
     </Card.Header>
