@@ -63,27 +63,33 @@ $effect(() => {
 
 <div class="w-full h-full min-h-screen">
   <Card.Root class="w-full h-screen min-h-screen rounded-none overflow-y-scroll">
-    <Card.Header>
-      <Card.Title>Build Information</Card.Title>
-    </Card.Header>
-    <Card.Content>
-      <Popover.Root>
-        <Popover.Trigger
-          class={cn(
-            buttonVariants({
-              variant: "outline",
-              class: "w-full max-w-xs justify-start text-left font-normal"
-            }),
-            !value && "text-muted-foreground"
-          )}
-        >
-          <CalendarIcon />
-          {value ? df.format(value.toDate(getLocalTimeZone())) : "Pick a date"}
-        </Popover.Trigger>
-        <Popover.Content bind:ref={contentRef} class="w-auto p-0">
-          <Calendar type="single" bind:value />
-        </Popover.Content>
-      </Popover.Root>
+      <Card.Header class="flex items-center justify-between">
+         <Card.Title class="whitespace-nowrap">Build Information</Card.Title>
+         <Popover.Root>
+            <Popover.Trigger
+               class={cn(
+                  buttonVariants({
+                     variant: "outline",
+                     class: "w-48 justify-between font-normal"
+                  }),
+                  !value && "text-muted-foreground"
+               )}
+            >
+               <CalendarIcon />
+               {value ? df.format(value.toDate(getLocalTimeZone())) : "Pick a date"}
+            </Popover.Trigger>
+            <Popover.Content bind:ref={contentRef} class="w-auto p-0">
+                  <Calendar
+                  type="single"
+                  bind:value
+                  captionLayout="dropdown"
+
+                  maxValue={today(getLocalTimeZone())}
+                  />
+            </Popover.Content>
+         </Popover.Root>
+      </Card.Header>
+      <Card.Content>
       <div class="mt-8 flex flex-col gap-4 w-full">
         <BuildCard
           pipelineName="ProdEval English"
