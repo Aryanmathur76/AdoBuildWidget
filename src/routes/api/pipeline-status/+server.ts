@@ -98,7 +98,7 @@ function getReleaseStatus(details: Release): string | null {
   }
 
   // Then check to see if any test environments are in a interrupted status
-  if (testEnvironments && testEnvironments.some((env) => interruptedStatuses.includes(env.status))) {
+  if (allEnvironments && allEnvironments.some((env) => interruptedStatuses.includes(env.status))) {
     return 'interrupted';
   }
 
