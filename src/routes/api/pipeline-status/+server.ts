@@ -72,14 +72,16 @@ async function fetchReleaseDetails(org: string, project: string, releaseId: numb
 function getReleaseStatus(details: Release): string | null {
 
   //These statuses represent an in-progress release
-  const inProgressStatuses = ['inProgress', 'active', 'pending', 'queued'];
+  const inProgressStatuses = ['inProgress', 'active', 'pending', 'queued', 'notStarted', 'notDeployed'];
 
   //These statuses represent a interrupted or interrupted release
-  const interruptedStatuses = ['rejected', 'canceled', 'failed', 'notStarted', 'notStarted', 'notDeployed'];
+  const interruptedStatuses = ['rejected', 'canceled', 'failed'];
 
   if (!details.environments || details.environments.length <= 0) {
     return null;
   }
+
+  const allEnvironments = details.environments;
 
   // Filter environments to only those related to tests
   const testEnvironments = details.environments.filter(env => env.name.toLowerCase().includes('tests'));
@@ -100,7 +102,7 @@ function getReleaseStatus(details: Release): string | null {
     return 'interrupted';
   }
 
-  if (testEnvironments && testEnvironments.some((env) => inProgressStatuses.includes(env.status))) {
+  if (allEnvironments && allEnvironments.some((env) => inProgressStatuses.includes(env.status))) {
     return 'in progress';
   }
 
