@@ -13,8 +13,10 @@ export let status: string = "Unknown";
 
 function handleCopy() {
     if (link) {
+        //The copy to clipboard will not work within an iframe with the sandbox attribute
+        //Provide user with option to copy link manually
         navigator.clipboard.writeText(link);
-        toast.success('Copied Pipeline Link!');
+        toast.info(link, { duration: 6000 }); // 6 seconds
     }
 }
 </script>
@@ -32,7 +34,10 @@ function handleCopy() {
                         on:click={handleCopy}
                         style="background: none; border: none; padding: 0; cursor: pointer; display: flex; align-items: center;"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" stroke-width="2" stroke="currentColor" fill="none"/><rect x="3" y="3" width="13" height="13" rx="2" stroke-width="2" stroke="currentColor" fill="none"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke="currentColor" stroke-width="2" fill="none" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/>
+                          <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/>
+                        </svg>
                     </button>
                 {/if}
                 {#if status === 'Unknown' || status === null}
