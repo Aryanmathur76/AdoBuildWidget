@@ -23,7 +23,22 @@ import { today } from "@internationalized/date";
 let value = $state<DateValue | undefined>(today(getLocalTimeZone()));
 let contentRef = $state<HTMLElement | null>(null);
 
-const pipelineConfig = JSON.parse(env.PUBLIC_AZURE_PIPELINE_CONFIG);
+if (!env.PUBLIC_AZURE_PIPELINE_CONFIG) {
+   throw new Error("Missing PUBLIC_AZURE_PIPELINE_CONFIG environment variable.");
+}
+
+let parsedConfig;
+try {
+   parsedConfig = JSON.parse(env.PUBLIC_AZURE_PIPELINE_CONFIG);
+} catch (e) {
+   throw new Error("Failed to parse PUBLIC_AZURE_PIPELINE_CONFIG: " + (e instanceof Error ? e.message : String(e)));
+}
+
+if (!parsedConfig.pipelines || parsedConfig.pipelines.length === 0) {
+   throw new Error("PUBLIC_AZURE_PIPELINE_CONFIG contains no pipelines.");
+}
+
+const pipelineConfig = parsedConfig;
 
 let pipelineStatuses = $state<Record<string, string | null>>(
    Object.fromEntries(pipelineConfig.pipelines.map((p: { displayName: string }) => [p.displayName, null]))
