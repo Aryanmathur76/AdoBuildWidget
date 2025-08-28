@@ -12,6 +12,7 @@ import { Calendar } from "$lib/components/ui/calendar/index.js";
 import * as Popover from "$lib/components/ui/popover/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import BuildCard from "$lib/components/ui/BuildCard/buildCard.svelte";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 
 const df = new DateFormatter("en-US", {
     dateStyle: "long"
@@ -20,8 +21,6 @@ const df = new DateFormatter("en-US", {
 import { today } from "@internationalized/date";
 let value = $state<DateValue | undefined>(today(getLocalTimeZone()));
 let contentRef = $state<HTMLElement | null>(null);
-
-// Example pipeline URLs for each pipeline name
 
 // Only store definitionIds for each pipeline
 const pipelineDefinitionIds = {
@@ -62,7 +61,7 @@ $effect(() => {
 
 
 <div class="w-full h-full min-h-screen">
-  <Card.Root class="w-full h-screen min-h-screen rounded-none overflow-y-scroll">
+  <Card.Root class="w-full h-screen min-h-screen rounded-none">
    <Card.Header class="flex items-center justify-between">
       <Card.Title class="whitespace-nowrap">Build Information</Card.Title>
       <Popover.Root>
@@ -90,24 +89,26 @@ $effect(() => {
       </Popover.Root>
    </Card.Header>
    <Card.Content>
-      <div class="mt-8 flex flex-col gap-4 w-full">
-        <BuildCard
-          pipelineName="ProdEval English"
-          status={pipelineStatuses["ProdEval English"] ?? undefined}
-        />
-        <BuildCard
-          pipelineName="ProdEval Chinese"
-          status={pipelineStatuses["ProdEval Chinese"] ?? undefined}
-        />
-        <BuildCard
-          pipelineName="ProdEval Debug"
-          status={pipelineStatuses["ProdEval Debug"] ?? undefined}
-        />
-         <BuildCard
-          pipelineName="Daily CR"
-          status={pipelineStatuses["Daily CR"] ?? undefined}
-        />
-      </div>
+      <ScrollArea class="h-[60vh] w-full">
+        <div class="mt-8 flex flex-col gap-4 w-full">
+          <BuildCard
+            pipelineName="ProdEval English"
+            status={pipelineStatuses["ProdEval English"] ?? undefined}
+          />
+          <BuildCard
+            pipelineName="ProdEval Chinese"
+            status={pipelineStatuses["ProdEval Chinese"] ?? undefined}
+          />
+          <BuildCard
+            pipelineName="ProdEval Debug"
+            status={pipelineStatuses["ProdEval Debug"] ?? undefined}
+          />
+          <BuildCard
+            pipelineName="Daily CR"
+            status={pipelineStatuses["Daily CR"] ?? undefined}
+          />
+        </div>
+      </ScrollArea>
    </Card.Content>
   </Card.Root>
 </div>

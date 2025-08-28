@@ -3,6 +3,7 @@
 <script lang="ts">
 import * as Card from "$lib/components/ui/card/index.js";
 import Badge from "$lib/components/ui/badge/badge.svelte";
+import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 export let pipelineName: string = "PipelineName";
 export let status: string = "Unknown";
 
@@ -12,7 +13,9 @@ export let status: string = "Unknown";
     <Card.Content>
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
             <span>{pipelineName}</span>
-            {#if status === 'succeeded'}
+            {#if status === 'Unknown' || status === null}
+                <Skeleton class="h-6 w-24 rounded" />
+            {:else if status === 'succeeded'}
                 <Badge style="background: var(--success);" variant="default">Success</Badge>
             {:else if status === 'failed'}
                 <Badge style="background: var(--failure);" variant="destructive">Failed</Badge>
