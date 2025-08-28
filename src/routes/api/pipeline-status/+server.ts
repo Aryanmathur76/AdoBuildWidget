@@ -72,7 +72,10 @@ async function fetchReleaseDetails(org: string, project: string, releaseId: numb
 function getReleaseStatus(details: Release): string | null {
 
   //These statuses represent an in-progress release
-  const inProgressStatuses = ['inProgress', 'notDeployed', 'active', 'pending', 'queued', 'notStarted'];
+  const inProgressStatuses = ['inProgress', 'active', 'pending', 'queued'];
+
+  //These statuses represent a halted or interrupted release
+  const haltedStatuses = ['rejected', 'canceled', 'failed', 'notStarted', 'notStarted', 'notDeployed'];
 
   if (!details.environments || details.environments.length <= 0) {
     return null;
@@ -81,15 +84,24 @@ function getReleaseStatus(details: Release): string | null {
   // Filter environments to only those related to tests
   const testEnvironments = details.environments.filter(env => env.name.toLowerCase().includes('tests'));
 
-  if (testEnvironments && testEnvironments.some((env) => inProgressStatuses.includes(env.status))) {
-    const today = new Date().toISOString().split('T')[0];
-    const releaseDate = details.createdOn ? details.createdOn.split('T')[0] : null;
-    if (releaseDate && today > releaseDate) return 'not completed';
-    return 'in progress';
+  //First check if the test environments have gone 24 hours without completion
+  //indicating a not completed status
+
+  const createdOn = details.createdOn ? new Date(details.createdOn) : null;
+  const now = new Date();
+  if (createdOn) {
+    const diffMs = now.getTime() - createdOn.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    if (diffHours > 24 && (testEnvironments && testEnvironments.some((env) => haltedStatuses.includes(env.status)))) return 'failed';
+  }
+  
+  // Then check to see if any test environments are in a halted status
+  if (testEnvironments && testEnvironments.some((env) => haltedStatuses.includes(env.status))) {
+    return 'halted';
   }
 
-  if (testEnvironments && testEnvironments.some((env) => ['rejected', 'canceled', 'failed'].includes(env.status))) {
-    return 'failed';
+  if (testEnvironments && testEnvironments.some((env) => inProgressStatuses.includes(env.status))) {
+    return 'in progress';
   }
 
   if (testEnvironments && testEnvironments.some((env) => env.status === 'partiallySucceeded')) {
