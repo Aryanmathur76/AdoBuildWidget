@@ -13,7 +13,7 @@ import * as Popover from "$lib/components/ui/popover/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import BuildCard from "$lib/components/ui/BuildCard/buildCard.svelte";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
-import { PUBLIC_AZURE_PIPELINE_CONFIG } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 
 const df = new DateFormatter("en-US", {
     dateStyle: "long"
@@ -23,7 +23,7 @@ import { today } from "@internationalized/date";
 let value = $state<DateValue | undefined>(today(getLocalTimeZone()));
 let contentRef = $state<HTMLElement | null>(null);
 
-const pipelineConfig = JSON.parse(PUBLIC_AZURE_PIPELINE_CONFIG);
+const pipelineConfig = JSON.parse(env.PUBLIC_AZURE_PIPELINE_CONFIG);
 
 let pipelineStatuses = $state<Record<string, string | null>>(
    Object.fromEntries(pipelineConfig.pipelines.map((p: { displayName: string }) => [p.displayName, null]))
@@ -100,7 +100,7 @@ $effect(() => {
          </Card.Header>
          <Card.Content>
             <div class="mt-8 flex flex-col gap-4 w-full">
-            {#each JSON.parse(PUBLIC_AZURE_PIPELINE_CONFIG).pipelines as pipeline}
+            {#each pipelineConfig.pipelines as pipeline}
                <BuildCard
                   pipelineName={pipeline.displayName}
                   link={pipelineLinks[pipeline.displayName] ?? undefined}
