@@ -21,7 +21,9 @@ const df = new DateFormatter("en-US", {
 
 import { today } from "@internationalized/date";
 let value = $state<DateValue | undefined>(today(getLocalTimeZone()));
+
 let contentRef = $state<HTMLElement | null>(null);
+let popoverOpen = $state(false);
 
 if (!env.PUBLIC_AZURE_PIPELINE_CONFIG) {
    throw new Error("Missing PUBLIC_AZURE_PIPELINE_CONFIG environment variable.");
@@ -68,8 +70,11 @@ let prevDate: string | undefined;
 $effect(() => {
   const currentDate = value ? value.toString() : undefined;
   if (currentDate !== prevDate) {
-    pipelineStatuses = Object.fromEntries(Object.keys(pipelineStatuses).map(k => [k, 'Unknown']));
-    prevDate = currentDate;
+      pipelineStatuses = Object.fromEntries(Object.keys(pipelineStatuses).map(k => [k, 'Unknown']));
+      prevDate = currentDate;
+      if (popoverOpen && value) {
+      popoverOpen = false;
+      }
   }
 });
 
@@ -89,7 +94,7 @@ $effect(() => {
       <ScrollArea class="h-full w-full">
          <Card.Header class="flex items-center justify-between">
             <Card.Title class="whitespace-nowrap">Build Information</Card.Title>
-            <Popover.Root>
+            <Popover.Root bind:open={popoverOpen}>
                <Popover.Trigger
                   class={cn(
                      buttonVariants({
@@ -107,7 +112,6 @@ $effect(() => {
                      type="single"
                      bind:value
                      captionLayout="dropdown"
-
                      maxValue={today(getLocalTimeZone())}
                      />
                </Popover.Content>

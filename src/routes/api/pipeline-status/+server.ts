@@ -94,7 +94,7 @@ function getReleaseStatus(details: Release): string | null {
   if (createdOn) {
     const diffMs = now.getTime() - createdOn.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
-    if (diffHours > 24 && (testEnvironments && testEnvironments.some((env) => interruptedStatuses.includes(env.status)))) return 'failed';
+    if (diffHours > 24 && (allEnvironments && allEnvironments.some((env) => interruptedStatuses.includes(env.status)))) return 'failed';
   }
 
   // Then check to see if any test environments are in a interrupted status
