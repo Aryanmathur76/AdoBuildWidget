@@ -70,53 +70,53 @@ $effect(() => {
 
 <div class="w-full h-full min-h-screen">
   <Card.Root class="w-full h-screen min-h-screen rounded-none">
-   <Card.Header class="flex items-center justify-between">
-      <Card.Title class="whitespace-nowrap">Build Information</Card.Title>
-      <Popover.Root>
-         <Popover.Trigger
-            class={cn(
-               buttonVariants({
-                  variant: "outline",
-                  class: "w-48 justify-between font-normal"
-               }),
-               !value && "text-muted-foreground"
-            )}
-         >
-            <CalendarIcon />
-            {value ? df.format(value.toDate(getLocalTimeZone())) : "Pick a date"}
-         </Popover.Trigger>
-         <Popover.Content bind:ref={contentRef} class="w-auto p-0">
-               <Calendar
-               type="single"
-               bind:value
-               captionLayout="dropdown"
+      <ScrollArea class="h-full w-full">
+         <Card.Header class="flex items-center justify-between">
+            <Card.Title class="whitespace-nowrap">Build Information</Card.Title>
+            <Popover.Root>
+               <Popover.Trigger
+                  class={cn(
+                     buttonVariants({
+                        variant: "outline",
+                        class: "w-48 justify-between font-normal"
+                     }),
+                     !value && "text-muted-foreground"
+                  )}
+               >
+                  <CalendarIcon />
+                  {value ? df.format(value.toDate(getLocalTimeZone())) : "Pick a date"}
+               </Popover.Trigger>
+               <Popover.Content bind:ref={contentRef} class="w-auto p-0">
+                     <Calendar
+                     type="single"
+                     bind:value
+                     captionLayout="dropdown"
 
-               maxValue={today(getLocalTimeZone())}
+                     maxValue={today(getLocalTimeZone())}
+                     />
+               </Popover.Content>
+            </Popover.Root>
+         </Card.Header>
+         <Card.Content>
+            <div class="mt-8 flex flex-col gap-4 w-full">
+               <BuildCard
+               pipelineName="ProdEval English"
+               status={pipelineStatuses["ProdEval English"] ?? undefined}
                />
-         </Popover.Content>
-      </Popover.Root>
-   </Card.Header>
-   <Card.Content>
-      <ScrollArea class="h-[60vh] w-full">
-        <div class="mt-8 flex flex-col gap-4 w-full">
-          <BuildCard
-            pipelineName="ProdEval English"
-            status={pipelineStatuses["ProdEval English"] ?? undefined}
-          />
-          <BuildCard
-            pipelineName="ProdEval Chinese"
-            status={pipelineStatuses["ProdEval Chinese"] ?? undefined}
-          />
-          <BuildCard
-            pipelineName="ProdEval Debug"
-            status={pipelineStatuses["ProdEval Debug"] ?? undefined}
-          />
-          <BuildCard
-            pipelineName="Daily CR"
-            status={pipelineStatuses["Daily CR"] ?? undefined}
-          />
-        </div>
+               <BuildCard
+                  pipelineName="ProdEval Chinese"
+                  status={pipelineStatuses["ProdEval Chinese"] ?? undefined}
+               />
+               <BuildCard
+                  pipelineName="ProdEval Debug"
+                  status={pipelineStatuses["ProdEval Debug"] ?? undefined}
+               />
+               <BuildCard
+                  pipelineName="Daily CR"
+                  status={pipelineStatuses["Daily CR"] ?? undefined}
+               />
+            </div>
+         </Card.Content>
       </ScrollArea>
-   </Card.Content>
   </Card.Root>
 </div>

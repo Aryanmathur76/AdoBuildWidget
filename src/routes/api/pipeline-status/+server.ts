@@ -74,8 +74,8 @@ function getReleaseStatus(details: Release): string | null {
   //These statuses represent an in-progress release
   const inProgressStatuses = ['inProgress', 'active', 'pending', 'queued'];
 
-  //These statuses represent a halted or interrupted release
-  const haltedStatuses = ['rejected', 'canceled', 'failed', 'notStarted', 'notStarted', 'notDeployed'];
+  //These statuses represent a interrupted or interrupted release
+  const interruptedStatuses = ['rejected', 'canceled', 'failed', 'notStarted', 'notStarted', 'notDeployed'];
 
   if (!details.environments || details.environments.length <= 0) {
     return null;
@@ -92,12 +92,12 @@ function getReleaseStatus(details: Release): string | null {
   if (createdOn) {
     const diffMs = now.getTime() - createdOn.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
-    if (diffHours > 24 && (testEnvironments && testEnvironments.some((env) => haltedStatuses.includes(env.status)))) return 'failed';
+    if (diffHours > 24 && (testEnvironments && testEnvironments.some((env) => interruptedStatuses.includes(env.status)))) return 'failed';
   }
-  
-  // Then check to see if any test environments are in a halted status
-  if (testEnvironments && testEnvironments.some((env) => haltedStatuses.includes(env.status))) {
-    return 'halted';
+
+  // Then check to see if any test environments are in a interrupted status
+  if (testEnvironments && testEnvironments.some((env) => interruptedStatuses.includes(env.status))) {
+    return 'interrupted';
   }
 
   if (testEnvironments && testEnvironments.some((env) => inProgressStatuses.includes(env.status))) {

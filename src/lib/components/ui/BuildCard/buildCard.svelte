@@ -21,8 +21,8 @@ export let status: string = "Unknown";
                 <Badge style="background: var(--failure);" variant="destructive">Failed</Badge>
             {:else if status === 'not completed'}
                 <Badge style="background: var(--failure);" variant="destructive">Not Completed</Badge>
-            {:else if status === 'halted'}
-                <Badge style="background: var(--failure);" variant="destructive">Halted</Badge>
+            {:else if status === 'interrupted'}
+                <Badge style="background: var(--failure);" variant="destructive">Interrupted</Badge>
             {:else if status === 'partially succeeded'}
                 <Badge style="background: var(--partially-succeeded);" variant="secondary">Partially Succeeded</Badge>
             {:else if status === 'in progress' || status === 'active'}
