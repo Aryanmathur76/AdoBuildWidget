@@ -13,6 +13,7 @@ import * as Popover from "$lib/components/ui/popover/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import BuildCard from "$lib/components/ui/BuildCard/buildCard.svelte";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import { PUBLIC_AZURE_PIPELINE_CONFIG } from '$env/static/public';
 
 const df = new DateFormatter("en-US", {
     dateStyle: "long"
@@ -22,27 +23,15 @@ import { today } from "@internationalized/date";
 let value = $state<DateValue | undefined>(today(getLocalTimeZone()));
 let contentRef = $state<HTMLElement | null>(null);
 
-// Only store definitionIds for each pipeline
-const pipelineDefinitionIds = {
-   "ProdEval English": 910,
-   "ProdEval Chinese": 1034,
-   "ProdEval Debug": 1042,
-   "Daily CR": 1054
-};
+const pipelineConfig = JSON.parse(PUBLIC_AZURE_PIPELINE_CONFIG);
 
-let pipelineStatuses = $state<Record<string, string | null>>({
-   "ProdEval English": null,
-   "ProdEval Chinese": null,
-   "ProdEval Debug": null,
-   "Daily CR": null
-});
+let pipelineStatuses = $state<Record<string, string | null>>(
+   Object.fromEntries(pipelineConfig.pipelines.map((p: { displayName: string }) => [p.displayName, null]))
+);
 
-let pipelineLinks = $state<Record<string, string | null>>({
-   "ProdEval English": null,
-   "ProdEval Chinese": null,
-   "ProdEval Debug": null,
-   "Daily CR": null
-});
+let pipelineLinks = $state<Record<string, string | null>>(
+   Object.fromEntries(pipelineConfig.pipelines.map((p: { displayName: string }) => [p.displayName, null]))
+);
 
 async function getPipelineStatus(pipelineName: string, definitionId: number) {
    if (!value) {
@@ -71,8 +60,8 @@ $effect(() => {
 
 // Reactively fetch status when date changes
 $effect(() => {
-   for (const [name, definitionId] of Object.entries(pipelineDefinitionIds)) {
-      getPipelineStatus(name, definitionId);
+   for (const pipeline of pipelineConfig.pipelines) {
+      getPipelineStatus(pipeline.displayName, pipeline.id);
    }
 });
 </script>
@@ -111,26 +100,13 @@ $effect(() => {
          </Card.Header>
          <Card.Content>
             <div class="mt-8 flex flex-col gap-4 w-full">
+            {#each JSON.parse(PUBLIC_AZURE_PIPELINE_CONFIG).pipelines as pipeline}
                <BuildCard
-                  pipelineName="ProdEval English"
-                  link={pipelineLinks["ProdEval English"] ?? undefined}
-                  status={pipelineStatuses["ProdEval English"] ?? undefined}
+                  pipelineName={pipeline.displayName}
+                  link={pipelineLinks[pipeline.displayName] ?? undefined}
+                  status={pipelineStatuses[pipeline.displayName] ?? undefined}
                />
-               <BuildCard
-                  pipelineName="ProdEval Chinese"
-                  link={pipelineLinks["ProdEval Chinese"] ?? undefined}
-                  status={pipelineStatuses["ProdEval Chinese"] ?? undefined}
-               />
-               <BuildCard
-                  pipelineName="ProdEval Debug"
-                  link={pipelineLinks["ProdEval Debug"] ?? undefined}
-                  status={pipelineStatuses["ProdEval Debug"] ?? undefined}
-               />
-               <BuildCard
-                  pipelineName="Daily CR"
-                  link={pipelineLinks["Daily CR"] ?? undefined}
-                  status={pipelineStatuses["Daily CR"] ?? undefined}
-               />
+            {/each}
             </div>
          </Card.Content>
       </ScrollArea>
