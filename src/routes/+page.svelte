@@ -37,6 +37,13 @@ let pipelineStatuses = $state<Record<string, string | null>>({
    "Daily CR": null
 });
 
+let pipelineLinks = $state<Record<string, string | null>>({
+   "ProdEval English": null,
+   "ProdEval Chinese": null,
+   "ProdEval Debug": null,
+   "Daily CR": null
+});
+
 async function getPipelineStatus(pipelineName: string, definitionId: number) {
    if (!value) {
       pipelineStatuses = { ...pipelineStatuses, [pipelineName]: null };
@@ -46,6 +53,10 @@ async function getPipelineStatus(pipelineName: string, definitionId: number) {
    const res = await fetch(`/api/pipeline-status?definitionId=${definitionId}&date=${dateStr}`);
    const data = await res.json();
    pipelineStatuses = { ...pipelineStatuses, [pipelineName]: data.status || null };
+
+   const linkRes = await fetch(`/api/release-link?definitionId=${definitionId}&date=${dateStr}`);
+   const linkData = await linkRes.json();
+   pipelineLinks = { ...pipelineLinks, [pipelineName]: linkData.link || null };
 }
 
 // Reset pipelineStatuses to null only when the date changes
@@ -69,6 +80,7 @@ $effect(() => {
 
 
 <div class="w-full h-full min-h-screen">
+
   <Card.Root class="w-full h-screen min-h-screen rounded-none">
       <ScrollArea class="h-full w-full">
          <Card.Header class="flex items-center justify-between">
@@ -100,19 +112,23 @@ $effect(() => {
          <Card.Content>
             <div class="mt-8 flex flex-col gap-4 w-full">
                <BuildCard
-               pipelineName="ProdEval English"
-               status={pipelineStatuses["ProdEval English"] ?? undefined}
+                  pipelineName="ProdEval English"
+                  link={pipelineLinks["ProdEval English"] ?? undefined}
+                  status={pipelineStatuses["ProdEval English"] ?? undefined}
                />
                <BuildCard
                   pipelineName="ProdEval Chinese"
+                  link={pipelineLinks["ProdEval Chinese"] ?? undefined}
                   status={pipelineStatuses["ProdEval Chinese"] ?? undefined}
                />
                <BuildCard
                   pipelineName="ProdEval Debug"
+                  link={pipelineLinks["ProdEval Debug"] ?? undefined}
                   status={pipelineStatuses["ProdEval Debug"] ?? undefined}
                />
                <BuildCard
                   pipelineName="Daily CR"
+                  link={pipelineLinks["Daily CR"] ?? undefined}
                   status={pipelineStatuses["Daily CR"] ?? undefined}
                />
             </div>
