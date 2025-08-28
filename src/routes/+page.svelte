@@ -48,12 +48,20 @@ async function getPipelineStatus(pipelineName: string, definitionId: number) {
    pipelineStatuses = { ...pipelineStatuses, [pipelineName]: data.status || null };
 }
 
+// Reset pipelineStatuses to null only when the date changes
+let prevDate: string | undefined;
+$effect(() => {
+  const currentDate = value ? value.toString() : undefined;
+  if (currentDate !== prevDate) {
+    pipelineStatuses = Object.fromEntries(Object.keys(pipelineStatuses).map(k => [k, 'Unknown']));
+    prevDate = currentDate;
+  }
+});
+
 // Reactively fetch status when date changes
 $effect(() => {
-   if (value) {
-      for (const [name, definitionId] of Object.entries(pipelineDefinitionIds)) {
-         getPipelineStatus(name, definitionId);
-      }
+   for (const [name, definitionId] of Object.entries(pipelineDefinitionIds)) {
+      getPipelineStatus(name, definitionId);
    }
 });
 </script>
