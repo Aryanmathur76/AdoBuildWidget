@@ -63,33 +63,33 @@ $effect(() => {
 
 <div class="w-full h-full min-h-screen">
   <Card.Root class="w-full h-screen min-h-screen rounded-none overflow-y-scroll">
-      <Card.Header class="flex items-center justify-between">
-         <Card.Title class="whitespace-nowrap">Build Information</Card.Title>
-         <Popover.Root>
-            <Popover.Trigger
-               class={cn(
-                  buttonVariants({
-                     variant: "outline",
-                     class: "w-48 justify-between font-normal"
-                  }),
-                  !value && "text-muted-foreground"
-               )}
-            >
-               <CalendarIcon />
-               {value ? df.format(value.toDate(getLocalTimeZone())) : "Pick a date"}
-            </Popover.Trigger>
-            <Popover.Content bind:ref={contentRef} class="w-auto p-0">
-                  <Calendar
-                  type="single"
-                  bind:value
-                  captionLayout="dropdown"
+   <Card.Header class="flex items-center justify-between">
+      <Card.Title class="whitespace-nowrap">Build Information</Card.Title>
+      <Popover.Root>
+         <Popover.Trigger
+            class={cn(
+               buttonVariants({
+                  variant: "outline",
+                  class: "w-48 justify-between font-normal"
+               }),
+               !value && "text-muted-foreground"
+            )}
+         >
+            <CalendarIcon />
+            {value ? df.format(value.toDate(getLocalTimeZone())) : "Pick a date"}
+         </Popover.Trigger>
+         <Popover.Content bind:ref={contentRef} class="w-auto p-0">
+               <Calendar
+               type="single"
+               bind:value
+               captionLayout="dropdown"
 
-                  maxValue={today(getLocalTimeZone())}
-                  />
-            </Popover.Content>
-         </Popover.Root>
-      </Card.Header>
-      <Card.Content>
+               maxValue={today(getLocalTimeZone())}
+               />
+         </Popover.Content>
+      </Popover.Root>
+   </Card.Header>
+   <Card.Content>
       <div class="mt-8 flex flex-col gap-4 w-full">
         <BuildCard
           pipelineName="ProdEval English"
@@ -108,6 +108,6 @@ $effect(() => {
           status={pipelineStatuses["Daily CR"] ?? undefined}
         />
       </div>
-    </Card.Content>
+   </Card.Content>
   </Card.Root>
 </div>
