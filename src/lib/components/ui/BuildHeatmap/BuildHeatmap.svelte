@@ -40,7 +40,7 @@ function isFutureDay(year: number, month: number, day: number) {
     dayDate.setHours(0,0,0,0);
     const todayDate = new Date();
     todayDate.setHours(0,0,0,0);
-    return dayDate >= todayDate;
+    return dayDate > todayDate;
 }
 
 // Store build quality for each day (YYYY-MM-DD => quality)
