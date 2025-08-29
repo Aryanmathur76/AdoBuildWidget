@@ -2,11 +2,8 @@
 <script lang="ts">
 import {
     Card,
-    CardHeader,
-    CardTitle,
     CardContent,
 } from "$lib/components/ui/card/index.js";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { goto } from "$app/navigation";
 import * as Pagination from "$lib/components/ui/pagination/index.js";
@@ -33,6 +30,15 @@ const months = monthNames.map((name, idx) => {
     const days = new Date(currentYear, idx + 1, 0).getDate();
     return { name, days };
 });
+
+// Helper to get YYYY-MM-DD string for a given year, month (0-based), and day
+function getDateString(year: number, month: number, day: number) {
+    const mm = String(month + 1).padStart(2, '0');
+    const dd = String(day).padStart(2, '0');
+    return `${year}-${mm}-${dd}`;
+}
+
+
 
 
 // Pagination state: current month (0-based)
@@ -77,8 +83,8 @@ const months = monthNames.map((name, idx) => {
                                 <Button
                                     size="icon"
                                     type="button"
-                                    aria-label={`Go to build ${getDayIndex(currentMonth, dIdx) + 1}`}
-                                    onclick={() => goto(`/build/${getDayIndex(currentMonth, dIdx) + 1}`)}
+                                    aria-label={`Go to build ${getDateString(currentYear, currentMonth, dIdx + 1)}`}
+                                    onclick={() => goto(`/build/${getDateString(currentYear, currentMonth, dIdx + 1)}`)}
                                     class="w-full h-full min-w-0 min-h-0"
                                     style="aspect-ratio: 1 / 1;"
                                 >

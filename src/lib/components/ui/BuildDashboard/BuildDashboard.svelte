@@ -1,5 +1,6 @@
 <script lang="ts">
     import CalendarIcon from "@lucide/svelte/icons/calendar";
+    const { date } = $props<{ date?: string }>();
     import {
         DateFormatter,
         type DateValue,
@@ -18,8 +19,11 @@
         dateStyle: "long",
     });
 
-    import { today } from "@internationalized/date";
-    let value = $state<DateValue | undefined>(today(getLocalTimeZone()));
+
+    import { today, parseDate } from "@internationalized/date";
+    let value = $state<DateValue | undefined>(
+        date ? parseDate(date) : today(getLocalTimeZone())
+    );
 
     let contentRef = $state<HTMLElement | null>(null);
     let popoverOpen = $state(false);
