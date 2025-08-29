@@ -73,7 +73,7 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
     // Determine overall quality
     let result: string = 'unknown';
     if (statuses.length > 0) {
-    if (statuses.every(s => s === 'good')) {
+    if (statuses.every(s => s === 'good' || s === 'unknown') && statuses.some(s => s === 'good')) {
       result = 'good';
     } else if (statuses.some(s => s === 'good' || s === 'ok')) {
       result = 'ok';
