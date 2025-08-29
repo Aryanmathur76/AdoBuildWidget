@@ -1,6 +1,11 @@
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/public';
 
+// --- In-memory cache ---
+type CacheEntry = { result: any, timestamp: number };
+const cache: Record<string, CacheEntry> = {};
+const CACHE_INTERVAL = 5 * 60 * 1000; // 20 minutes in ms
+
 // --- Types ---
 interface Release {
   id: number;
@@ -26,6 +31,14 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
     if (!date || typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return errorJson('Invalid date format. Expected YYYY-MM-DD', 400);
     }
+
+    // Check cache
+    const cacheKey = date;
+    const now = Date.now();
+    if (cache[cacheKey] && (now - cache[cacheKey].timestamp < CACHE_INTERVAL)) {
+      return json(cache[cacheKey].result);
+    }
+
     const pipelineConfigRaw = env.PUBLIC_AZURE_PIPELINE_CONFIG;
     if (!pipelineConfigRaw) {
       return errorJson('Missing pipeline config', 500);
@@ -73,24 +86,27 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
     // Determine overall quality
     let result: string = 'unknown';
     if (statuses.length > 0) {
-    if (statuses.every(s => s === 'good' || s === 'unknown') && statuses.some(s => s === 'good')) {
-      result = 'good';
-    } else if (statuses.some(s => s === 'good' || s === 'ok')) {
-      result = 'ok';
-    } else if (statuses.some(s => s === 'in progress')) {
-      result = 'in progress';
-    } else if (statuses.every(s => s === 'unknown' || s === 'bad')) {
-      // If all are unknown or bad, but not all unknown
-      if (statuses.every(s => s === 'unknown')) {
+      if (statuses.every(s => s === 'good' || s === 'unknown') && statuses.some(s => s === 'good')) {
+        result = 'good';
+      } else if (statuses.some(s => s === 'good' || s === 'ok')) {
+        result = 'ok';
+      } else if (statuses.some(s => s === 'in progress')) {
+        result = 'in progress';
+      } else if (statuses.every(s => s === 'unknown' || s === 'bad')) {
+        // If all are unknown or bad, but not all unknown
+        if (statuses.every(s => s === 'unknown')) {
+          result = 'unknown';
+        } else {
+          result = 'bad';
+        }
+      } else if (statuses.every(s => s === 'unknown')) {
         result = 'unknown';
-      } else {
-        result = 'bad';
       }
-    } else if (statuses.every(s => s === 'unknown')) {
-      result = 'unknown';
     }
-    }
-    return json({ date, quality: result });
+    const response = { date, quality: result };
+    // Update cache
+    cache[cacheKey] = { result: response, timestamp: now };
+    return json(response);
   } catch (e: any) {
     if (e && typeof e === 'object' && 'error' in e && 'status' in e) {
       return errorJson(e.error, e.status);
