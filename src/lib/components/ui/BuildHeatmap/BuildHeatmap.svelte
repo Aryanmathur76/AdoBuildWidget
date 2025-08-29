@@ -6,6 +6,7 @@ import {
 import { Button } from "$lib/components/ui/button/index.js";
 import { goto } from "$app/navigation";
 import * as Pagination from "$lib/components/ui/pagination/index.js";
+import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 
 
 // Svelte binding for Pagination.Root (1-based page index)
@@ -72,7 +73,8 @@ $: daysInMonth = Array.from({ length: months[currentMonth].days }, (_, dIdx) => 
         case 'ok': colorClass = 'bg-yellow-400 text-black'; break;
         case 'bad': colorClass = 'bg-red-500 text-white'; break;
         case 'in progress': colorClass = 'bg-blue-500 text-white'; break;
-        case 'unknown': default: colorClass = 'bg-gray-300 text-black'; break;
+        case 'unknown': colorClass = 'bg-zinc-800 text-white'; break;
+        default: colorClass = 'bg-zinc-800 text-white'; break;
     }
     return { day, dateStr, colorClass, disabled: isFutureDay(currentYear, currentMonth, day) };
 });
@@ -136,18 +138,22 @@ async function fetchAllBuildQualitiesForMonth() {
                     <div class="grid grid-cols-7 gap-1">
                         {#each daysInMonth as dayObj}
                             <div class="w-full aspect-square min-w-0 min-h-0">
-                                <!-- @ts-ignore -->
-                                <Button
-                                    size="icon"
-                                    type="button"
-                                    aria-label={`Go to build ${dayObj.dateStr}`}
-                                    onclick={() => goto(`/build/${dayObj.dateStr}`)}
-                                    class={`w-full h-full min-w-0 min-h-0 ${dayObj.colorClass}`}
-                                    style="aspect-ratio: 1 / 1;"
-                                    disabled={dayObj.disabled}
-                                >
-                                    {dayObj.day}
-                                </Button>
+                                {#if dayBuildQuality[dayObj.dateStr]}
+                                    <!-- @ts-ignore -->
+                                    <Button
+                                        size="icon"
+                                        type="button"
+                                        aria-label={`Go to build ${dayObj.dateStr}`}
+                                        onclick={() => goto(`/build/${dayObj.dateStr}`)}
+                                        class={`w-full h-full min-w-0 min-h-0 ${dayObj.colorClass}`}
+                                        style="aspect-ratio: 1 / 1;"
+                                        disabled={dayObj.disabled}
+                                    >
+                                        {dayObj.day}
+                                    </Button>
+                                {:else}
+                                    <Skeleton class="w-full h-full min-w-0 min-h-0 rounded" style="aspect-ratio: 1 / 1;" />
+                                {/if}
                             </div>
                         {/each}
                     </div>

@@ -72,7 +72,7 @@ async function fetchReleaseDetails(org: string, project: string, releaseId: numb
 function getReleaseStatus(details: Release): string | null {
 
   //These statuses represent an in-progress release
-  const inProgressStatuses = ['inProgress', 'active', 'pending', 'queued', 'notStarted', 'notDeployed'];
+  const inProgressStatuses = ['inProgress', 'active', 'pending', 'queued'];
 
   //These statuses represent a interrupted or interrupted release
   const interruptedStatuses = ['rejected', 'canceled', 'failed'];

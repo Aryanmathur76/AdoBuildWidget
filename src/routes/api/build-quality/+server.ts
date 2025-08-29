@@ -73,17 +73,22 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
     // Determine overall quality
     let result: string = 'unknown';
     if (statuses.length > 0) {
-      if (statuses.every(s => s === 'good')) {
-        result = 'good';
-      } else if (statuses.some(s => s === 'bad')) {
-        result = 'bad';
-      } else if (statuses.some(s => s === 'ok')) {
-        result = 'ok';
-      } else if (statuses.some(s => s === 'in progress')) {
-        result = 'in progress';
-      } else if (statuses.every(s => s === 'unknown')) {
+    if (statuses.every(s => s === 'good')) {
+      result = 'good';
+    } else if (statuses.some(s => s === 'good' || s === 'ok')) {
+      result = 'ok';
+    } else if (statuses.some(s => s === 'in progress')) {
+      result = 'in progress';
+    } else if (statuses.every(s => s === 'unknown' || s === 'bad')) {
+      // If all are unknown or bad, but not all unknown
+      if (statuses.every(s => s === 'unknown')) {
         result = 'unknown';
+      } else {
+        result = 'bad';
       }
+    } else if (statuses.every(s => s === 'unknown')) {
+      result = 'unknown';
+    }
     }
     return json({ date, quality: result });
   } catch (e: any) {
