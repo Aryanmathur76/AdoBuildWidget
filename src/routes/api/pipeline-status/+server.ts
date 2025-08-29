@@ -86,6 +86,11 @@ function getReleaseStatus(details: Release): string | null {
   // Filter environments to only those related to tests
   const testEnvironments = details.environments.filter(env => env.name.toLowerCase().includes('tests'));
 
+  //If the test environments all succeeded, return succeeded
+  if (testEnvironments && testEnvironments.every((env) => env.status === 'succeeded')) {
+    return 'succeeded';
+  }
+
   //First check if the test environments have gone 24 hours without completion
   //indicating a not completed status
 
@@ -108,10 +113,6 @@ function getReleaseStatus(details: Release): string | null {
 
   if (testEnvironments && testEnvironments.some((env) => env.status === 'partiallySucceeded')) {
     return 'partially succeeded';
-  }
-
-  if (testEnvironments && testEnvironments.every((env) => env.status === 'succeeded')) {
-    return 'succeeded';
   }
 
   return details.status || null;
