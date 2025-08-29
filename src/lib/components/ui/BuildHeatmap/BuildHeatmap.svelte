@@ -7,12 +7,6 @@ import { Button } from "$lib/components/ui/button/index.js";
 import { goto } from "$app/navigation";
 import * as Pagination from "$lib/components/ui/pagination/index.js";
 
-// Helper to get the global day index for a given month and day
-function getDayIndex(monthIndex: number, dayIndex: number) {
-    let idx = 0;
-    for (let i = 0; i < monthIndex; i++) idx += months[i].days;
-    return idx + dayIndex;
-}
 
 // Svelte binding for Pagination.Root (1-based page index)
 const today = new Date();
@@ -46,6 +40,65 @@ function isFutureDay(year: number, month: number, day: number) {
     const todayDate = new Date();
     todayDate.setHours(0,0,0,0);
     return dayDate >= todayDate;
+}
+
+// Store build quality for each day (YYYY-MM-DD => quality)
+let dayBuildQuality: Record<string, string> = {};
+
+// Fetch build quality for a given date (YYYY-MM-DD)
+async function fetchBuildQualityForDay(dateStr: string) {
+    try {
+        const res = await fetch(`/api/build-quality?date=${dateStr}`);
+        if (res.ok) {
+            const data = await res.json();
+            console.log(`Fetched build quality for ${dateStr}: ${data.quality}`);
+            dayBuildQuality[dateStr] = data.quality;
+        } else {
+            dayBuildQuality[dateStr] = 'unknown';
+        }
+    } catch {
+        dayBuildQuality[dateStr] = 'unknown';
+    }
+}
+
+
+// Precompute day objects for the current month (pure, no side effects)
+$: daysInMonth = Array.from({ length: months[currentMonth].days }, (_, dIdx) => {
+    const day = dIdx + 1;
+    const dateStr = getDateString(currentYear, currentMonth, day);
+    let colorClass = '';
+    switch (dayBuildQuality[dateStr]) {
+        case 'good': colorClass = 'bg-green-500 text-white'; break;
+        case 'ok': colorClass = 'bg-yellow-400 text-black'; break;
+        case 'bad': colorClass = 'bg-red-500 text-white'; break;
+        case 'in progress': colorClass = 'bg-blue-500 text-white'; break;
+        case 'unknown': default: colorClass = 'bg-gray-300 text-black'; break;
+    }
+    return { day, dateStr, colorClass, disabled: isFutureDay(currentYear, currentMonth, day) };
+});
+
+
+// Fetch all build qualities for the current month only when the month changes
+let lastFetchedMonth = -1;
+$: if (currentMonth !== lastFetchedMonth) {
+    lastFetchedMonth = currentMonth;
+    fetchAllBuildQualitiesForMonth();
+}
+
+async function fetchAllBuildQualitiesForMonth() {
+    for (let d = 1; d <= months[currentMonth].days; d++) {
+        if (!isFutureDay(currentYear, currentMonth, d)) {
+            const dateStr = getDateString(currentYear, currentMonth, d);
+            if (!dayBuildQuality[dateStr]) {
+                const prev = dayBuildQuality[dateStr];
+                await fetchBuildQualityForDay(dateStr);
+                // Only trigger update if value actually changed
+                if (dayBuildQuality[dateStr] !== prev) {
+                    dayBuildQuality = { ...dayBuildQuality };
+                }
+            }
+        }
+    }
 }
 </script>
 
@@ -81,19 +134,19 @@ function isFutureDay(year: number, month: number, day: number) {
                         </Pagination.Root>
                     </div>
                     <div class="grid grid-cols-7 gap-1">
-                        {#each Array(months[currentMonth].days) as _, dIdx}
+                        {#each daysInMonth as dayObj}
                             <div class="w-full aspect-square min-w-0 min-h-0">
                                 <!-- @ts-ignore -->
                                 <Button
                                     size="icon"
                                     type="button"
-                                    aria-label={`Go to build ${getDateString(currentYear, currentMonth, dIdx + 1)}`}
-                                    onclick={() => goto(`/build/${getDateString(currentYear, currentMonth, dIdx + 1)}`)}
-                                    class="w-full h-full min-w-0 min-h-0"
+                                    aria-label={`Go to build ${dayObj.dateStr}`}
+                                    onclick={() => goto(`/build/${dayObj.dateStr}`)}
+                                    class={`w-full h-full min-w-0 min-h-0 ${dayObj.colorClass}`}
                                     style="aspect-ratio: 1 / 1;"
-                                    disabled={isFutureDay(currentYear, currentMonth, dIdx + 1)}
+                                    disabled={dayObj.disabled}
                                 >
-                                    {dIdx + 1}
+                                    {dayObj.day}
                                 </Button>
                             </div>
                         {/each}
