@@ -99,22 +99,20 @@
     $effect(() => {
         const currentDate = value ? value.toString() : undefined;
         if (currentDate === prevDate) return;
-        if (currentDate !== prevDate) {
-            pipelineStatuses = Object.fromEntries(
-                Object.keys(pipelineStatuses).map((k) => [k, "Unknown"]),
-            );
-            prevDate = currentDate;
-            if (popoverOpen && value) {
-                popoverOpen = false;
-            }
-        }
+        // Only run if the date actually changed
+        pipelineStatuses = Object.fromEntries(
+            Object.keys(pipelineStatuses).map((k) => [k, "Unknown"]),
+        );
+        prevDate = currentDate;
         for (const pipeline of pipelineConfig.pipelines) {
             getPipelineStatus(pipeline.displayName, pipeline.id);
         }
+        // Close the calendar popover after a new date is picked
+        if (popoverOpen) {
+            popoverOpen = false;
+        }
     });
 
-    // Reactively fetch status when date changes
-    $effect(() => {});
 </script>
 
 <div class="w-full h-full min-h-screen">
@@ -134,10 +132,8 @@
                             !value && "text-muted-foreground",
                         )}
                     >
-                        <CalendarIcon />
-                        {value
-                            ? df.format(value.toDate(getLocalTimeZone()))
-                            : "Pick a date"}
+                    <CalendarIcon />
+                    {value ? df.format(value.toDate(getLocalTimeZone())) : "Pick a date"}
                     </Popover.Trigger>
                     <Popover.Content bind:ref={contentRef} class="w-auto p-0">
                         <Calendar
@@ -145,6 +141,8 @@
                             bind:value
                             captionLayout="dropdown"
                             maxValue={today(getLocalTimeZone())}
+                            preventDeselect={true}
+                            disableDaysOutsideMonth={false}
                         />
                     </Popover.Content>
                 </Popover.Root>
