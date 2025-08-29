@@ -130,9 +130,9 @@ async function fetchAllBuildQualitiesForMonth() {
 
 <div class="w-full h-full min-h-screen"
     transition:slide={{ duration: 300 }}>
-    <Card class="h-full rounded-none">
+    <Card class="h-full rounded-none overflow-y-auto max-h-[100vh]">
             <CardContent class="h-full px-2">
-                <div class="overflow-y-auto h-full max-h-[90vh]">
+                <div class="overflow-y-auto h-full">
                     <div class="flex justify-center mb-4">
                         <Pagination.Root count={months.length} perPage={1} siblingCount={1} bind:page={currentMonthPage}>
                         {#snippet children({ pages, currentPage })}
