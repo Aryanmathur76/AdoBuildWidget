@@ -45,20 +45,13 @@ function isFutureDay(year: number, month: number, day: number) {
 
 // Store build quality for each day (YYYY-MM-DD => quality)
 let dayBuildQuality: Record<string, string> = {};
-// In-memory cache to avoid re-fetching the same day
-const buildQualityCache: Record<string, string> = {};
 
-// Fetch build quality for a given date (YYYY-MM-DD), with cache and skip future days
+// Fetch build quality for a given date (YYYY-MM-DD), skip future days
 async function fetchBuildQualityForDay(dateStr: string) {
     // Parse dateStr to year, month, day
     const [year, month, day] = dateStr.split('-').map(Number);
     if (isFutureDay(year, month - 1, day)) {
         dayBuildQuality[dateStr] = 'unknown';
-        buildQualityCache[dateStr] = 'unknown';
-        return;
-    }
-    if (buildQualityCache[dateStr]) {
-        dayBuildQuality[dateStr] = buildQualityCache[dateStr];
         return;
     }
     try {
@@ -67,14 +60,11 @@ async function fetchBuildQualityForDay(dateStr: string) {
             const data = await res.json();
             console.log(`Fetched build quality for ${dateStr}: ${data.quality}`);
             dayBuildQuality[dateStr] = data.quality;
-            buildQualityCache[dateStr] = data.quality;
         } else {
             dayBuildQuality[dateStr] = 'unknown';
-            buildQualityCache[dateStr] = 'unknown';
         }
     } catch {
         dayBuildQuality[dateStr] = 'unknown';
-        buildQualityCache[dateStr] = 'unknown';
     }
 }
 
