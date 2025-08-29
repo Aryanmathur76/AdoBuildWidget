@@ -1,4 +1,3 @@
-
 <script lang="ts">
 import {
     Card,
@@ -16,8 +15,9 @@ function getDayIndex(monthIndex: number, dayIndex: number) {
 }
 
 // Svelte binding for Pagination.Root (1-based page index)
-let currentMonth = 0;
-let currentMonthPage = 1;
+const today = new Date();
+let currentMonth = today.getMonth();
+let currentMonthPage = currentMonth + 1;
 $: currentMonth = currentMonthPage - 1;
 
 const monthNames = [
@@ -38,11 +38,15 @@ function getDateString(year: number, month: number, day: number) {
     return `${year}-${mm}-${dd}`;
 }
 
-
-
-
-// Pagination state: current month (0-based)
-// (already declared above)
+// Helper to check if a given day is in the future (including today)
+function isFutureDay(year: number, month: number, day: number) {
+    const dayDate = new Date(year, month, day);
+    // Remove time for comparison
+    dayDate.setHours(0,0,0,0);
+    const todayDate = new Date();
+    todayDate.setHours(0,0,0,0);
+    return dayDate >= todayDate;
+}
 </script>
 
 <div class="w-full h-full min-h-screen">
@@ -87,6 +91,7 @@ function getDateString(year: number, month: number, day: number) {
                                     onclick={() => goto(`/build/${getDateString(currentYear, currentMonth, dIdx + 1)}`)}
                                     class="w-full h-full min-w-0 min-h-0"
                                     style="aspect-ratio: 1 / 1;"
+                                    disabled={isFutureDay(currentYear, currentMonth, dIdx + 1)}
                                 >
                                     {dIdx + 1}
                                 </Button>
