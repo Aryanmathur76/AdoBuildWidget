@@ -50,6 +50,7 @@
 
     const pipelineConfig = parsedConfig;
 
+
     let pipelineStatuses = $state<Record<string, string | null>>(
         Object.fromEntries(
             pipelineConfig.pipelines.map((p: { displayName: string }) => [
@@ -67,6 +68,8 @@
             ]),
         ),
     );
+
+    let releaseDescription = $state<string | null>(null);
 
     async function getPipelineStatus(
         pipelineName: string,
@@ -98,7 +101,8 @@
         };
     }
 
-    // Reset pipelineStatuses to null only when the date changes
+
+    // Reset pipelineStatuses to null and fetch release description when the date changes
     let prevDate: string | undefined;
     $effect(() => {
         const currentDate = value ? value.toString() : undefined;
@@ -110,6 +114,21 @@
         prevDate = currentDate;
         for (const pipeline of pipelineConfig.pipelines) {
             getPipelineStatus(pipeline.displayName, pipeline.id);
+        }
+        // Fetch release description for the selected date and first pipeline
+        if (pipelineConfig.pipelines.length > 0 && value) {
+            const definitionId = pipelineConfig.pipelines[0].id;
+            const dateStr = value.toDate(getLocalTimeZone()).toISOString().split("T")[0];
+            fetch(`/api/release-description?definitionId=${definitionId}&date=${dateStr}`)
+                .then(res => res.json())
+                .then(data => {
+                    releaseDescription = data.description ?? null;
+                })
+                .catch(() => {
+                    releaseDescription = null;
+                });
+        } else {
+            releaseDescription = null;
         }
         // Close the calendar popover after a new date is picked
         if (popoverOpen) {
@@ -158,6 +177,17 @@
             </Card.Header>
             <Card.Content>
                 <div class="mt-8 flex flex-col gap-4 w-full">
+                    <!-- Release Description Card -->
+                    <div class="bg-muted rounded-lg p-4 shadow flex flex-col gap-2">
+                        <div class="font-semibold text-lg">Release Description</div>
+                        <div class="text-muted-foreground text-sm">
+                            {#if releaseDescription !== null}
+                                {releaseDescription || 'No release description available.'}
+                            {:else}
+                                Loading...
+                            {/if}
+                        </div>
+                    </div>
                     {#each pipelineConfig.pipelines as pipeline}
                         <BuildCard
                             pipelineName={pipeline.displayName}

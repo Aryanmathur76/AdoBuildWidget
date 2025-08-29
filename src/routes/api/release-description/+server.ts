@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 
-// Returns a link to the Azure DevOps release for a given definitionId and date
+// Returns the description of the Azure DevOps release for a given definitionId and date
 import type { RequestEvent } from '@sveltejs/kit';
 
 export async function GET({ url }: RequestEvent) {
@@ -36,13 +36,12 @@ export async function GET({ url }: RequestEvent) {
     // Find the release for the given date
     const release = data.value.find((r: { createdOn: string; }) => r.createdOn && r.createdOn.startsWith(date));
     if (!release) {
-      return json({ link: null, error: 'No release found for this date' });
+      return json({ description: null, error: 'No release found for this date' });
     }
-    // Construct the Azure DevOps release link
-    const link = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_release?releaseId=${release.id}`;
-    return json({ link });
+    // Return the description field (may be empty string)
+    return json({ description: release.description ?? '' });
   } catch (e) {
     const err = e instanceof Error ? e : { message: String(e) };
-    return json({ error: 'Error fetching release link', details: err.message }, { status: 500 });
+    return json({ error: 'Error fetching release description', details: err.message }, { status: 500 });
   }
 }
