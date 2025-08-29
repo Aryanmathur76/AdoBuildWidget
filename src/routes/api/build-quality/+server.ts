@@ -4,7 +4,7 @@ import { env } from '$env/dynamic/public';
 // --- In-memory cache ---
 type CacheEntry = { result: any, timestamp: number };
 const cache: Record<string, CacheEntry> = {};
-const CACHE_INTERVAL = 5 * 60 * 1000; // 20 minutes in ms
+const CACHE_INTERVAL = 5 * 60 * 1000; // 5 minutes in ms
 
 // --- Types ---
 interface Release {
