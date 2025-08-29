@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { slide } from 'svelte/transition';
+    import { navigationDirection } from '$lib/utils';
     import CalendarIcon from "@lucide/svelte/icons/calendar";
     const { date } = $props<{ date?: string }>();
     import {
@@ -151,16 +153,20 @@
 
 </script>
 
-<div class="w-full h-full min-h-screen">
+<div class="w-full h-full min-h-screen"
+    transition:slide={{ duration: 300 }}>
     <Card.Root class="w-full h-screen min-h-screen rounded-none">
         <ScrollArea class="h-full w-full">
             <Card.Header class="flex items-center justify-between">
-                <a href="/" class={cn(
-                    buttonVariants({
-                        variant: "ghost",
-                        class: "whitespace-nowrap text-lg font-semibold px-2 py-1 hover:bg-accent hover:text-accent-foreground transition-colors"
-                    })
-                )}>
+                <a href="/"
+                    class={cn(
+                        buttonVariants({
+                            variant: "ghost",
+                            class: "whitespace-nowrap text-lg font-semibold px-2 py-1 hover:bg-accent hover:text-accent-foreground transition-colors"
+                        })
+                    )}
+                    on:click={() => navigationDirection.set('right')}
+                >
                     ← Back to Heatmap
                 </a>
                 <Popover.Root bind:open={popoverOpen}>
