@@ -9,6 +9,19 @@ import {
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { goto } from "$app/navigation";
+import * as Pagination from "$lib/components/ui/pagination/index.js";
+
+// Helper to get the global day index for a given month and day
+function getDayIndex(monthIndex: number, dayIndex: number) {
+    let idx = 0;
+    for (let i = 0; i < monthIndex; i++) idx += months[i].days;
+    return idx + dayIndex;
+}
+
+// Svelte binding for Pagination.Root (1-based page index)
+let currentMonth = 0;
+let currentMonthPage = 1;
+$: currentMonth = currentMonthPage - 1;
 
 const monthNames = [
     "January", "February", "March", "April", "May", "June",
@@ -21,42 +34,60 @@ const months = monthNames.map((name, idx) => {
     return { name, days };
 });
 
-// Used to keep track of the global day index for build links
-let dayIndex = 0;
+
+// Pagination state: current month (0-based)
+// (already declared above)
 </script>
 
 <div class="w-full h-full min-h-screen">
     <Card class="h-full rounded-none">
-        <ScrollArea class="h-full w-full">
-            <CardHeader>
-                <CardTitle>Build Quality</CardTitle>
-            </CardHeader>
-            <CardContent class="h-full p-0">
-                <div class="overflow-y-auto h-full max-h-[100vh] p-6">
+            <CardContent class="h-full">
+                <div class="overflow-y-auto h-full max-h-[90vh]">
+                    <div class="flex justify-center mb-4">
+                        <Pagination.Root count={months.length} perPage={1} siblingCount={1} bind:page={currentMonthPage}>
+                        {#snippet children({ pages, currentPage })}
+                            <Pagination.Content>
+                                <Pagination.Item>
+                                    <Pagination.PrevButton />
+                                </Pagination.Item>
+                                {#each pages as page (page.key)}
+                                    {#if page.type === "ellipsis"}
+                                        <Pagination.Item>
+                                            <Pagination.Ellipsis />
+                                        </Pagination.Item>
+                                    {:else}
+                                        <Pagination.Item>
+                                            <Pagination.Link {page} isActive={currentPage === page.value}>
+                                                {monthNames[page.value - 1].slice(0, 3)}
+                                            </Pagination.Link>
+                                        </Pagination.Item>
+                                    {/if}
+                                {/each}
+                                <Pagination.Item>
+                                    <Pagination.NextButton />
+                                </Pagination.Item>
+                            </Pagination.Content>
+                        {/snippet}
+                        </Pagination.Root>
+                    </div>
                     <div class="grid grid-cols-7 gap-1">
-                        {@html (() => { dayIndex = 0; return "" })()}
-                        {#each months as month, mIdx}
-                            <div class="col-span-7 text-center font-semibold py-2 rounded mb-1 mt-2" style="background: var(--accent); color: var(--foreground);">{month.name}</div>
-                            {#each Array(month.days) as _, dIdx}
-                                <div class="w-full aspect-square min-w-0 min-h-0">
-                                    <!-- @ts-ignore -->
-                                    <Button
-                                        size="icon"
-                                        type="button"
-                                        aria-label={`Go to build ${dayIndex + 1}`}
-                                        onclick={() => goto(`/build/${dayIndex + 1}`)}
-                                        class="w-full h-full min-w-0 min-h-0"
-                                        style="aspect-ratio: 1 / 1;"
-                                    >
-                                        {dIdx + 1}
-                                    </Button>
-                                </div>
-                                {@html (() => { dayIndex += 1; return "" })()}
-                            {/each}
+                        {#each Array(months[currentMonth].days) as _, dIdx}
+                            <div class="w-full aspect-square min-w-0 min-h-0">
+                                <!-- @ts-ignore -->
+                                <Button
+                                    size="icon"
+                                    type="button"
+                                    aria-label={`Go to build ${getDayIndex(currentMonth, dIdx) + 1}`}
+                                    onclick={() => goto(`/build/${getDayIndex(currentMonth, dIdx) + 1}`)}
+                                    class="w-full h-full min-w-0 min-h-0"
+                                    style="aspect-ratio: 1 / 1;"
+                                >
+                                    {dIdx + 1}
+                                </Button>
+                            </div>
                         {/each}
                     </div>
                 </div>
             </CardContent>
-        </ScrollArea>
     </Card>
 </div>
