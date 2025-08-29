@@ -1,6 +1,5 @@
 <script lang="ts">
 import { slide } from 'svelte/transition';
-import { navigationDirection } from '$lib/utils';
 import {
     Card,
     CardContent,
@@ -132,7 +131,7 @@ async function fetchAllBuildQualitiesForMonth() {
 <div class="w-full h-full min-h-screen"
     transition:slide={{ duration: 300 }}>
     <Card class="h-full rounded-none">
-            <CardContent class="h-full">
+            <CardContent class="h-full px-2">
                 <div class="overflow-y-auto h-full max-h-[90vh]">
                     <div class="flex justify-center mb-4">
                         <Pagination.Root count={months.length} perPage={1} siblingCount={1} bind:page={currentMonthPage}>
@@ -170,7 +169,7 @@ async function fetchAllBuildQualitiesForMonth() {
                                         size="icon"
                                         type="button"
                                         aria-label={`Go to build ${dayObj.dateStr}`}
-                                        onclick={() => { navigationDirection.set('left'); goto(`/build/${dayObj.dateStr}`); }}
+                                        onclick={() => {goto(`/build/${dayObj.dateStr}`); }}
                                         class={`w-full h-full min-w-0 min-h-0 ${dayObj.colorClass}`}
                                         style="aspect-ratio: 1 / 1;"
                                         disabled={dayObj.disabled}

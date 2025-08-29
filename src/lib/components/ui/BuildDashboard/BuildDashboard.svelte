@@ -1,6 +1,5 @@
 <script lang="ts">
     import { slide } from 'svelte/transition';
-    import { navigationDirection } from '$lib/utils';
     import CalendarIcon from "@lucide/svelte/icons/calendar";
     const { date } = $props<{ date?: string }>();
     import {
@@ -165,7 +164,6 @@
                             class: "whitespace-nowrap text-lg font-semibold px-2 py-1 hover:bg-accent hover:text-accent-foreground transition-colors"
                         })
                     )}
-                    on:click={() => navigationDirection.set('right')}
                 >
                     ← Back to Heatmap
                 </a>

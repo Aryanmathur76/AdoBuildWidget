@@ -1,7 +1,3 @@
-import { writable } from 'svelte/store';
-
-// 'left' means navigating to dashboard, 'right' means navigating back to heatmap
-export const navigationDirection = writable<'left' | 'right'>('left');
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
