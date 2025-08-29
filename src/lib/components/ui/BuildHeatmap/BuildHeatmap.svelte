@@ -45,20 +45,36 @@ function isFutureDay(year: number, month: number, day: number) {
 
 // Store build quality for each day (YYYY-MM-DD => quality)
 let dayBuildQuality: Record<string, string> = {};
+// In-memory cache to avoid re-fetching the same day
+const buildQualityCache: Record<string, string> = {};
 
-// Fetch build quality for a given date (YYYY-MM-DD)
+// Fetch build quality for a given date (YYYY-MM-DD), with cache and skip future days
 async function fetchBuildQualityForDay(dateStr: string) {
+    // Parse dateStr to year, month, day
+    const [year, month, day] = dateStr.split('-').map(Number);
+    if (isFutureDay(year, month - 1, day)) {
+        dayBuildQuality[dateStr] = 'unknown';
+        buildQualityCache[dateStr] = 'unknown';
+        return;
+    }
+    if (buildQualityCache[dateStr]) {
+        dayBuildQuality[dateStr] = buildQualityCache[dateStr];
+        return;
+    }
     try {
         const res = await fetch(`/api/build-quality?date=${dateStr}`);
         if (res.ok) {
             const data = await res.json();
             console.log(`Fetched build quality for ${dateStr}: ${data.quality}`);
             dayBuildQuality[dateStr] = data.quality;
+            buildQualityCache[dateStr] = data.quality;
         } else {
             dayBuildQuality[dateStr] = 'unknown';
+            buildQualityCache[dateStr] = 'unknown';
         }
     } catch {
         dayBuildQuality[dateStr] = 'unknown';
+        buildQualityCache[dateStr] = 'unknown';
     }
 }
 
@@ -165,6 +181,18 @@ async function fetchAllBuildQualitiesForMonth() {
                                         class={`w-full h-full min-w-0 min-h-0 ${dayObj.colorClass}`}
                                         style="aspect-ratio: 1 / 1;"
                                         disabled={dayObj.disabled}
+                                    >
+                                        {dayObj.day}
+                                    </Button>
+                                {:else if dayObj.disabled}
+                                    <!-- For future days, show disabled button immediately -->
+                                    <Button
+                                        size="icon"
+                                        type="button"
+                                        aria-label={`Go to build ${dayObj.dateStr}`}
+                                        class={`w-full h-full min-w-0 min-h-0 bg-zinc-800 text-white`}
+                                        style="aspect-ratio: 1 / 1;"
+                                        disabled={true}
                                     >
                                         {dayObj.day}
                                     </Button>
