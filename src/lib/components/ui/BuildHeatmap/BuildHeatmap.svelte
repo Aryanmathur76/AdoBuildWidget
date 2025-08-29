@@ -87,18 +87,35 @@ $: if (currentMonth !== lastFetchedMonth) {
     fetchAllBuildQualitiesForMonth();
 }
 
+// Parallelize API calls with a concurrency limit
 async function fetchAllBuildQualitiesForMonth() {
+    const concurrency = 10;
+    const tasks = [];
     for (let d = 1; d <= months[currentMonth].days; d++) {
         if (!isFutureDay(currentYear, currentMonth, d)) {
             const dateStr = getDateString(currentYear, currentMonth, d);
             if (!dayBuildQuality[dateStr]) {
-                const prev = dayBuildQuality[dateStr];
-                await fetchBuildQualityForDay(dateStr);
-                // Only trigger update if value actually changed
-                if (dayBuildQuality[dateStr] !== prev) {
-                    dayBuildQuality = { ...dayBuildQuality };
-                }
+                tasks.push(dateStr);
             }
+        }
+    }
+
+    // Helper to process a batch of up to 'concurrency' tasks at once
+    for (let i = 0; i < tasks.length; i += concurrency) {
+        const batch = tasks.slice(i, i + concurrency);
+        // Save previous values for update detection
+        const prevs = batch.map(dateStr => dayBuildQuality[dateStr]);
+        await Promise.all(batch.map(dateStr => fetchBuildQualityForDay(dateStr)));
+        // Only trigger update if any value actually changed
+        let changed = false;
+        for (let j = 0; j < batch.length; j++) {
+            if (dayBuildQuality[batch[j]] !== prevs[j]) {
+                changed = true;
+                break;
+            }
+        }
+        if (changed) {
+            dayBuildQuality = { ...dayBuildQuality };
         }
     }
 }
