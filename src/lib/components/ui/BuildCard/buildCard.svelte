@@ -6,8 +6,6 @@
     import { Toaster } from "$lib/components/ui/sonner";
     import * as Chart from "$lib/components/ui/chart/index.js";
     import { PieChart, Text } from "layerchart";
-    import TrendingUpIcon from "@lucide/svelte/icons/trending-up";
-    import { onMount } from "svelte";
 
     export let pipelineName: string = "PipelineName";
     export let link: string | null = null;
@@ -27,6 +25,7 @@
     let failCount: number | null = null;
     let loading = false;
     let error: string | null = null;
+
 
     async function fetchTestRun() {
         if (!releaseDefId || !date) return;
@@ -52,7 +51,19 @@
         }
     }
 
-    $: if (releaseDefId && date) fetchTestRun();
+    $: {
+        // Only fetch if status is not unknown or no run found, and all props are present
+        if (
+            releaseDefId && date && typeof status === 'string' &&
+            !["unknown", "Unknown", "No Run Found"].includes(status.trim())
+        ) {
+            fetchTestRun();
+        } else {
+            passCount = null;
+            failCount = null;
+            error = status && ["unknown", "Unknown", "No Run Found"].includes(status.trim()) ? 'No test data' : null;
+        }
+    }
 
     const chartConfig = {
         pass: { label: "Pass", color: "var(--chart-1)" },
