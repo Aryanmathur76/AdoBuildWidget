@@ -15,6 +15,7 @@
     import BuildCard from "$lib/components/ui/BuildCard/buildCard.svelte";
     import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
     import { env } from "$env/dynamic/public";
+    import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 
     const df = new DateFormatter("en-US", {
         dateStyle: "long",
@@ -131,15 +132,16 @@
                 fetch(`/api/release-description?definitionId=${pipeline.id}&date=${dateStr}`)
                     .then(res => res.json())
                     .then(data => {
+                        let desc = typeof data.description === "string" ? data.description.trim() : "";
                         pipelineDescriptions = {
                             ...pipelineDescriptions,
-                            [pipeline.displayName]: data.description ?? null
+                            [pipeline.displayName]: desc ? desc : "No description available"
                         };
                     })
                     .catch(() => {
                         pipelineDescriptions = {
                             ...pipelineDescriptions,
-                            [pipeline.displayName]: null
+                            [pipeline.displayName]: "No description available"
                         };
                     });
             }
@@ -194,27 +196,14 @@
             </Card.Header>
             <Card.Content>
                 <div class="mt-8 flex flex-col gap-4 w-full">
-                    <!-- Release Descriptions for Each Pipeline -->
-                    <!-- {#each pipelineConfig.pipelines as pipeline}
-                        <div class="bg-muted rounded-lg p-4 shadow flex flex-col gap-2 mb-2">
-                            <div class="font-semibold text-lg">{pipeline.displayName} Release Description</div>
-                            <div class="text-muted-foreground text-sm">
-                                {#if pipelineDescriptions[pipeline.displayName] !== null}
-                                    {pipelineDescriptions[pipeline.displayName] || 'No release description available.'}
-                                {:else}
-                                    Loading...
-                                {/if}
-                            </div>
-                        </div>
-                    {/each} -->
                     {#each pipelineConfig.pipelines as pipeline}
-                        <BuildCard
-                            pipelineName={pipeline.displayName}
-                            link={pipelineLinks[pipeline.displayName] ??
-                                undefined}
-                            status={pipelineStatuses[pipeline.displayName] ??
-                                undefined}
-                        />
+                        <BuildCard pipelineName={pipeline.displayName} link={pipelineLinks[pipeline.displayName] ?? undefined} status={pipelineStatuses[pipeline.displayName] ?? undefined}>
+                            {#if pipelineDescriptions[pipeline.displayName] === null}
+                                <Skeleton class="h-5 w-3/4" />
+                            {:else}
+                                {pipelineDescriptions[pipeline.displayName]}
+                            {/if}
+                        </BuildCard>
                     {/each}
                 </div>
             </Card.Content>

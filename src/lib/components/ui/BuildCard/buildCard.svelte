@@ -24,9 +24,13 @@ function handleCopy() {
 <Toaster position="top-center" richColors />
 <Card.Root>
     <Card.Content>
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
-            <span>{pipelineName}</span>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%;">
+            <!-- Left: Title and Description/Body -->
+            <div class="flex flex-col items-start min-w-0 flex-1">
+                <span class="font-semibold text-[1.1rem] leading-[1.2] truncate pb-1">{pipelineName}</span>
+                <slot />
+            </div>    <!-- Right: Badge and Link Icon -->
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
                 {#if link}
                     <button
                         title="Copy link"
