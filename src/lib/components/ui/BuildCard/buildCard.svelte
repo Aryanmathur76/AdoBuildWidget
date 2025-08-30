@@ -1,22 +1,19 @@
 
 
 <script lang="ts">
+
 import * as Card from "$lib/components/ui/card/index.js";
-import Badge from "$lib/components/ui/badge/badge.svelte";
-import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+import PipelineStatusBadge from "$lib/components/ui/PipelineStatusBadge/pipelineStatusBadge.svelte";
 import { toast } from "svelte-sonner";
 import { Toaster } from '$lib/components/ui/sonner';
 export let pipelineName: string = "PipelineName";
 export let link: string | null = null;
 export let status: string = "Unknown";
 
-
 function handleCopy() {
     if (link) {
-        //The copy to clipboard will not work within an iframe with the sandbox attribute
-        //Provide user with option to copy link manually
         navigator.clipboard.writeText(link);
-        toast.info(link, { duration: 6000 }); // 6 seconds
+        toast.info(link, { duration: 6000 });
     }
 }
 </script>
@@ -44,23 +41,7 @@ function handleCopy() {
                         </svg>
                     </button>
                 {/if}
-                {#if status === 'Unknown' || status === null}
-                    <Skeleton class="h-6 w-24 rounded" />
-                {:else if status === 'succeeded'}
-                    <Badge style="background: var(--success);" variant="default">Success</Badge>
-                {:else if status === 'failed'}
-                    <Badge style="background: var(--failure);" variant="destructive">Failed</Badge>
-                {:else if status === 'not completed'}
-                    <Badge style="background: var(--failure);" variant="destructive">Not Completed</Badge>
-                {:else if status === 'interrupted'}
-                    <Badge style="background: var(--failure);" variant="destructive">Interrupted</Badge>
-                {:else if status === 'partially succeeded'}
-                    <Badge style="background: var(--partially-succeeded);" variant="secondary">Partially Succeeded</Badge>
-                {:else if status === 'in progress' || status === 'active'}
-                    <Badge style="background: var(--in-progress);" variant="secondary">In Progress</Badge>
-                {:else if status === 'No Run Found'}
-                    <Badge variant="outline">No Run Found</Badge>
-                {/if}
+                <PipelineStatusBadge {status} />
             </div>
         </div>
     </Card.Content>

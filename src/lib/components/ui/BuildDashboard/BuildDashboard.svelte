@@ -166,8 +166,11 @@
                             class: "whitespace-nowrap text-lg font-semibold px-2 py-1 hover:bg-accent hover:text-accent-foreground transition-colors"
                         })
                     )}
+                    aria-label="Back to Heatmap"
                 >
-                    ← Back to Heatmap
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
                 </a>
                 <Popover.Root bind:open={popoverOpen}>
                     <Popover.Trigger
@@ -190,6 +193,7 @@
                             maxValue={today(getLocalTimeZone())}
                             preventDeselect={true}
                             disableDaysOutsideMonth={false}
+                            fixedWeeks={true}
                         />
                     </Popover.Content>
                 </Popover.Root>
