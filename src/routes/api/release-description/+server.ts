@@ -5,10 +5,9 @@ import { env } from '$env/dynamic/private';
 import type { RequestEvent } from '@sveltejs/kit';
 
 export async function GET({ url }: RequestEvent) {
-  const definitionId = url.searchParams.get('definitionId');
-  const date = url.searchParams.get('date'); // format: YYYY-MM-DD
-  if (!definitionId || !date) {
-    return json({ error: 'Missing definitionId or date' }, { status: 400 });
+  const releaseId = url.searchParams.get('releaseId');
+  if (!releaseId) {
+    return json({ error: 'Missing releaseId' }, { status: 400 });
   }
 
   const { AZURE_DEVOPS_PAT, AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT } = env;
@@ -16,7 +15,7 @@ export async function GET({ url }: RequestEvent) {
     return json({ error: 'Missing Azure DevOps environment variables' }, { status: 500 });
   }
 
-  const apiUrl = `https://vsrm.dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/release/releases?definitionId=${definitionId}&$top=100&api-version=7.1-preview.8`;
+  const apiUrl = `https://vsrm.dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/release/releases/${releaseId}?api-version=7.1-preview.8`;
   const auth = btoa(':' + AZURE_DEVOPS_PAT);
 
   try {
@@ -27,19 +26,11 @@ export async function GET({ url }: RequestEvent) {
       }
     });
     if (!res.ok) {
-      return json({ error: 'Failed to fetch releases' }, { status: res.status });
+      return json({ error: 'Failed to fetch release' }, { status: res.status });
     }
     const data = await res.json();
-    if (!data.value || !Array.isArray(data.value)) {
-      return json({ error: 'Malformed response from Azure DevOps API' }, { status: 502 });
-    }
-    // Find the release for the given date
-    const release = data.value.find((r: { createdOn: string; }) => r.createdOn && r.createdOn.startsWith(date));
-    if (!release) {
-      return json({ description: null, error: 'No release found for this date' });
-    }
     // Return the description field (may be empty string)
-    return json({ description: release.description ?? '' });
+    return json({ description: data.description ?? '' });
   } catch (e) {
     const err = e instanceof Error ? e : { message: String(e) };
     return json({ error: 'Error fetching release description', details: err.message }, { status: 500 });

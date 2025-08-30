@@ -10,8 +10,8 @@
     export let pipelineName: string = "PipelineName";
     export let link: string | null = null;
     export let status: string = "Unknown";
-    export let releaseDefId: string | number | null = null;
-    export let date: string | null = null; // YYYY-MM-DD
+    export let passCount: number | null = null;
+    export let failCount: number | null = null;
 
     function handleCopy() {
         if (link) {
@@ -21,47 +21,18 @@
     }
 
     // Chart state
-    let passCount: number | null = null;
-    let failCount: number | null = null;
     let loading = false;
     let error: string | null = null;
 
-
-    async function fetchTestRun() {
-        if (!releaseDefId || !date) return;
-        loading = true;
-        error = null;
-        try {
-            const res = await fetch(`/api/test-run?releaseDefId=${releaseDefId}&date=${date}`);
-            const data = await res.json();
-            if (res.ok && typeof data.passCount === 'number' && typeof data.failCount === 'number') {
-                passCount = data.passCount;
-                failCount = data.failCount;
-            } else {
-                passCount = null;
-                failCount = null;
-                error = data?.error || 'No test data';
-            }
-        } catch (e) {
-            error = 'Failed to load test data';
-            passCount = null;
-            failCount = null;
-        } finally {
-            loading = false;
-        }
-    }
-
     $: {
-        // Only fetch if status is not unknown or no run found, and all props are present
+        // If status is unknown or no run found, show error
         if (
-            releaseDefId && date && typeof status === 'string' &&
-            !["unknown", "Unknown", "No Run Found"].includes(status.trim())
+            typeof status === 'string' &&
+            ["unknown", "Unknown", "No Run Found"].includes(status.trim())
         ) {
-            fetchTestRun();
+            error = 'No test data';
         } else {
-            passCount = null;
-            failCount = null;
-            error = status && ["unknown", "Unknown", "No Run Found"].includes(status.trim()) ? 'No test data' : null;
+            error = null;
         }
     }
 

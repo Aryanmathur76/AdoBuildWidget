@@ -8,13 +8,13 @@ function errorJson(error: string, status = 500) {
 
 export async function GET({ url }: { url: URL }) {
   try {
+    const releaseId = url.searchParams.get('releaseId');
     const date = url.searchParams.get('date');
-    const releaseDefId = url.searchParams.get('releaseDefId');
-    if (!date || typeof date !== 'string' || !/\d{4}-\d{2}-\d{2}/.test(date)) {
-      return errorJson('Invalid or missing date (YYYY-MM-DD required)', 400);
+    if (!releaseId) {
+      return errorJson('Missing releaseId', 400);
     }
-    if (!releaseDefId) {
-      return errorJson('Missing releaseDefId', 400);
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return errorJson('Missing or invalid date (YYYY-MM-DD required)', 400);
     }
 
     // Azure DevOps API params
@@ -25,10 +25,16 @@ export async function GET({ url }: { url: URL }) {
       return errorJson('Missing Azure DevOps environment variables', 500);
     }
 
-    // Use the date as both min and max for a single day
-    const minLastUpdatedDate = `${date}T00:00:00Z`;
-    const maxLastUpdatedDate = `${date}T23:59:59Z`;
-    const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/test/runs?minLastUpdatedDate=${encodeURIComponent(minLastUpdatedDate)}&maxLastUpdatedDate=${encodeURIComponent(maxLastUpdatedDate)}&releaseDefIds=${releaseDefId}&api-version=7.1`;
+
+    // Use a window of -2 to +2 days around the given date
+    const baseDate = new Date(date);
+    const minDateObj = new Date(baseDate);
+    minDateObj.setDate(baseDate.getDate() - 1);
+    const maxDateObj = new Date(baseDate);
+    maxDateObj.setDate(baseDate.getDate() + 5);
+    const minLastUpdatedDate = minDateObj.toISOString().split("T")[0] + "T00:00:00Z";
+    const maxLastUpdatedDate = maxDateObj.toISOString().split("T")[0] + "T23:59:59Z";
+    const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/test/runs?releaseIds=${releaseId}&minLastUpdatedDate=${encodeURIComponent(minLastUpdatedDate)}&maxLastUpdatedDate=${encodeURIComponent(maxLastUpdatedDate)}&api-version=7.1`;
 
     const res = await fetch(apiUrl, {
       headers: {
@@ -40,17 +46,30 @@ export async function GET({ url }: { url: URL }) {
       return errorJson(`Azure DevOps API error: ${res.statusText}`, res.status);
     }
     const data = await res.json();
-    // Find the first run with a 'plan' attribute
-    const runWithPlan = Array.isArray(data.value)
-      ? data.value.find((run: any) => run.plan)
-      : null;
-    if (!runWithPlan) {
-      return json({ passCount: 0, failCount: 0, message: 'No test run with plan found' });
+
+    // Aggregate pass/fail counts for the latest run per unique environmentId (from run.release.environmentId)
+    if (!Array.isArray(data.value)) {
+      return json({ passCount: 0, failCount: 0, message: 'No test run with environment found' });
     }
-    // Extract pass/fail counts (Azure DevOps uses runWithPlan.passedTests and runWithPlan.unanalyzedTests, but most common is runWithPlan.passedTests and runWithPlan.unanalyzedTests or runWithPlan.totalTests and runWithPlan.incompleteTests)
-    // We'll try passedTests and failedTests, fallback to 0 if not present
-    const passCount = runWithPlan.passedTests ?? 0;
-    const failCount = runWithPlan.unanalyzedTests ?? runWithPlan.failedTests ?? 0;
+    // Map of environmentId to latest run
+    const envRuns: Record<string, any> = {};
+    for (const run of data.value) {
+      const envId = run.release?.environmentId;
+      if (!envId) continue;
+      if (!envRuns[envId] || new Date(run.createdDate) > new Date(envRuns[envId].createdDate)) {
+        envRuns[envId] = run;
+      }
+    }
+    let passCount = 0;
+    let failCount = 0;
+    for (const envId in envRuns) {
+      const run = envRuns[envId];
+      passCount += run.passedTests ?? 0;
+      failCount += (run.unanalyzedTests ?? run.failedTests ?? 0);
+    }
+    if (Object.keys(envRuns).length === 0) {
+      return json({ passCount: 0, failCount: 0, message: 'No test run with environment found' });
+    }
     return json({ passCount, failCount });
   } catch (e: any) {
     const err = e instanceof Error ? e : { message: String(e) };

@@ -1,5 +1,5 @@
 
-import { json } from '@sveltejs/kit';
+import { fail, json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 
 // --- Types ---
@@ -35,27 +35,6 @@ function errorJson(error: string, status = 500) {
   return json({ error }, { status });
 }
 
-async function fetchReleaseList(org: string, project: string, definitionId: string, pat: string) {
-  const url = `https://vsrm.dev.azure.com/${org}/${project}/_apis/release/releases?definitionId=${definitionId}&$top=100&api-version=7.1-preview.8`;
-  const auth = btoa(':' + pat);
-  const res = await fetch(url, {
-    headers: {
-      'Authorization': `Basic ${auth}`,
-      'Accept': 'application/json'
-    }
-  });
-  if (!res.ok) throw { status: res.status, error: 'Failed to fetch pipeline status' };
-
-  const data = await res.json();
-  if (!data || typeof data !== 'object' || !Array.isArray(data.value)) {
-    throw { status: 502, error: 'Malformed response from Azure DevOps API' };
-  }
-  if (!data.value || data.value.length === 0) {
-    throw { status: 404, error: 'No releases found' };
-  }
-  return data;
-}
-
 async function fetchReleaseDetails(org: string, project: string, releaseId: number, pat: string) {
   const url = `https://vsrm.dev.azure.com/${org}/${project}/_apis/release/releases/${releaseId}?api-version=7.1-preview.8`;
   const auth = btoa(':' + pat);
@@ -69,7 +48,7 @@ async function fetchReleaseDetails(org: string, project: string, releaseId: numb
   return res.json();
 }
 
-function getReleaseStatus(details: Release): string | null {
+function getReleaseStatus(details: Release, passCount: number | null = null, failCount: number | null = null): string | null {
 
   //These statuses represent an in-progress release
   const inProgressStatuses = ['inProgress', 'active', 'pending', 'queued'];
@@ -87,7 +66,13 @@ function getReleaseStatus(details: Release): string | null {
   const testEnvironments = details.environments.filter(env => env.name.toLowerCase().includes('tests'));
 
   //If the test environments all succeeded, return succeeded
-  if (testEnvironments && testEnvironments.every((env) => env.status === 'succeeded')) {
+  if (
+    testEnvironments &&
+    testEnvironments.every((env) => env.status === 'succeeded') &&
+    passCount !== null && passCount > 0 &&
+    failCount !== null && failCount === 0
+  ) {
+    console.log("Pass Count:", passCount, "Fail Count:", failCount);
     return 'succeeded';
   }
 
@@ -107,65 +92,45 @@ function getReleaseStatus(details: Release): string | null {
     return 'interrupted';
   }
 
-  if (allEnvironments && allEnvironments.some((env) => inProgressStatuses.includes(env.status))) {
-    return 'in progress';
-  }
-
   if (testEnvironments && testEnvironments.some((env) => env.status === 'partiallySucceeded')) {
     return 'partially succeeded';
   }
 
+  if (allEnvironments && allEnvironments.some((env) => inProgressStatuses.includes(env.status))) {
+    return 'in progress';
+  }
+
+  if (failCount !== null && failCount > 0) {
+    return 'failed';
+  }
+
+  
   return details.status || null;
 }
 
 // --- Main Handler ---
 export async function GET({ url }: { url: URL }) {
   try {
-    const definitionId = url.searchParams.get('definitionId');
-    const date = url.searchParams.get('date');
-
-    if (!definitionId || typeof definitionId !== 'string' || !definitionId.trim()) {
-      return errorJson('Missing or invalid definitionId', 400);
+    const releaseId = url.searchParams.get('releaseId');
+    if (!releaseId || typeof releaseId !== 'string' || !releaseId.trim()) {
+      return errorJson('Missing or invalid releaseId', 400);
     }
 
-    if (date && (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date))) {
-      return errorJson('Invalid date format. Expected YYYY-MM-DD', 400);
-    }
+    // Parse passCount/failCount from query params and pass to getReleaseStatus
+    const passCountParam = url.searchParams.get('passCount');
+    const failCountParam = url.searchParams.get('failCount');
+    const passCount = passCountParam !== null ? Number(passCountParam) : null;
+    const failCount = failCountParam !== null ? Number(failCountParam) : null;
 
     const { pat, org, project } = getRequiredEnv(env);
-    const data = await fetchReleaseList(org, project, definitionId, pat);
-
-    let status: string | null = null;
-    let foundRelease: Release | null = null;
-
-    //Only return releases for the specified date
-    const releasesForDate: Release[] = data.value.filter(
-      (r: Release) => r.createdOn && date && r.createdOn.startsWith(date)
-    );
-
-    if (releasesForDate.length <= 0 || !releasesForDate){
+    const details = await fetchReleaseDetails(org, project, Number(releaseId), pat);
+    if (!details) {
+      // Clean up global
+      delete (globalThis as any).__pipelineStatusQueryParams;
       return json({ status: 'No Run Found', raw: null });
     }
-
-    //Sort releases by creation date descending and take the most recent one
-    releasesForDate.sort((a: Release, b: Release) => b.createdOn.localeCompare(a.createdOn));
-    foundRelease = releasesForDate[0];
-
-    const details = await fetchReleaseDetails(org, project, foundRelease.id, pat);
-    if (details) {
-      status = getReleaseStatus(details);
-      foundRelease = details;
-    } else {
-      status = foundRelease.status || null;
-    }
-
-    if (!status && data.value && data.value.length > 0) {
-      status = 'No Run Found';
-      foundRelease = null;
-    }
-
-    return json({ status, raw: foundRelease || null });
-
+    const status = getReleaseStatus(details, passCount, failCount);
+    return json({ status, raw: details });
   } catch (e: any) {
     if (e && typeof e === 'object' && 'error' in e && 'status' in e) {
       return errorJson(e.error, e.status);

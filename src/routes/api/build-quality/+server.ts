@@ -52,6 +52,7 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
     if (!pipelineConfig.pipelines || !Array.isArray(pipelineConfig.pipelines)) {
       return errorJson('No pipelines configured', 500);
     }
+
     // Dynamically determine the base URL for local fetch
     let baseUrl = '';
     if (url.origin) {
@@ -59,9 +60,46 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
     } else if (request.headers.get('host')) {
       baseUrl = `http://${request.headers.get('host')}`;
     }
-    const statuses: string[] = [];
+
+    // For each pipeline, get the releaseId for this date
+    const releaseIds: string[] = [];
     for (const pipeline of pipelineConfig.pipelines) {
-      const res = await fetch(`${baseUrl}/api/pipeline-status?definitionId=${pipeline.id}&date=${date}`);
+      const relRes = await fetch(`${baseUrl}/api/release-id?definitionId=${pipeline.id}&date=${date}`);
+      if (!relRes.ok) {
+        releaseIds.push('');
+        continue;
+      }
+      const relData = await relRes.json();
+      if (relData && relData.releaseId) {
+        releaseIds.push(relData.releaseId.toString());
+      } else {
+        releaseIds.push('');
+      }
+    }
+
+    const statuses: string[] = [];
+    for (const releaseId of releaseIds) {
+      if (!releaseId) {
+        statuses.push('unknown');
+        continue;
+      }
+      // Fetch test-run results for this releaseId and date
+      let passCount: number | null = null;
+      let failCount: number | null = null;
+      try {
+        const testRunRes = await fetch(`${baseUrl}/api/test-run?releaseId=${releaseId}&date=${date}`);
+        if (testRunRes.ok) {
+          const testRunData = await testRunRes.json();
+          if (typeof testRunData.passCount === 'number') passCount = testRunData.passCount;
+          if (typeof testRunData.failCount === 'number') failCount = testRunData.failCount;
+        }
+      } catch {}
+
+      // Build pipeline-status URL with test results as query params
+      let pipelineStatusUrl = `${baseUrl}/api/pipeline-status?releaseId=${releaseId}`;
+      if (passCount !== null) pipelineStatusUrl += `&passCount=${passCount}`;
+      if (failCount !== null) pipelineStatusUrl += `&failCount=${failCount}`;
+      const res = await fetch(pipelineStatusUrl);
       if (!res.ok) {
         statuses.push('unknown');
         continue;
@@ -79,7 +117,7 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
       } else if (status === 'in progress' || status === 'inProgress' || status === 'active' || status === 'pending' || status === 'queued' || status === 'notStarted' || status === 'notDeployed') {
         statuses.push('in progress');
       } else {
-        statuses.push('unknown');
+        statuses.push('unknown');   
       }
     }
 
@@ -103,7 +141,7 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
         result = 'unknown';
       }
     }
-    const response = { date, quality: result };
+    const response = { date, releaseIds, quality: result };
     // Update cache
     cache[cacheKey] = { result: response, timestamp: now };
     return json(response);

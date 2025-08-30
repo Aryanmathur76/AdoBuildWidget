@@ -22,10 +22,10 @@
     });
 
 
-    import { today, parseDate } from "@internationalized/date";
-    let value = $state<DateValue | undefined>(
-        date ? parseDate(date) : today(getLocalTimeZone())
-    );
+import { today, parseDate } from "@internationalized/date";
+let selectedDate = $state<DateValue | undefined>(
+    date ? parseDate(date) : today(getLocalTimeZone())
+);
 
     let contentRef = $state<HTMLElement | null>(null);
     let popoverOpen = $state(false);
@@ -53,7 +53,18 @@
     const pipelineConfig = parsedConfig;
 
 
-    let pipelineStatuses = $state<Record<string, string | null>>(
+    // pipelineStatuses now holds an object with status, passCount, and failCount
+    let pipelineStatuses = $state<Record<string, { status: string | null, passCount: number | null, failCount: number | null }>>(
+        Object.fromEntries(
+            pipelineConfig.pipelines.map((p: { displayName: string }) => [
+                p.displayName,
+                { status: null, passCount: null, failCount: null },
+            ]),
+        ),
+    );
+
+    // pipelineIds will be populated with the latest release ID for each pipeline for the selected date
+    let pipelineIds = $state<Record<string, number | null>>(
         Object.fromEntries(
             pipelineConfig.pipelines.map((p: { displayName: string }) => [
                 p.displayName,
@@ -82,26 +93,49 @@
 
     async function getPipelineStatus(
         pipelineName: string,
-        definitionId: number,
+        releaseId: number | null,
     ) {
-        if (!value) {
-            pipelineStatuses = { ...pipelineStatuses, [pipelineName]: null };
+        if (!selectedDate || !releaseId) {
+            pipelineStatuses = { ...pipelineStatuses, [pipelineName]: { status: null, passCount: null, failCount: null } };
+            pipelineLinks = { ...pipelineLinks, [pipelineName]: null };
             return;
         }
-        const dateStr = value
-            ? value.toDate(getLocalTimeZone()).toISOString().split("T")[0]
-            : "";
-        const res = await fetch(
-            `/api/pipeline-status?definitionId=${definitionId}&date=${dateStr}`,
-        );
+
+        // TEST RUN SETTER
+        // Fetch test-run for pass/fail counts, passing in the date as required
+        let passCount: number | null = null;
+        let failCount: number | null = null;
+        try {
+            let dateStr = selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString().split("T")[0] : undefined;
+            const testRunRes = await fetch(`/api/test-run?releaseId=${releaseId}&date=${dateStr}`);
+            if (testRunRes.ok) {
+                const testRunData = await testRunRes.json();
+                if (typeof testRunData.passCount === 'number') passCount = testRunData.passCount;
+                if (typeof testRunData.failCount === 'number') failCount = testRunData.failCount;
+            }
+        } catch {}
+
+
+
+        // STATUS SETTER: pass passCount and failCount as query params
+        let pipelineStatusUrl = `/api/pipeline-status?releaseId=${releaseId}`;
+        if (passCount !== null) pipelineStatusUrl += `&passCount=${passCount}`;
+        if (failCount !== null) pipelineStatusUrl += `&failCount=${failCount}`;
+        const res = await fetch(pipelineStatusUrl);
         const data = await res.json();
+
         pipelineStatuses = {
             ...pipelineStatuses,
-            [pipelineName]: data.status || null,
+            [pipelineName]: {
+                status: data.status || null,
+                passCount,
+                failCount
+            },
         };
 
+        // LINK SETTTER
         const linkRes = await fetch(
-            `/api/release-link?definitionId=${definitionId}&date=${dateStr}`,
+            `/api/release-link?releaseId=${releaseId}`,
         );
         const linkData = await linkRes.json();
         pipelineLinks = {
@@ -111,40 +145,73 @@
     }
 
 
-    // Reset pipelineStatuses and pipelineDescriptions to null and fetch each pipeline's release description when the date changes
+    // Reset pipelineStatuses, pipelineDescriptions, and pipelineIds to null and fetch each pipeline's releaseId, then use releaseId for all API calls
     let prevDate: string | undefined;
     $effect(() => {
-        const currentDate = value ? value.toString() : undefined;
+        const currentDate = selectedDate ? selectedDate.toString() : undefined;
         if (currentDate === prevDate) return;
         // Only run if the date actually changed
         pipelineStatuses = Object.fromEntries(
-            Object.keys(pipelineStatuses).map((k) => [k, "Unknown"]),
+            Object.keys(pipelineStatuses).map((k) => [k, { status: "Unknown", passCount: null, failCount: null }]),
         );
         pipelineDescriptions = Object.fromEntries(
             Object.keys(pipelineDescriptions).map((k) => [k, null]),
         );
+        pipelineIds = Object.fromEntries(
+            Object.keys(pipelineIds).map((k) => [k, null]),
+        );
         prevDate = currentDate;
-        for (const pipeline of pipelineConfig.pipelines) {
-            getPipelineStatus(pipeline.displayName, pipeline.id);
-            // Fetch release description for each pipeline
-            if (value) {
-                const dateStr = value.toDate(getLocalTimeZone()).toISOString().split("T")[0];
-                fetch(`/api/release-description?definitionId=${pipeline.id}&date=${dateStr}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        let desc = typeof data.description === "string" ? data.description.trim() : "";
-                        pipelineDescriptions = {
-                            ...pipelineDescriptions,
-                            [pipeline.displayName]: desc ? desc : "No description available"
+        // Fetch release IDs for each pipeline for the selected date, then fetch status, description, and link using releaseId
+        if (selectedDate) {
+            const dateStr = selectedDate.toDate(getLocalTimeZone()).toISOString().split("T")[0];
+            (async () => {
+                for (const pipeline of pipelineConfig.pipelines) {
+                    try {
+                        const res = await fetch(`/api/release-id?definitionId=${pipeline.id}&date=${dateStr}`);
+                        const data = await res.json();
+                        const releaseId = data.releaseId ?? null;
+                        pipelineIds = {
+                            ...pipelineIds,
+                            [pipeline.displayName]: releaseId,
                         };
-                    })
-                    .catch(() => {
+                        // Only fetch status, description, and link if releaseId is available
+                        getPipelineStatus(pipeline.displayName, releaseId);
+                        if (releaseId) {
+                            // Description API now takes only releaseId
+                            fetch(`/api/release-description?releaseId=${releaseId}`)
+                                .then(res => res.json())
+                                .then(data => {
+                                    let desc = typeof data.description === "string" ? data.description.trim() : "";
+                                    pipelineDescriptions = {
+                                        ...pipelineDescriptions,
+                                        [pipeline.displayName]: desc ? desc : "No description available"
+                                    };
+                                })
+                                .catch(() => {
+                                    pipelineDescriptions = {
+                                        ...pipelineDescriptions,
+                                        [pipeline.displayName]: "No description available"
+                                    };
+                                });
+                        } else {
+                            pipelineDescriptions = {
+                                ...pipelineDescriptions,
+                                [pipeline.displayName]: "No description available"
+                            };
+                        }
+                    } catch {
+                        pipelineIds = {
+                            ...pipelineIds,
+                            [pipeline.displayName]: null,
+                        };
                         pipelineDescriptions = {
                             ...pipelineDescriptions,
                             [pipeline.displayName]: "No description available"
                         };
-                    });
-            }
+                        getPipelineStatus(pipeline.displayName, null);
+                    }
+                }
+            })();
         }
         // Close the calendar popover after a new date is picked
         if (popoverOpen) {
@@ -179,16 +246,16 @@
                                 variant: "outline",
                                 class: "w-48 justify-between font-normal",
                             }),
-                            !value && "text-muted-foreground",
+                            !selectedDate && "text-muted-foreground",
                         )}
                     >
                     <CalendarIcon />
-                    {value ? df.format(value.toDate(getLocalTimeZone())) : "Pick a date"}
+                    {selectedDate ? df.format(selectedDate.toDate(getLocalTimeZone())) : "Pick a date"}
                     </Popover.Trigger>
                     <Popover.Content bind:ref={contentRef} class="w-auto p-0">
                         <Calendar
                             type="single"
-                            bind:value
+                            bind:value={selectedDate}
                             captionLayout="dropdown"
                             maxValue={today(getLocalTimeZone())}
                             preventDeselect={true}
@@ -200,12 +267,18 @@
             </Card.Header>
             <Card.Content>
                 <div class="mt-8 flex flex-col gap-4 w-full">
-                    {#each pipelineConfig.pipelines as pipeline}
-                        <BuildCard pipelineName={pipeline.displayName} link={pipelineLinks[pipeline.displayName] ?? undefined} status={pipelineStatuses[pipeline.displayName] ?? undefined} releaseDefId={pipeline.id} date={date ?? undefined}>
-                            {#if pipelineDescriptions[pipeline.displayName] === null}
-                                <Skeleton class="h-5 w-3/4" />  
+                    {#each Object.entries(pipelineIds) as [displayName, releaseId]}
+                        <BuildCard
+                            pipelineName={displayName}
+                            link={pipelineLinks[displayName] ?? undefined}
+                            status={pipelineStatuses[displayName]?.status ?? undefined}
+                            passCount={pipelineStatuses[displayName]?.passCount ?? null}
+                            failCount={pipelineStatuses[displayName]?.failCount ?? null}
+                        >
+                            {#if pipelineDescriptions[displayName] === null}
+                                <Skeleton class="h-5 w-3/4" />
                             {:else}
-                                {pipelineDescriptions[pipeline.displayName]}
+                                {pipelineDescriptions[displayName]}
                             {/if}
                         </BuildCard>
                     {/each}

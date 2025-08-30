@@ -65,9 +65,6 @@
             const res = await fetch(`/api/build-quality?date=${dateStr}`);
             if (res.ok) {
                 const data = await res.json();
-                console.log(
-                    `Fetched build quality for ${dateStr}: ${data.quality}`,
-                );
                 dayBuildQuality[dateStr] = data.quality;
             } else {
                 dayBuildQuality[dateStr] = "unknown";
