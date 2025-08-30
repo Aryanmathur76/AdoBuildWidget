@@ -16,13 +16,13 @@
   --primary-foreground: oklch(0.984 0.003 247.858);
   --secondary: oklch(0.968 0.007 247.896);
   --secondary-foreground: oklch(0.984 0.003 247.858);
-  --success: oklch(57.816% 0.19121 143.381);
-  --failure: oklch(53.667% 0.22004 28.957);
-  --in-progress: oklch(63.568% 0.12615 250.178);
-  --partially-succeeded: oklch(67.058% 0.13781 83.107);
+  --success: oklch(65% 0.18 145);        /* Green - success */
+  --failure: oklch(55% 0.20 25);         /* Red - failure */
+  --partially-succeeded: oklch(72% 0.15 95);  /* Yellow - warning/partial */
+  --in-progress: oklch(60% 0.05 270);    /* Grey/neutral - unknown */
   --muted: oklch(0.968 0.007 247.896);
   --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
+  --accent: oklch(80.287% 0.00446 237.186);
   --accent-foreground: oklch(0.208 0.042 265.755);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.929 0.013 255.508);
@@ -54,6 +54,10 @@
   --primary-foreground: oklch(0.279 0.041 260.031);
   --secondary: oklch(0.279 0.041 260.031);
   --secondary-foreground: oklch(0.984 0.003 247.858);
+  --success: oklch(70% 0.14 145);        /* Slightly lighter green */
+  --failure: oklch(65% 0.17 25);         /* Lighter red */
+  --partially-succeeded: oklch(78% 0.12 95);  /* Softer yellow */
+  --in-progress: oklch(75% 0.03 270);    /* Lighter neutral grey */
   --muted: oklch(0.279 0.041 260.031);
   --muted-foreground: oklch(0.704 0.04 256.788);
   --accent: oklch(34.415% 0.00752 264.512);

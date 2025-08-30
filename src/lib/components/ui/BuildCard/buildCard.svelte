@@ -16,7 +16,7 @@
 </script>
 
 <Toaster position="top-center" richColors />
-<Card.Root>
+<Card.Root class="shadow-lg border-1 border-accent rounded-lg">
     <Card.Content>
         <div
             style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%;"
