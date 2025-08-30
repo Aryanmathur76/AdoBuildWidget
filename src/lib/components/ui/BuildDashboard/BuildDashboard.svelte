@@ -201,9 +201,9 @@
             <Card.Content>
                 <div class="mt-8 flex flex-col gap-4 w-full">
                     {#each pipelineConfig.pipelines as pipeline}
-                        <BuildCard pipelineName={pipeline.displayName} link={pipelineLinks[pipeline.displayName] ?? undefined} status={pipelineStatuses[pipeline.displayName] ?? undefined}>
+                        <BuildCard pipelineName={pipeline.displayName} link={pipelineLinks[pipeline.displayName] ?? undefined} status={pipelineStatuses[pipeline.displayName] ?? undefined} releaseDefId={pipeline.id} date={date ?? undefined}>
                             {#if pipelineDescriptions[pipeline.displayName] === null}
-                                <Skeleton class="h-5 w-3/4" />
+                                <Skeleton class="h-5 w-3/4" />  
                             {:else}
                                 {pipelineDescriptions[pipeline.displayName]}
                             {/if}

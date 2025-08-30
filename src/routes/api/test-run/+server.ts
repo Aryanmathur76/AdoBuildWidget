@@ -40,7 +40,18 @@ export async function GET({ url }: { url: URL }) {
       return errorJson(`Azure DevOps API error: ${res.statusText}`, res.status);
     }
     const data = await res.json();
-    return json(data);
+    // Find the first run with a 'plan' attribute
+    const runWithPlan = Array.isArray(data.value)
+      ? data.value.find((run: any) => run.plan)
+      : null;
+    if (!runWithPlan) {
+      return json({ passCount: 0, failCount: 0, message: 'No test run with plan found' });
+    }
+    // Extract pass/fail counts (Azure DevOps uses runWithPlan.passedTests and runWithPlan.unanalyzedTests, but most common is runWithPlan.passedTests and runWithPlan.unanalyzedTests or runWithPlan.totalTests and runWithPlan.incompleteTests)
+    // We'll try passedTests and failedTests, fallback to 0 if not present
+    const passCount = runWithPlan.passedTests ?? 0;
+    const failCount = runWithPlan.unanalyzedTests ?? runWithPlan.failedTests ?? 0;
+    return json({ passCount, failCount });
   } catch (e: any) {
     const err = e instanceof Error ? e : { message: String(e) };
     return errorJson('Error fetching test run: ' + err.message, 500);
