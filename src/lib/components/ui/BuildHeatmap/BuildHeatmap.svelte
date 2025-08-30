@@ -170,7 +170,7 @@ async function fetchAllBuildQualitiesForMonth() {
                                         type="button"
                                         aria-label={`Go to build ${dayObj.dateStr}`}
                                         onclick={() => {goto(`/build/${dayObj.dateStr}`); }}
-                                        class={`w-full h-full min-w-0 min-h-0 ${dayObj.colorClass}`}
+                                        class={`w-full h-full min-w-0 min-h-0 cursor-pointer ${dayObj.colorClass}`}
                                         style="aspect-ratio: 1 / 1;"
                                         disabled={dayObj.disabled}
                                     >
@@ -182,7 +182,7 @@ async function fetchAllBuildQualitiesForMonth() {
                                         size="icon"
                                         type="button"
                                         aria-label={`Go to build ${dayObj.dateStr}`}
-                                        class={`w-full h-full min-w-0 min-h-0 bg-zinc-800 text-white`}
+                                        class={`w-full h-full min-w-0 min-h-0 bg-zinc-800 text-white cursor-not-allowed`}
                                         style="aspect-ratio: 1 / 1;"
                                         disabled={true}
                                     >
