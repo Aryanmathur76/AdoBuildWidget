@@ -28,7 +28,7 @@ const chartConfig = {
 </script>
 
 <Toaster position="top-center" richColors />
-<Card.Root class="shadow-lg border-1 border-accent rounded-lg">
+<Card.Root class="shadow-lg border-1 border-accent rounded-lg py-2">
     <Card.Content>
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%;">
             <!-- Left: Title and Description/Body -->
@@ -74,36 +74,44 @@ const chartConfig = {
                 <slot />
             </div>
             <!-- Right: Chart -->
-            <div class="flex-shrink-0 flex items-center justify-center" style="width: 120px; height: 80px; min-width: 80px; min-height: 80px;">
+            <div class="flex-shrink-0 flex items-center justify-center" style="width: 120px; height: 120px; min-width: 80px; min-height: 80px;">
                 {#if passCount === null || failCount === null}
-                    <Skeleton class="h-20 w-20 rounded-full" />
+                    <Skeleton class="h-24 w-24 rounded-full" />
                 {:else if passCount !== null && failCount !== null && passCount + failCount > 0}
-                    <Chart.Container config={chartConfig} class="mx-auto" style="width: 80px; height: 80px;">
+                    <Chart.Container config={chartConfig} class="mx-auto aspect-square max-h-[120px]" style="width: 120px; height: 120px;">
                         <PieChart
-                            data={[{ result: "pass", value: passCount, color: chartConfig.pass.color }, { result: "fail", value: failCount, color: chartConfig.fail.color }]}
+                            data={[
+                                { result: "pass", value: passCount, color: chartConfig.pass.color},
+                                { result: "fail", value: failCount, color: chartConfig.fail.color }
+                            ]}
                             key="result"
                             value="value"
                             c="color"
-                            innerRadius={24}
-                            padding={8}
-                            range={[-90, 90]}
-                            props={{ pie: { sort: null } }}
-                            cornerRadius={4}
+                            innerRadius={32}
+                            padding={16}
+                            props={{ pie: { motion: "tween" } }}
                         >
                             {#snippet aboveMarks()}
                                 <Text
-                                    value={String((passCount ?? 0) + (failCount ?? 0))}
+                                    value={
+                                        (() => {
+                                            const total = (passCount ?? 0) + (failCount ?? 0);
+                                            if (total === 0) return "0%";
+                                            const percent = Math.round(((passCount ?? 0) / total) * 100);
+                                            return `${percent}%`;
+                                        })()
+                                    }
                                     textAnchor="middle"
                                     verticalAnchor="middle"
-                                    class="fill-foreground text-base! font-bold"
-                                    dy={-8}
+                                    class="fill-foreground text-sm! font-bold"
+                                    dy={-10}
                                 />
                                 <Text
-                                    value="Tests"
+                                    value="Pass Rate"
                                     textAnchor="middle"
                                     verticalAnchor="middle"
-                                    class="fill-muted-foreground! text-muted-foreground"
-                                    dy={8}
+                                    class="fill-muted-foreground! text-xs! text-muted-foreground"
+                                    dy={4}
                                 />
                             {/snippet}
                             {#snippet tooltip()}
