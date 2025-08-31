@@ -9,7 +9,7 @@
 
     export let pipelineName: string = "PipelineName";
     export let link: string | null = null;
-    export let status: string = "Unknown";
+    export let status: string | null = null;
     export let passCount: number | null = null;
     export let failCount: number | null = null;
 
@@ -25,16 +25,18 @@
     let error: string | null = null;
 
     $: {
+        console.log("BuildCard status changed:", status);
         // If status is unknown or no run found, show error
         if (
             typeof status === 'string' &&
-            ["unknown", "Unknown", "No Run Found"].includes(status.trim())
+            status === "No Run Found"
         ) {
             error = 'No test data';
         } else {
             error = null;
-        }
+        }   
     }
+
 
     const chartConfig = {
         pass: { label: "Pass", color: "var(--chart-1)" },
@@ -92,8 +94,6 @@
             <div class="flex-shrink-0 flex items-center justify-center" style="width: 120px; height: 80px; min-width: 80px; min-height: 80px;">
                 {#if loading}
                     <span class="text-xs text-muted-foreground">Loading...</span>
-                {:else if error}
-                    <span class="text-xs text-red-500">{error}</span>
                 {:else if passCount !== null && failCount !== null}
                     <Chart.Container config={chartConfig} class="mx-auto" style="width: 80px; height: 80px;">
                         <PieChart

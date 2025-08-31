@@ -1,41 +1,35 @@
 
-import { fail, json } from '@sveltejs/kit';
+
+import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 
 // --- Types ---
 interface Release {
   id: number;
   createdOn: string;
-  status?: string;
   environments?: Environment[];
   [key: string]: any;
 }
 interface Environment {
+  name?: string;
   status: string;
   [key: string]: any;
-}
-interface AzureDevOpsEnv {
-  AZURE_DEVOPS_PAT?: string;
-  AZURE_DEVOPS_ORGANIZATION?: string;
-  AZURE_DEVOPS_PROJECT?: string;
-}
-
-// --- Helpers ---
-function getRequiredEnv({ AZURE_DEVOPS_PAT, AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT }: AzureDevOpsEnv) {
-  if (!AZURE_DEVOPS_PAT) throw { status: 500, error: 'Missing Azure DevOps PAT' };
-  if (!AZURE_DEVOPS_ORGANIZATION || !AZURE_DEVOPS_PROJECT) throw { status: 500, error: 'Missing Azure DevOps organization or project' };
-  return {
-    pat: AZURE_DEVOPS_PAT,
-    org: AZURE_DEVOPS_ORGANIZATION,
-    project: AZURE_DEVOPS_PROJECT
-  };
 }
 
 function errorJson(error: string, status = 500) {
   return json({ error }, { status });
 }
 
-async function fetchReleaseDetails(org: string, project: string, releaseId: number, pat: string) {
+function getEnvVars() {
+  const pat = env.AZURE_DEVOPS_PAT;
+  const org = env.AZURE_DEVOPS_ORGANIZATION;
+  const project = env.AZURE_DEVOPS_PROJECT;
+  if (!pat) throw { status: 500, error: 'Missing Azure DevOps PAT' };
+  if (!org || !project) throw { status: 500, error: 'Missing Azure DevOps organization or project' };
+  return { pat, org, project };
+}
+
+async function fetchReleaseDetails(org: string, project: string, releaseId: number, pat: string): Promise<Release | null> {
   const url = `https://vsrm.dev.azure.com/${org}/${project}/_apis/release/releases/${releaseId}?api-version=7.1-preview.8`;
   const auth = btoa(':' + pat);
   const res = await fetch(url, {
@@ -44,59 +38,49 @@ async function fetchReleaseDetails(org: string, project: string, releaseId: numb
       'Accept': 'application/json'
     }
   });
-  if (!res.ok) return null;
-  return res.json();
+  if (!res.ok) {
+      return null;
+  }
+  const details = await res.json();
+  return details;
 }
 
-function getReleaseStatus(details: Release, passCount: number | null = null, failCount: number | null = null): string | null {
+function derivePipelineStatus(details: Release, passCount: number | null, failCount: number | null): string {
+  const inProgress = ['inProgress', 'active', 'pending', 'queued'];
+  const interrupted = ['rejected', 'canceled', 'failed'];
 
-  //These statuses represent an in-progress release
-  const inProgressStatuses = ['inProgress', 'active', 'pending', 'queued'];
-
-  //These statuses represent a interrupted or interrupted release
-  const interruptedStatuses = ['rejected', 'canceled', 'failed'];
-
-  if (!details.environments || details.environments.length <= 0) {
-    return null;
+  if (!details.environments || details.environments.length === 0) {
+    return 'No Run Found';
   }
 
-  const allEnvironments = details.environments;
+  const allEnvs = details.environments;
+  const testEnvs = allEnvs.filter(env => env.name && env.name.toLowerCase().includes('tests'));
 
-  // Filter environments to only those related to tests
-  const testEnvironments = details.environments.filter(env => env.name.toLowerCase().includes('tests'));
+  if (testEnvs.length === 0) {
+    return 'No Run Found';
+  }
 
-  //If the test environments all succeeded, return succeeded
-  if (
-    testEnvironments &&
-    testEnvironments.every((env) => env.status === 'succeeded') &&
-    passCount !== null && passCount > 0 &&
-    failCount !== null && failCount === 0
-  ) {
-    console.log("Pass Count:", passCount, "Fail Count:", failCount);
+  if (testEnvs.every(env => env.status === 'succeeded') && passCount !== null && passCount > 0 && failCount !== null && failCount === 0) {
     return 'succeeded';
   }
 
-  //First check if the test environments have gone 24 hours without completion
-  //indicating a not completed status
-
   const createdOn = details.createdOn ? new Date(details.createdOn) : null;
-  const now = new Date();
   if (createdOn) {
-    const diffMs = now.getTime() - createdOn.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
-    if (diffHours > 24 && (allEnvironments && allEnvironments.some((env) => interruptedStatuses.includes(env.status)))) return 'failed';
+    const diffHours = (Date.now() - createdOn.getTime()) / (1000 * 60 * 60);
+    if (diffHours > 24 && allEnvs.some(env => interrupted.includes(env.status))) {
+      return 'failed';
+    }
   }
 
-  // Then check to see if any test environments are in a interrupted status
-  if (allEnvironments && allEnvironments.some((env) => interruptedStatuses.includes(env.status))) {
+  if (allEnvs.some(env => interrupted.includes(env.status))) {
     return 'interrupted';
   }
 
-  if (testEnvironments && testEnvironments.some((env) => env.status === 'partiallySucceeded')) {
+  if (testEnvs.some(env => env.status === 'partiallySucceeded')) {
     return 'partially succeeded';
   }
 
-  if (allEnvironments && allEnvironments.some((env) => inProgressStatuses.includes(env.status))) {
+  if (allEnvs.some(env => inProgress.includes(env.status))) {
     return 'in progress';
   }
 
@@ -104,32 +88,26 @@ function getReleaseStatus(details: Release, passCount: number | null = null, fai
     return 'failed';
   }
 
-  
-  return details.status || null;
+  return 'No Run Found';
 }
 
-// --- Main Handler ---
 export async function GET({ url }: { url: URL }) {
   try {
     const releaseId = url.searchParams.get('releaseId');
+    console.log("[PipelineStatus] Received request for releaseId:", releaseId);
     if (!releaseId || typeof releaseId !== 'string' || !releaseId.trim()) {
       return errorJson('Missing or invalid releaseId', 400);
     }
 
-    // Parse passCount/failCount from query params and pass to getReleaseStatus
-    const passCountParam = url.searchParams.get('passCount');
-    const failCountParam = url.searchParams.get('failCount');
-    const passCount = passCountParam !== null ? Number(passCountParam) : null;
-    const failCount = failCountParam !== null ? Number(failCountParam) : null;
+    const passCount = url.searchParams.has('passCount') ? Number(url.searchParams.get('passCount')) : null;
+    const failCount = url.searchParams.has('failCount') ? Number(url.searchParams.get('failCount')) : null;
 
-    const { pat, org, project } = getRequiredEnv(env);
+    const { pat, org, project } = getEnvVars();
     const details = await fetchReleaseDetails(org, project, Number(releaseId), pat);
     if (!details) {
-      // Clean up global
-      delete (globalThis as any).__pipelineStatusQueryParams;
       return json({ status: 'No Run Found', raw: null });
     }
-    const status = getReleaseStatus(details, passCount, failCount);
+    const status = derivePipelineStatus(details, passCount, failCount);
     return json({ status, raw: details });
   } catch (e: any) {
     if (e && typeof e === 'object' && 'error' in e && 'status' in e) {

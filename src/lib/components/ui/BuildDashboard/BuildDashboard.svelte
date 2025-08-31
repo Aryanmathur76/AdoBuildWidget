@@ -96,7 +96,7 @@ let selectedDate = $state<DateValue | undefined>(
         releaseId: number | null,
     ) {
         if (!selectedDate || !releaseId) {
-            pipelineStatuses = { ...pipelineStatuses, [pipelineName]: { status: null, passCount: null, failCount: null } };
+            pipelineStatuses = { ...pipelineStatuses, [pipelineName]: { status: 'Unknown', passCount: null, failCount: null } };
             pipelineLinks = { ...pipelineLinks, [pipelineName]: null };
             return;
         }
@@ -119,6 +119,7 @@ let selectedDate = $state<DateValue | undefined>(
 
         // STATUS SETTER: pass passCount and failCount as query params
         let pipelineStatusUrl = `/api/pipeline-status?releaseId=${releaseId}`;
+        
         if (passCount !== null) pipelineStatusUrl += `&passCount=${passCount}`;
         if (failCount !== null) pipelineStatusUrl += `&failCount=${failCount}`;
         const res = await fetch(pipelineStatusUrl);
@@ -152,7 +153,7 @@ let selectedDate = $state<DateValue | undefined>(
         if (currentDate === prevDate) return;
         // Only run if the date actually changed
         pipelineStatuses = Object.fromEntries(
-            Object.keys(pipelineStatuses).map((k) => [k, { status: "Unknown", passCount: null, failCount: null }]),
+            Object.keys(pipelineStatuses).map((k) => [k, { status: null, passCount: null, failCount: null }]),
         );
         pipelineDescriptions = Object.fromEntries(
             Object.keys(pipelineDescriptions).map((k) => [k, null]),
@@ -167,6 +168,8 @@ let selectedDate = $state<DateValue | undefined>(
             (async () => {
                 for (const pipeline of pipelineConfig.pipelines) {
                     try {
+
+                        // RELEASE ID SETTER
                         const res = await fetch(`/api/release-id?definitionId=${pipeline.id}&date=${dateStr}`);
                         const data = await res.json();
                         const releaseId = data.releaseId ?? null;
@@ -174,31 +177,34 @@ let selectedDate = $state<DateValue | undefined>(
                             ...pipelineIds,
                             [pipeline.displayName]: releaseId,
                         };
+                    
                         // Only fetch status, description, and link if releaseId is available
+                        console.log('Calling getPipelineStatus for', pipeline.displayName, 'with releaseId', releaseId);
                         getPipelineStatus(pipeline.displayName, releaseId);
-                        if (releaseId) {
-                            // Description API now takes only releaseId
-                            fetch(`/api/release-description?releaseId=${releaseId}`)
-                                .then(res => res.json())
-                                .then(data => {
-                                    let desc = typeof data.description === "string" ? data.description.trim() : "";
-                                    pipelineDescriptions = {
-                                        ...pipelineDescriptions,
-                                        [pipeline.displayName]: desc ? desc : "No description available"
-                                    };
-                                })
-                                .catch(() => {
-                                    pipelineDescriptions = {
-                                        ...pipelineDescriptions,
-                                        [pipeline.displayName]: "No description available"
-                                    };
-                                });
-                        } else {
+
+                        if (!releaseId) {
                             pipelineDescriptions = {
                                 ...pipelineDescriptions,
                                 [pipeline.displayName]: "No description available"
                             };
+                            continue;
                         }
+                        // Description API now takes only releaseId
+                        fetch(`/api/release-description?releaseId=${releaseId}`)
+                            .then(res => res.json())
+                            .then(data => {
+                                let desc = typeof data.description === "string" ? data.description.trim() : "";
+                                pipelineDescriptions = {
+                                    ...pipelineDescriptions,
+                                    [pipeline.displayName]: desc ? desc : "No description available"
+                                };
+                            })
+                            .catch(() => {
+                                pipelineDescriptions = {
+                                    ...pipelineDescriptions,
+                                    [pipeline.displayName]: "No description available"
+                                };
+                            });
                     } catch {
                         pipelineIds = {
                             ...pipelineIds,
@@ -270,8 +276,8 @@ let selectedDate = $state<DateValue | undefined>(
                     {#each Object.entries(pipelineIds) as [displayName, releaseId]}
                         <BuildCard
                             pipelineName={displayName}
-                            link={pipelineLinks[displayName] ?? undefined}
-                            status={pipelineStatuses[displayName]?.status ?? undefined}
+                            link={pipelineLinks[displayName] ?? null}
+                            status={pipelineStatuses[displayName]?.status ?? null}
                             passCount={pipelineStatuses[displayName]?.passCount ?? null}
                             failCount={pipelineStatuses[displayName]?.failCount ?? null}
                         >
