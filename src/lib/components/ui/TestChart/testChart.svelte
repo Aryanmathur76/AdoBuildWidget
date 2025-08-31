@@ -13,9 +13,7 @@ import {
   getSortedRowModel
 } from "@tanstack/table-core";
 import { createRawSnippet } from "svelte";
-import DataTableCheckbox from "$lib/components/ui/data-table/data-table-checkbox.svelte";
-import DataTableEmailButton from "$lib/components/ui/data-table/data-table-email-button.svelte";
-import DataTableActions from "$lib/components/ui/data-table/data-table-actions.svelte";
+import DataTableOutcomeButton from "$lib/components/ui/data-table/data-table-outcome-button.svelte";
 import * as Table from "$lib/components/ui/table/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
@@ -50,8 +48,10 @@ const columns: ColumnDef<TestCase>[] = [
   },
   {
     accessorKey: "outcome",
-    header: "Outcome",
-    enableSorting: true,
+    header: ({ column }) =>
+      renderComponent(DataTableOutcomeButton, {
+        onclick: column.getToggleSortingHandler()
+      }),
     cell: ({ row }) => {
       const outcomeSnippet = createRawSnippet<[string]>((getOutcome) => {
         const outcome = getOutcome();
@@ -144,7 +144,7 @@ const table = createSvelteTable({
 });
 </script>
 
-<div class="w-full text-xs">
+<div class="w-full max-w-screen-md mx-auto text-xs">
  <div class="flex items-center py-2 gap-2">
   <Input
    placeholder="Filter test case name..."
@@ -178,7 +178,7 @@ const table = createSvelteTable({
     </DropdownMenu.Content>
   </DropdownMenu.Root>
  </div>
- <div class="rounded-md border" style="max-height: {maxHeight}; overflow-y: auto;">
+ <div class="rounded-md border" style="max-height: {maxHeight}; overflow-y: auto;" >
   <Table.Root>
    <Table.Header>
     {#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
