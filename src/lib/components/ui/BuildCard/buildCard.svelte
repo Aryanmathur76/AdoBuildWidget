@@ -16,6 +16,8 @@
     export let status: string | null = null;
     export let passCount: number | null = null;
     export let failCount: number | null = null;
+    export let releaseId: number | null = null;
+    export let date: string | null = null;
 
     let dialogOpen = false;
 
@@ -54,23 +56,14 @@ const chartConfig = {
                     <DialogDescription>
                         <!-- Render the TestChart (datatable) component here -->
                         <div class="py-2">
-                            <TestChart testCases={[ 
-                                { id: 1, name: 'Login Test', outcome: 'pass', associatedBugs: [] },
-                                { id: 2, name: 'Signup Test', outcome: 'fail', associatedBugs: [{ id: 101, title: 'Signup bug' }] },
-                                { id: 3, name: 'Profile Update', outcome: 'pass', associatedBugs: [] },
-                                { id: 4, name: 'Logout Test', outcome: 'pass', associatedBugs: [] },
-                                { id: 5, name: 'Password Reset', outcome: 'fail', associatedBugs: [{ id: 102, title: 'Reset bug' }] },
-                                { id: 6, name: 'Email Verification', outcome: 'pass', associatedBugs: [] },
-                                { id: 7, name: 'Multi-factor Auth', outcome: 'fail', associatedBugs: [{ id: 103, title: 'MFA bug' }, { id: 104, title: 'Timeout issue' }] },
-                                { id: 8, name: 'Session Expiry', outcome: 'pass', associatedBugs: [] },
-                                { id: 9, name: 'Profile Picture Upload', outcome: 'fail', associatedBugs: [{ id: 105, title: 'Upload error' }] },
-                                { id: 10, name: 'Notification Settings', outcome: 'pass', associatedBugs: [] },
-                                { id: 11, name: 'Account Deletion', outcome: 'fail', associatedBugs: [{ id: 106, title: 'Deletion bug' }] },
-                                { id: 12, name: 'API Token Generation', outcome: 'pass', associatedBugs: [] },
-                                { id: 13, name: 'Webhooks', outcome: 'fail', associatedBugs: [{ id: 107, title: 'Webhook not firing' }] },
-                                { id: 14, name: 'Dark Mode Toggle', outcome: 'pass', associatedBugs: [] },
-                                { id: 15, name: 'Language Switch', outcome: 'pass', associatedBugs: [] }
-                            ]} />
+                            {#if passCount !== null && failCount !== null && passCount + failCount > 0 && releaseId && date}
+                                {#await fetch(`/api/test-cases?releaseId=${releaseId}&date=${encodeURIComponent((date.length > 10 ? date.slice(0, 10) : date))}`)
+                                    .then(r => r.json()) then data}
+                                    <TestChart testCases={data.testCases} />
+                                {:catch err}
+                                    <div class="text-xs text-red-500">Failed to load test cases</div>
+                                {/await}
+                            {/if}
                         </div>
                     </DialogDescription>
                 </DialogContent>

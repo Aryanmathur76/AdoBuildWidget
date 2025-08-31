@@ -44,7 +44,16 @@ const columns: ColumnDef<TestCase>[] = [
   {
     accessorKey: "name",
     header: "Test Case Name",
-    cell: ({ row }) => row.getValue("name"),
+    cell: ({ row }) => {
+      const name = row.getValue("name");
+      const nameSnippet = createRawSnippet<[string]>((getName) => {
+        const n = getName();
+        return {
+          render: () => `<div style='max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' title='${n}'>${n}</div>`
+        };
+      });
+      return renderSnippet(nameSnippet, String(row.getValue("name")));
+    },
   },
   {
     accessorKey: "outcome",
@@ -59,7 +68,7 @@ const columns: ColumnDef<TestCase>[] = [
           render: () => `<div class='capitalize'>${outcome}</div>`
         };
       });
-      return renderSnippet(outcomeSnippet, row.getValue("outcome"));
+      return renderSnippet(outcomeSnippet, String(row.getValue("outcome")));
     }
   },
   {
@@ -78,7 +87,7 @@ let pagination = $state<PaginationState>({ pageIndex: 0, pageSize: 4 });
 let sorting = $state<SortingState>([]);
 let columnFilters = $state<ColumnFiltersState>([]);
 let rowSelection = $state<RowSelectionState>({});
-let columnVisibility = $state<VisibilityState>({});
+let columnVisibility = $state<VisibilityState>({ associatedBugs: false });
 
 const table = createSvelteTable({
   get data() {

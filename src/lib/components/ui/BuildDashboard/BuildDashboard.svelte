@@ -279,6 +279,8 @@ let selectedDate = $state<DateValue | undefined>(
                             status={pipelineStatuses[displayName]?.status ?? null}
                             passCount={pipelineStatuses[displayName]?.passCount}
                             failCount={pipelineStatuses[displayName]?.failCount}
+                            releaseId={releaseId}
+                            date={selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString() : null}
                         >
                             {#if pipelineDescriptions[displayName] === null}
                                 <Skeleton class="h-5 w-3/4" />
