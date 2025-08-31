@@ -105,8 +105,8 @@ const chartConfig = {
                                     }
                                     textAnchor="middle"
                                     verticalAnchor="middle"
-                                    class="fill-foreground text-sm! font-bold"
-                                    dy={-7}
+                                    class="fill-foreground text-xs! font-bold"
+                                    dy={-8}
                                 />
                                 <Text
                                     value="Pass Rate"
