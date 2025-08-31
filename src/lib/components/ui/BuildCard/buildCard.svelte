@@ -29,7 +29,19 @@ const chartConfig = {
 
 <Toaster position="top-center" richColors />
 <Card.Root class="shadow-lg border-1 border-accent rounded-lg py-2">
-    <Card.Content>
+<!-- Material Icons font import (only once per app, but safe here for demo) -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <Card.Content style="position: relative;">
+        {#if passCount !== null && failCount !== null && passCount + failCount > 0}
+            <button
+                title="Maximize"
+                aria-label="Maximize"
+                class="absolute top-0 right-1 p-1 rounded-full hover:bg-accent/40 focus:outline-none"
+                style="width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; z-index: 10; background: none; border: none;"
+            >
+                <span class="material-icons text-muted-foreground" style="font-size: 18px;">fullscreen</span>
+            </button>
+        {/if}
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%;">
             <!-- Left: Title and Description/Body -->
             <div class="flex flex-col items-start min-w-0 flex-1">
@@ -76,11 +88,11 @@ const chartConfig = {
                 </div>
             </div>
             <!-- Right: Chart -->
-            <div class="flex-shrink-0 flex items-center justify-center" style="width: 120px; height: 120px; min-width: 80px; min-height: 80px;">
+            <div class="flex-shrink-0 flex items-center justify-center" style="min-width: 80px; min-height: 80px;">
                 {#if passCount === null || failCount === null}
                     <Skeleton class="h-24 w-24 rounded-full" />
                 {:else if passCount !== null && failCount !== null && passCount + failCount > 0}
-                    <Chart.Container config={chartConfig} class="mx-auto aspect-square max-h-[120px]" style="width: 120px; height: 120px;">
+                    <Chart.Container config={chartConfig} class="aspect-square max-h-[120px]" style="width: 120px; height: 120px;">
                         <PieChart
                             data={[
                                 { result: "pass", value: passCount, color: chartConfig.pass.color},
