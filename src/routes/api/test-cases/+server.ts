@@ -1,6 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT, AZURE_DEVOPS_PAT } from '$env/static/private';
-
+import { env } from '$env/dynamic/private';
 /**
  * GET /api/test-cases?runId=123
  * Returns all test cases for a given test run id, including name, outcome, and associated bugs.
@@ -13,6 +12,12 @@ type AzureTestCaseResult = {
 };
 
 export async function GET({ url }) {
+
+    const { AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT, AZURE_DEVOPS_PAT } = env;
+    if (!AZURE_DEVOPS_ORGANIZATION || !AZURE_DEVOPS_PROJECT) {
+        return json({ error: 'Missing Azure DevOps environment variables' }, { status: 500 });
+    }
+
     const runId = url.searchParams.get('runId');
     if (!runId) {
         return json({ error: 'Missing runId parameter' }, { status: 400 });
