@@ -1,4 +1,5 @@
 
+
 <script lang="ts">
     import * as Card from "$lib/components/ui/card/index.js";
     import PipelineStatusBadge from "$lib/components/ui/PipelineStatusBadge/pipelineStatusBadge.svelte";
@@ -7,12 +8,15 @@
     import * as Chart from "$lib/components/ui/chart/index.js";
     import { PieChart, Text } from "layerchart";
     import Skeleton from "$lib/components/ui/skeleton/skeleton.svelte";
+    import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger } from "$lib/components/ui/dialog";
 
     export let pipelineName: string = "PipelineName";
     export let link: string | null = null;
     export let status: string | null = null;
     export let passCount: number | null = null;
     export let failCount: number | null = null;
+
+    let dialogOpen = false;
 
 function handleCopy() {
     if (link) {
@@ -32,17 +36,28 @@ const chartConfig = {
 <!-- Material Icons font import (only once per app, but safe here for demo) -->
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <Card.Content style="position: relative;">
-        {#if passCount !== null && failCount !== null && passCount + failCount > 0}
-            <button
-                title="Maximize"
-                aria-label="Maximize"
-                class="absolute top-0 right-1 p-1 rounded-full hover:bg-accent/40 focus:outline-none"
-                style="width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; z-index: 10; background: none; border: none;"
-            >
-                <span class="material-icons text-muted-foreground" style="font-size: 18px;">fullscreen</span>
-            </button>
-        {/if}
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%;">
+        {#if passCount !== null && failCount !== null && passCount + failCount > 0}
+            <Dialog bind:open={dialogOpen}>
+                <DialogTrigger>
+                    <button
+                        title="Maximize"
+                        aria-label="Maximize"
+                        class="absolute top-0 right-1 p-1 rounded-full hover:bg-accent/40 focus:outline-none group"
+                        style="width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; z-index: 10; background: none; border: none;"
+                    >
+                        <span class="material-icons text-muted-foreground cursor-pointer group-hover:text-primary" style="font-size: 18px;">fullscreen</span>
+                    </button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogTitle>Maximized View</DialogTitle>
+                    <DialogDescription>
+                        <!-- You can render the chart or any expanded content here -->
+                        Maximized content goes here.
+                    </DialogDescription>
+                </DialogContent>
+            </Dialog>
+        {/if}
             <!-- Left: Title and Description/Body -->
             <div class="flex flex-col items-start min-w-0 flex-1">
                 <div class="flex items-center min-w-0 pb-1">
