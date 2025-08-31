@@ -96,7 +96,7 @@ let selectedDate = $state<DateValue | undefined>(
         releaseId: number | null,
     ) {
         if (!selectedDate || !releaseId) {
-            pipelineStatuses = { ...pipelineStatuses, [pipelineName]: { status: 'Unknown', passCount: null, failCount: null } };
+            pipelineStatuses = { ...pipelineStatuses, [pipelineName]: { status: 'Unknown', passCount: 0, failCount: 0 } };
             pipelineLinks = { ...pipelineLinks, [pipelineName]: null };
             return;
         }
@@ -179,7 +179,6 @@ let selectedDate = $state<DateValue | undefined>(
                         };
                     
                         // Only fetch status, description, and link if releaseId is available
-                        console.log('Calling getPipelineStatus for', pipeline.displayName, 'with releaseId', releaseId);
                         getPipelineStatus(pipeline.displayName, releaseId);
 
                         if (!releaseId) {
@@ -278,8 +277,8 @@ let selectedDate = $state<DateValue | undefined>(
                             pipelineName={displayName}
                             link={pipelineLinks[displayName] ?? null}
                             status={pipelineStatuses[displayName]?.status ?? null}
-                            passCount={pipelineStatuses[displayName]?.passCount ?? null}
-                            failCount={pipelineStatuses[displayName]?.failCount ?? null}
+                            passCount={pipelineStatuses[displayName]?.passCount}
+                            failCount={pipelineStatuses[displayName]?.failCount}
                         >
                             {#if pipelineDescriptions[displayName] === null}
                                 <Skeleton class="h-5 w-3/4" />

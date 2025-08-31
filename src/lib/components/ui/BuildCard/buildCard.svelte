@@ -6,6 +6,7 @@
     import { Toaster } from "$lib/components/ui/sonner";
     import * as Chart from "$lib/components/ui/chart/index.js";
     import { PieChart, Text } from "layerchart";
+    import Skeleton from "$lib/components/ui/skeleton/skeleton.svelte";
 
     export let pipelineName: string = "PipelineName";
     export let link: string | null = null;
@@ -13,35 +14,17 @@
     export let passCount: number | null = null;
     export let failCount: number | null = null;
 
-    function handleCopy() {
-        if (link) {
-            navigator.clipboard.writeText(link);
-            toast.info(link, { duration: 6000 });
-        }
+function handleCopy() {
+    if (link) {
+        navigator.clipboard.writeText(link);
+        toast.info(link, { duration: 6000 });
     }
+}
 
-    // Chart state
-    let loading = false;
-    let error: string | null = null;
-
-    $: {
-        console.log("BuildCard status changed:", status);
-        // If status is unknown or no run found, show error
-        if (
-            typeof status === 'string' &&
-            status === "No Run Found"
-        ) {
-            error = 'No test data';
-        } else {
-            error = null;
-        }   
-    }
-
-
-    const chartConfig = {
-        pass: { label: "Pass", color: "var(--chart-1)" },
-        fail: { label: "Fail", color: "var(--chart-2)" },
-    } satisfies Chart.ChartConfig;
+const chartConfig = {
+    pass: { label: "Pass", color: "var(--chart-1)" },
+    fail: { label: "Fail", color: "var(--chart-2)" },
+} satisfies Chart.ChartConfig;
 </script>
 
 <Toaster position="top-center" richColors />
@@ -92,9 +75,9 @@
             </div>
             <!-- Right: Chart -->
             <div class="flex-shrink-0 flex items-center justify-center" style="width: 120px; height: 80px; min-width: 80px; min-height: 80px;">
-                {#if loading}
-                    <span class="text-xs text-muted-foreground">Loading...</span>
-                {:else if passCount !== null && failCount !== null}
+                {#if passCount === null || failCount === null}
+                    <Skeleton class="h-20 w-20 rounded-full" />
+                {:else if passCount !== null && failCount !== null && passCount + failCount > 0}
                     <Chart.Container config={chartConfig} class="mx-auto" style="width: 80px; height: 80px;">
                         <PieChart
                             data={[{ result: "pass", value: passCount, color: chartConfig.pass.color }, { result: "fail", value: failCount, color: chartConfig.fail.color }]}

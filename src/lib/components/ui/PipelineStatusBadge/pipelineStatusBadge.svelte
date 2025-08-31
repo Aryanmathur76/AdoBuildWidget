@@ -2,7 +2,6 @@
 import Badge from "$lib/components/ui/badge/badge.svelte";
 import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 export let status: string | null = null;
-$: console.log("[PipelineStatusBadge] status prop:", status);
 </script>
 
 {#if status === null}

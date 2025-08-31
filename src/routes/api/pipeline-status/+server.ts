@@ -94,7 +94,6 @@ function derivePipelineStatus(details: Release, passCount: number | null, failCo
 export async function GET({ url }: { url: URL }) {
   try {
     const releaseId = url.searchParams.get('releaseId');
-    console.log("[PipelineStatus] Received request for releaseId:", releaseId);
     if (!releaseId || typeof releaseId !== 'string' || !releaseId.trim()) {
       return errorJson('Missing or invalid releaseId', 400);
     }
