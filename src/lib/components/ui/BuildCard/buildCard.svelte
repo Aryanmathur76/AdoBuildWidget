@@ -71,7 +71,9 @@ const chartConfig = {
                         {/if}
                     </span>
                 </div>
-                <slot />
+                <div class="text-xs text-muted-foreground mb-1">
+                    <slot/>
+                </div>
             </div>
             <!-- Right: Chart -->
             <div class="flex-shrink-0 flex items-center justify-center" style="width: 120px; height: 120px; min-width: 80px; min-height: 80px;">
@@ -87,8 +89,8 @@ const chartConfig = {
                             key="result"
                             value="value"
                             c="color"
-                            innerRadius={32}
-                            padding={16}
+                            innerRadius={40}
+                            padding={25}
                             props={{ pie: { motion: "tween" } }}
                         >
                             {#snippet aboveMarks()}
