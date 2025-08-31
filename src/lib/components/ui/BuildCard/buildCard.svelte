@@ -19,7 +19,28 @@
     export let releaseId: number | null = null;
     export let date: string | null = null;
 
+
     let dialogOpen = false;
+    let isLoading = false;
+    let testCases: import("$lib/components/ui/TestChart/testChart.svelte").TestCase[] | null = null;
+    let testCasesError: string | null = null;
+
+    $: if (dialogOpen && passCount !== null && failCount !== null && passCount + failCount > 0 && releaseId && date) {
+        isLoading = true;
+        testCases = null;
+        testCasesError = null;
+        fetch(`/api/test-cases?releaseId=${releaseId}&date=${encodeURIComponent((date.length > 10 ? date.slice(0, 10) : date))}`)
+            .then(r => r.json())
+            .then(data => {
+                testCases = data.testCases;
+                isLoading = false;
+            })
+            .catch(() => {
+                testCases = null;
+                isLoading = false;
+                testCasesError = 'Failed to load test cases';
+            });
+    }
 
 function handleCopy() {
     if (link) {
@@ -57,12 +78,15 @@ const chartConfig = {
                         <!-- Render the TestChart (datatable) component here -->
                         <div class="py-2">
                             {#if passCount !== null && failCount !== null && passCount + failCount > 0 && releaseId && date}
-                                {#await fetch(`/api/test-cases?releaseId=${releaseId}&date=${encodeURIComponent((date.length > 10 ? date.slice(0, 10) : date))}`)
-                                    .then(r => r.json()) then data}
-                                    <TestChart testCases={data.testCases} />
-                                {:catch err}
-                                    <div class="text-xs text-red-500">Failed to load test cases</div>
-                                {/await}
+                                {#key `${releaseId}-${date}`}
+                                    {#if isLoading}
+                                        <TestChart isLoading={true} />
+                                    {:else if testCases}
+                                        <TestChart testCases={testCases} isLoading={false} />
+                                    {:else if testCasesError}
+                                        <div class="text-xs text-red-500">{testCasesError}</div>
+                                    {/if}
+                                {/key}
                             {/if}
                         </div>
                     </DialogDescription>

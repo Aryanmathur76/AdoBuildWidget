@@ -18,6 +18,7 @@ import * as Table from "$lib/components/ui/table/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
+import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import {
   FlexRender,
   createSvelteTable,
@@ -33,7 +34,7 @@ export interface TestCase {
   associatedBugs: { id: string | number; title?: string }[];
 }
 
-const { testCases = [], maxHeight = "400px" } = $props<{ testCases?: TestCase[]; maxHeight?: string }>();
+const { testCases = [], maxHeight = "400px", isLoading = false } = $props<{ testCases?: TestCase[]; maxHeight?: string; isLoading?: boolean }>();
 
 const columns: ColumnDef<TestCase>[] = [
   {
@@ -206,24 +207,36 @@ const table = createSvelteTable({
     {/each}
    </Table.Header>
    <Table.Body>
-    {#each table.getPaginationRowModel().rows as row (row.id)}
-     <Table.Row data-state={row.getIsSelected() && "selected"}>
-      {#each row.getVisibleCells() as cell (cell.id)}
-       <Table.Cell class="[&:has([role=checkbox])]:pl-3 px-2 py-1">
-        <FlexRender
-         content={cell.column.columnDef.cell}
-         context={cell.getContext()}
-        />
-       </Table.Cell>
+    {#if isLoading}
+      {#each Array(4) as _, i}
+        <Table.Row>
+          {#each columns as col}
+            <Table.Cell class="[&:has([role=checkbox])]:pl-3 px-2 py-1">
+              <Skeleton class="h-4 w-full" />
+            </Table.Cell>
+          {/each}
+        </Table.Row>
       {/each}
-     </Table.Row>
     {:else}
-     <Table.Row>
-      <Table.Cell colspan={columns.length} class="h-12 text-center">
-       No results.
-      </Table.Cell>
-     </Table.Row>
-    {/each}
+      {#each table.getPaginationRowModel().rows as row (row.id)}
+        <Table.Row data-state={row.getIsSelected() && "selected"}>
+          {#each row.getVisibleCells() as cell (cell.id)}
+            <Table.Cell class="[&:has([role=checkbox])]:pl-3 px-2 py-1">
+              <FlexRender
+                content={cell.column.columnDef.cell}
+                context={cell.getContext()}
+              />
+            </Table.Cell>
+          {/each}
+        </Table.Row>
+      {:else}
+        <Table.Row>
+          <Table.Cell colspan={columns.length} class="h-12 text-center">
+            No results.
+          </Table.Cell>
+        </Table.Row>
+      {/each}
+    {/if}
    </Table.Body>
   </Table.Root>
  </div>
