@@ -154,7 +154,7 @@
 </script>
 
 <div class="w-full h-full min-h-screen" transition:slide={{ duration: 300 }}>
-    <Card class="h-full rounded-none overflow-y-auto max-h-[100vh]">
+    <Card class="border-0 shadow-none h-full rounded-none overflow-y-auto max-h-[100vh]">
         <CardContent class="h-full px-2">
             <div class="flex justify-center mb-4">
                 <Pagination.Root

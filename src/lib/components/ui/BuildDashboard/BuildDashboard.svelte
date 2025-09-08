@@ -228,7 +228,7 @@ let selectedDate = $state<DateValue | undefined>(
 
 <div class="w-full h-full min-h-screen"
     transition:slide={{ duration: 300 }}>
-    <Card.Root class="w-full h-screen min-h-screen rounded-none">
+    <Card.Root class="border-0 shadow-none w-full h-screen min-h-screen rounded-none">
         <ScrollArea class="h-full w-full">
             <Card.Header class="flex items-center justify-between">
                 <a href="/"
