@@ -5,6 +5,8 @@
     import { goto } from "$app/navigation";
     import * as Pagination from "$lib/components/ui/pagination/index.js";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+    import CardTitle from "../card/card-title.svelte";
+    import CardHeader from "../card/card-header.svelte";
 
     // Svelte binding for Pagination.Root (1-based page index)
     const today = new Date();
@@ -154,47 +156,21 @@
 </script>
 
 <div class="w-full h-full min-h-screen" transition:slide={{ duration: 300 }}>
-    <Card class="border-0 shadow-none h-full rounded-none overflow-y-auto max-h-[100vh]">
+    <Card
+        class="py-0 border-0 shadow-none h-full rounded-none overflow-y-auto max-h-[100vh]"
+    >
+        <CardTitle class="px-2 pt-5">
+            <span
+                class="inline-flex rounded bg-green-500 text-white text-lg font-bold px-2 py-1 items-center gap-2"
+            >
+                <span
+                    class="material-symbols-outlined"
+                    style="font-size: 2em; line-height: 1;"
+                >health_metrics</span>
+                DELTAV BUILD HEALTH
+            </span>
+        </CardTitle>
         <CardContent class="h-full px-2">
-            <div class="flex justify-center mb-4">
-                <Pagination.Root
-                    count={months.length}
-                    perPage={1}
-                    siblingCount={1}
-                    bind:page={currentMonthPage}
-                >
-                    {#snippet children({ pages, currentPage })}
-                        <Pagination.Content>
-                            <Pagination.Item>
-                                <Pagination.PrevButton />
-                            </Pagination.Item>
-                            {#each pages as page (page.key)}
-                                {#if page.type === "ellipsis"}
-                                    <Pagination.Item>
-                                        <Pagination.Ellipsis />
-                                    </Pagination.Item>
-                                {:else}
-                                    <Pagination.Item>
-                                        <Pagination.Link
-                                            {page}
-                                            isActive={currentPage ===
-                                                page.value}
-                                        >
-                                            {monthNames[page.value - 1].slice(
-                                                0,
-                                                3,
-                                            )}
-                                        </Pagination.Link>
-                                    </Pagination.Item>
-                                {/if}
-                            {/each}
-                            <Pagination.Item>
-                                <Pagination.NextButton />
-                            </Pagination.Item>
-                        </Pagination.Content>
-                    {/snippet}
-                </Pagination.Root>
-            </div>
             <div class="grid grid-cols-7 gap-1">
                 {#each daysInMonth as dayObj}
                     <div class="w-full aspect-square min-w-0 min-h-0">
@@ -233,6 +209,45 @@
                         {/if}
                     </div>
                 {/each}
+            </div>
+            <div class="flex justify-center my-3">
+                <Pagination.Root
+                    count={months.length}
+                    perPage={1}
+                    siblingCount={1}
+                    bind:page={currentMonthPage}
+                >
+                    {#snippet children({ pages, currentPage })}
+                        <Pagination.Content>
+                            <Pagination.Item>
+                                <Pagination.PrevButton />
+                            </Pagination.Item>
+                            {#each pages as page (page.key)}
+                                {#if page.type === "ellipsis"}
+                                    <Pagination.Item>
+                                        <Pagination.Ellipsis />
+                                    </Pagination.Item>
+                                {:else}
+                                    <Pagination.Item>
+                                        <Pagination.Link
+                                            {page}
+                                            isActive={currentPage ===
+                                                page.value}
+                                        >
+                                            {monthNames[page.value - 1].slice(
+                                                0,
+                                                3,
+                                            )}
+                                        </Pagination.Link>
+                                    </Pagination.Item>
+                                {/if}
+                            {/each}
+                            <Pagination.Item>
+                                <Pagination.NextButton />
+                            </Pagination.Item>
+                        </Pagination.Content>
+                    {/snippet}
+                </Pagination.Root>
             </div>
         </CardContent>
     </Card>
