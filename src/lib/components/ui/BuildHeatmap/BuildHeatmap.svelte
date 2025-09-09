@@ -97,10 +97,10 @@
                     colorClass = "bg-blue-500 text-white";
                     break;
                 case "unknown":
-                    colorClass = "bg-zinc-800 text-white";
+                    colorClass = "bg-zinc-500 text-white";
                     break;
                 default:
-                    colorClass = "bg-zinc-800 text-white";
+                    colorClass = "bg-zinc-500 text-white";
                     break;
             }
             return {
@@ -195,7 +195,7 @@
                                 size="icon"
                                 type="button"
                                 aria-label={`Go to build ${dayObj.dateStr}`}
-                                class={`w-full h-full min-w-0 min-h-0 bg-zinc-800 text-white cursor-not-allowed`}
+                                class={`w-full h-full min-w-0 min-h-0 bg-zinc-500 text-white cursor-not-allowed`}
                                 style="aspect-ratio: 1 / 1;"
                                 disabled={true}
                             >
