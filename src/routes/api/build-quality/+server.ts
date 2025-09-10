@@ -135,17 +135,21 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
       }
     }
 
-    // Determine overall quality based on total pass/fail count
+    // Determine overall quality, prioritizing 'in progress' status
     let result: string = 'unknown';
-    const totalTests = totalPassCount + totalFailCount;
-    if (totalTests > 0) {
-      const passRate = (totalPassCount / totalTests) * 100;
-      if (passRate >= 95) {
-        result = 'good';
-      } else if (passRate >= 75) {
-        result = 'ok';
-      } else {
-        result = 'bad';
+    if (statuses.includes('in progress')) {
+      result = 'in progress';
+    } else {
+      const totalTests = totalPassCount + totalFailCount;
+      if (totalTests > 0) {
+        const passRate = (totalPassCount / totalTests) * 100;
+        if (passRate >= 95) {
+          result = 'good';
+        } else if (passRate >= 75) {
+          result = 'ok';
+        } else {
+          result = 'bad';
+        }
       }
     }
   const response = { date, releaseIds, quality: result, releasesWithTestsRan, totalPassCount, totalFailCount };
