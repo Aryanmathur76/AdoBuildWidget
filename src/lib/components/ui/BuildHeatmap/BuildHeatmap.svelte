@@ -6,7 +6,6 @@
     import * as Pagination from "$lib/components/ui/pagination/index.js";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import CardTitle from "../card/card-title.svelte";
-    import CardHeader from "../card/card-header.svelte";
 
     // Svelte binding for Pagination.Root (1-based page index)
     const today = new Date();
@@ -85,22 +84,22 @@
             let colorClass = "";
             switch (dayBuildQuality[dateStr]) {
                 case "good":
-                    colorClass = "bg-green-500 text-white";
+                    colorClass = "bg-lime-600 text-white";
                     break;
                 case "ok":
                     colorClass = "bg-yellow-400 text-black";
                     break;
                 case "bad":
-                    colorClass = "bg-red-500 text-white";
+                    colorClass = "bg-red-600 text-white";
                     break;
                 case "in progress":
-                    colorClass = "bg-blue-500 text-white";
+                    colorClass = "bg-sky-500 text-white";
                     break;
                 case "unknown":
-                    colorClass = "bg-zinc-500 text-white";
+                    colorClass = "bg-zinc-700 text-white";
                     break;
                 default:
-                    colorClass = "bg-zinc-500 text-white";
+                    colorClass = "bg-zinc-700 text-white";
                     break;
             }
             return {
@@ -161,7 +160,7 @@
     >
         <CardTitle class="px-2 pt-5">
             <span
-                class="inline-flex rounded bg-green-500 text-white text-lg font-bold px-2 py-1 items-center gap-2"
+                class="inline-flex rounded bg-lime-600 text-white text-lg font-bold px-2 py-1 items-center gap-2"
             >
                 <span
                     class="material-symbols-outlined"
@@ -187,7 +186,7 @@
                                 style="aspect-ratio: 1 / 1;"
                                 disabled={dayObj.disabled}
                             >
-                                {dayObj.day}
+                                <strong>{dayObj.day}</strong>
                             </Button>
                         {:else if dayObj.disabled}
                             <!-- For future days, show disabled button immediately -->
@@ -199,7 +198,7 @@
                                 style="aspect-ratio: 1 / 1;"
                                 disabled={true}
                             >
-                                {dayObj.day}
+                                <strong>{dayObj.day}</strong>
                             </Button>
                         {:else}
                             <Skeleton

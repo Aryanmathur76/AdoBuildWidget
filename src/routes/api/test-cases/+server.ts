@@ -7,7 +7,7 @@ import { env } from '$env/dynamic/private';
  * Returns all test cases for all latest test runs (per environment) for a given release and date window.
  */
 
-export async function GET({ url }) {
+export async function GET({ url }: { url: URL }) {
     const { AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT, AZURE_DEVOPS_PAT } = env;
     if (!AZURE_DEVOPS_ORGANIZATION || !AZURE_DEVOPS_PROJECT || !AZURE_DEVOPS_PAT) {
         return json({ error: 'Missing Azure DevOps environment variables' }, { status: 500 });
