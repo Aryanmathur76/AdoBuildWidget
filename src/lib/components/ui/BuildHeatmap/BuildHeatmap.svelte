@@ -52,37 +52,57 @@
     }
 
     // Store build quality for each day (YYYY-MM-DD => quality)
-    let dayBuildQuality: Record<string, string> = {};
+    type DayBuildQuality = {
+        quality: string;
+        releasesWithTestsRan?: number;
+        totalPassCount?: number;
+        totalFailCount?: number;
+    };
+    let dayBuildQuality: Record<string, DayBuildQuality> = {};
 
     // Fetch build quality for a given date (YYYY-MM-DD), skip future days
     async function fetchBuildQualityForDay(dateStr: string) {
         // Parse dateStr to year, month, day
         const [year, month, day] = dateStr.split("-").map(Number);
         if (isFutureDay(year, month - 1, day)) {
-            dayBuildQuality[dateStr] = "unknown";
+            dayBuildQuality[dateStr] = { quality: "unknown" };
             return;
         }
         try {
             const res = await fetch(`/api/build-quality?date=${dateStr}`);
             if (res.ok) {
                 const data = await res.json();
-                dayBuildQuality[dateStr] = data.quality;
+                dayBuildQuality[dateStr] = {
+                    quality: data.quality,
+                    releasesWithTestsRan: data.releasesWithTestsRan,
+                    totalPassCount: data.totalPassCount,
+                    totalFailCount: data.totalFailCount,
+                };
             } else {
-                dayBuildQuality[dateStr] = "unknown";
+                dayBuildQuality[dateStr] = { quality: "unknown" };
             }
         } catch {
-            dayBuildQuality[dateStr] = "unknown";
+            dayBuildQuality[dateStr] = { quality: "unknown" };
         }
     }
 
     // Precompute day objects for the current month (pure, no side effects)
+    // Find max releasesWithTestsRan for current month
+    $: maxReleasesWithTestsRan = Math.max(
+        ...Array.from({ length: months[currentMonth].days }, (_, dIdx) => {
+            const dateStr = getDateString(currentYear, currentMonth, dIdx + 1);
+            return dayBuildQuality[dateStr]?.releasesWithTestsRan ?? 0;
+        })
+    );
+
     $: daysInMonth = Array.from(
         { length: months[currentMonth].days },
         (_, dIdx) => {
             const day = dIdx + 1;
             const dateStr = getDateString(currentYear, currentMonth, day);
             let colorClass = "";
-            switch (dayBuildQuality[dateStr]) {
+            const quality = dayBuildQuality[dateStr]?.quality ?? "unknown";
+            switch (quality) {
                 case "good":
                     colorClass = "bg-lime-600 text-white";
                     break;
@@ -102,11 +122,18 @@
                     colorClass = "bg-zinc-700 text-white";
                     break;
             }
+            // Calculate button size based on releasesWithTestsRan
+            const releases = dayBuildQuality[dateStr]?.releasesWithTestsRan ?? 0;
+            // If max is 0, fallback to 1 to avoid division by zero
+            const maxVal = maxReleasesWithTestsRan > 0 ? maxReleasesWithTestsRan : 1;
+            // Minimum scale 0.5, maximum 1.0
+            const scale = 0.5 + 0.5 * (releases / maxVal);
             return {
                 day,
                 dateStr,
                 colorClass,
                 disabled: isFutureDay(currentYear, currentMonth, day),
+                scale,
             };
         },
     );
@@ -183,7 +210,7 @@
                                     goto(`/build/${dayObj.dateStr}`);
                                 }}
                                 class={`w-full h-full min-w-0 min-h-0 cursor-pointer ${dayObj.colorClass}`}
-                                style="aspect-ratio: 1 / 1;"
+                                style={`aspect-ratio: 1 / 1; transform: scale(${dayObj.scale}); transition: transform 0.2s;`}
                                 disabled={dayObj.disabled}
                             >
                                 <strong>{dayObj.day}</strong>

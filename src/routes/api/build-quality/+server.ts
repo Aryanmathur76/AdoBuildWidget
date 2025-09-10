@@ -1,6 +1,10 @@
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/public';
 
+//Returns overall build quality for all configured pipelines for a given date
+//The object returned is { date: 'YYYY-MM-DD', releaseIds: [id1, id2, ...], quality: 'good|ok|bad|in progress|unknown' }
+
+
 // --- In-memory cache ---
 type CacheEntry = { result: any, timestamp: number };
 const cache: Record<string, CacheEntry> = {};
@@ -77,7 +81,10 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
       }
     }
 
-    const statuses: string[] = [];
+  const statuses: string[] = [];
+  let releasesWithTestsRan = 0;
+  let totalPassCount = 0;
+  let totalFailCount = 0;
     for (const releaseId of releaseIds) {
       if (!releaseId) {
         statuses.push('unknown');
@@ -94,6 +101,13 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
           if (typeof testRunData.failCount === 'number') failCount = testRunData.failCount;
         }
       } catch {}
+
+      // Track releases with tests and total pass/fail counts
+      if ((passCount ?? 0) + (failCount ?? 0) > 0) {
+        releasesWithTestsRan++;
+        totalPassCount += passCount ?? 0;
+        totalFailCount += failCount ?? 0;
+      }
 
       // Build pipeline-status URL with test results as query params
       let pipelineStatusUrl = `${baseUrl}/api/pipeline-status?releaseId=${releaseId}`;
@@ -141,7 +155,7 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
         result = 'unknown';
       }
     }
-    const response = { date, releaseIds, quality: result };
+  const response = { date, releaseIds, quality: result, releasesWithTestsRan, totalPassCount, totalFailCount };
     // Update cache
     cache[cacheKey] = { result: response, timestamp: now };
     return json(response);
