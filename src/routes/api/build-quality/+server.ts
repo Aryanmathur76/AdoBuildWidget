@@ -135,24 +135,17 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
       }
     }
 
-    // Determine overall quality
+    // Determine overall quality based on total pass/fail count
     let result: string = 'unknown';
-    if (statuses.length > 0) {
-      if (statuses.every(s => s === 'good' || s === 'unknown') && statuses.some(s => s === 'good')) {
+    const totalTests = totalPassCount + totalFailCount;
+    if (totalTests > 0) {
+      const passRate = (totalPassCount / totalTests) * 100;
+      if (passRate >= 95) {
         result = 'good';
-      } else if (statuses.some(s => s === 'good' || s === 'ok')) {
+      } else if (passRate >= 75) {
         result = 'ok';
-      } else if (statuses.some(s => s === 'in progress')) {
-        result = 'in progress';
-      } else if (statuses.every(s => s === 'unknown' || s === 'bad')) {
-        // If all are unknown or bad, but not all unknown
-        if (statuses.every(s => s === 'unknown')) {
-          result = 'unknown';
-        } else {
-          result = 'bad';
-        }
-      } else if (statuses.every(s => s === 'unknown')) {
-        result = 'unknown';
+      } else {
+        result = 'bad';
       }
     }
   const response = { date, releaseIds, quality: result, releasesWithTestsRan, totalPassCount, totalFailCount };
