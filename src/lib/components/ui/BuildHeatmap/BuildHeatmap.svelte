@@ -92,7 +92,7 @@
         ...Array.from({ length: months[currentMonth].days }, (_, dIdx) => {
             const dateStr = getDateString(currentYear, currentMonth, dIdx + 1);
             return dayBuildQuality[dateStr]?.releasesWithTestsRan ?? 0;
-        })
+        }),
     );
 
     $: daysInMonth = Array.from(
@@ -123,9 +123,11 @@
                     break;
             }
             // Calculate button size based on releasesWithTestsRan
-            const releases = dayBuildQuality[dateStr]?.releasesWithTestsRan ?? 0;
+            const releases =
+                dayBuildQuality[dateStr]?.releasesWithTestsRan ?? 0;
             // If max is 0, fallback to 1 to avoid division by zero
-            const maxVal = maxReleasesWithTestsRan > 0 ? maxReleasesWithTestsRan : 1;
+            const maxVal =
+                maxReleasesWithTestsRan > 0 ? maxReleasesWithTestsRan : 1;
             // Minimum scale 0.5, maximum 1.0
             const scale = 0.5 + 0.5 * (releases / maxVal);
             return {
@@ -187,13 +189,47 @@
     >
         <CardTitle class="px-2 pt-5">
             <span
-                class="inline-flex rounded bg-lime-600 text-white text-lg font-bold px-2 py-1 items-center gap-2"
+                class={`inline-flex rounded text-white text-lg font-bold px-2 py-1 items-center gap-2 ${
+                    dayBuildQuality[
+                        getDateString(
+                            currentYear,
+                            currentMonth,
+                            today.getDate(),
+                        )
+                    ]?.quality === "good"
+                        ? "bg-lime-600"
+                        : dayBuildQuality[
+                                getDateString(
+                                    currentYear,
+                                    currentMonth,
+                                    today.getDate(),
+                                )
+                            ]?.quality === "ok"
+                          ? "bg-yellow-400 text-black"
+                          : dayBuildQuality[
+                                  getDateString(
+                                      currentYear,
+                                      currentMonth,
+                                      today.getDate(),
+                                  )
+                              ]?.quality === "bad"
+                            ? "bg-red-600"
+                            : dayBuildQuality[
+                                    getDateString(
+                                        currentYear,
+                                        currentMonth,
+                                        today.getDate(),
+                                    )
+                                ]?.quality === "in progress"
+                              ? "bg-sky-500"
+                              : "bg-zinc-700"
+                }`}
             >
                 <span
                     class="material-symbols-outlined"
-                    style="font-size: 2em; line-height: 1;"
-                >health_metrics</span>
-                DELTAV BUILD HEALTH
+                    style="font-size: 2em; line-height: 1;">health_metrics</span
+                >
+                    DELTAV BUILD HEALTH
             </span>
         </CardTitle>
         <CardContent class="h-full px-2">
