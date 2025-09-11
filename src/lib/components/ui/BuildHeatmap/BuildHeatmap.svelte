@@ -246,7 +246,7 @@
                                     goto(`/build/${dayObj.dateStr}`);
                                 }}
                                 class={`w-full h-full min-w-0 min-h-0 cursor-pointer ${dayObj.colorClass}`}
-                                style={`aspect-ratio: 1 / 1; transform: scale(${dayObj.scale}); transition: transform 0.2s;`}
+                                style={`aspect-ratio: 1 / 1; transition: transform 0.2s;`}
                                 disabled={dayObj.disabled}
                             >
                                 <strong>{dayObj.day}</strong>
