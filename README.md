@@ -1,38 +1,49 @@
-# sv
+# API Endpoints
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+## /api/build-quality
+**GET**
+- Parameters: `date` (YYYY-MM-DD)
+- Purpose: Returns overall build quality for all configured pipelines for a given date.
+- Returns: `{ date, releaseIds, quality, releasesWithTestsRan, totalPassCount, totalFailCount }`
+	- `quality`: 'good' | 'ok' | 'bad' | 'in progress' | 'unknown'
+	- `releasesWithTestsRan`: Number of releases with non-zero test cases
+	- `totalPassCount`: Total number of passed tests
+	- `totalFailCount`: Total number of failed tests
 
-## Creating a project
+## /api/test-run
+**GET**
+- Parameters: `releaseId`, `date` (YYYY-MM-DD)
+- Purpose: Returns aggregate pass/fail counts for the latest test run per environment for a release and date window.
+- Returns: `{ passCount, failCount, message? }`
 
-If you're seeing this, you've probably already done this step. Congrats!
+## /api/test-cases
+**GET**
+- Parameters: `releaseId`, `date` (YYYY-MM-DD)
+- Purpose: Returns all test cases for all latest test runs (per environment) for a given release and date window.
+- Returns: `{ testCases: [ { id, name, outcome, associatedBugs } ] }`
 
-```sh
-# create a new project in the current directory
-npx sv create
+## /api/release-id
+**GET**
+- Parameters: `definitionId`, `date` (YYYY-MM-DD)
+- Purpose: Returns the latest Azure DevOps release ID for a given pipeline definition and date.
+- Returns: `{ releaseId, release }`
 
-# create a new project in my-app
-npx sv create my-app
-```
+## /api/release-link
+**GET**
+- Parameters: `releaseId`
+- Purpose: Returns a direct link to the Azure DevOps release for the given release ID.
+- Returns: `{ link }`
 
-## Developing
+## /api/release-description
+**GET**
+- Parameters: `releaseId`
+- Purpose: Returns the description of the Azure DevOps release for the given release ID.
+- Returns: `{ description }`
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## /api/pipeline-status
+**GET**
+- Parameters: `releaseId`, `passCount?`, `failCount?`
+- Purpose: Returns the status of the pipeline for the given release ID, optionally using test results.
+- Returns: `{ status, raw }`
+	- `status`: 'succeeded' | 'partially succeeded' | 'failed' | 'interrupted' | 'in progress' | 'No Run Found' | ...
+	- `raw`: Full release details from Azure DevOps

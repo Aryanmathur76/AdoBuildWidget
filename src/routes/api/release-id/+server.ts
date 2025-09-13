@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import { getAzureDevOpsEnvVars } from '$lib/utils';
 
 function errorJson(error: string, status = 500) {
   return json({ error }, { status });
@@ -9,18 +10,19 @@ export async function GET({ url }: { url: URL }) {
   try {
     const date = url.searchParams.get('date');
     const definitionId = url.searchParams.get('definitionId');
-    if (!date || typeof date !== 'string' || !/\d{4}-\d{2}-\d{2}/.test(date)) {
+    if (!date || typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return errorJson('Invalid or missing date (YYYY-MM-DD required)', 400);
     }
-    if (!definitionId) {
-      return errorJson('Missing definitionId', 400);
+    if (!definitionId || typeof definitionId !== 'string' || !/^\d+$/.test(definitionId)) {
+      return errorJson('Missing or invalid definitionId (numeric string required)', 400);
     }
 
-    const organization = env.AZURE_DEVOPS_ORGANIZATION;
-    const project = env.AZURE_DEVOPS_PROJECT;
-    const pat = env.AZURE_DEVOPS_PAT;
-    if (!organization || !project || !pat) {
-      return errorJson('Missing Azure DevOps environment variables', 500);
+    
+    let organization, project, pat;
+    try {
+      ({ AZURE_DEVOPS_ORGANIZATION: organization, AZURE_DEVOPS_PROJECT: project, AZURE_DEVOPS_PAT: pat } = getAzureDevOpsEnvVars(env));
+    } catch (e: any) {
+      return errorJson(e.message || 'Missing Azure DevOps environment variables', 500);
     }
 
     // Use the date as both min and max for a single day

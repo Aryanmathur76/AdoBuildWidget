@@ -86,15 +86,6 @@
         }
     }
 
-    // Precompute day objects for the current month (pure, no side effects)
-    // Find max releasesWithTestsRan for current month
-    $: maxReleasesWithTestsRan = Math.max(
-        ...Array.from({ length: months[currentMonth].days }, (_, dIdx) => {
-            const dateStr = getDateString(currentYear, currentMonth, dIdx + 1);
-            return dayBuildQuality[dateStr]?.releasesWithTestsRan ?? 0;
-        }),
-    );
-
     $: daysInMonth = Array.from(
         { length: months[currentMonth].days },
         (_, dIdx) => {
@@ -122,20 +113,12 @@
                     colorClass = "bg-zinc-700 text-white";
                     break;
             }
-            // Calculate button size based on releasesWithTestsRan
-            const releases =
-                dayBuildQuality[dateStr]?.releasesWithTestsRan ?? 0;
-            // If max is 0, fallback to 1 to avoid division by zero
-            const maxVal =
-                maxReleasesWithTestsRan > 0 ? maxReleasesWithTestsRan : 1;
-            // Minimum scale 0.5, maximum 1.0
-            const scale = 0.5 + 0.5 * (releases / maxVal);
+
             return {
                 day,
                 dateStr,
                 colorClass,
                 disabled: isFutureDay(currentYear, currentMonth, day),
-                scale,
             };
         },
     );

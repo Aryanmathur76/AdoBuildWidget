@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import { getAzureDevOpsEnvVars } from '$lib/utils';
 
 // Helper to return error JSON
 function errorJson(error: string, status = 500) {
@@ -17,12 +18,11 @@ export async function GET({ url }: { url: URL }) {
       return errorJson('Missing or invalid date (YYYY-MM-DD required)', 400);
     }
 
-    // Azure DevOps API params
-    const organization = env.AZURE_DEVOPS_ORGANIZATION;
-    const project = env.AZURE_DEVOPS_PROJECT;
-    const pat = env.AZURE_DEVOPS_PAT;
-    if (!organization || !project || !pat) {
-      return errorJson('Missing Azure DevOps environment variables', 500);
+    let organization, project, pat;
+    try {
+      ({ AZURE_DEVOPS_ORGANIZATION: organization, AZURE_DEVOPS_PROJECT: project, AZURE_DEVOPS_PAT: pat } = getAzureDevOpsEnvVars(env));
+    } catch (e: any) {
+      return errorJson(e.message || 'Missing Azure DevOps environment variables', 500);
     }
 
 

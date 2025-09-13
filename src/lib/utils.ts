@@ -1,3 +1,36 @@
+/**
+ * Returns validated Azure DevOps environment variables from env object.
+ * Throws if any required variable is missing.
+ */
+export function getAzureDevOpsEnvVars(env: Record<string, any>) {
+	const AZURE_DEVOPS_ORGANIZATION = env.AZURE_DEVOPS_ORGANIZATION;
+	const AZURE_DEVOPS_PROJECT = env.AZURE_DEVOPS_PROJECT;
+	const AZURE_DEVOPS_PAT = env.AZURE_DEVOPS_PAT;
+	if (!AZURE_DEVOPS_ORGANIZATION || !AZURE_DEVOPS_PROJECT || !AZURE_DEVOPS_PAT) {
+		throw new Error('Missing Azure DevOps environment variables');
+	}
+	return { AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT, AZURE_DEVOPS_PAT };
+}
+
+/**
+ * Parses PUBLIC_AZURE_PIPELINE_CONFIG and returns the config object.
+ * Throws errors for missing/invalid config or pipelines.
+ */
+export function getPipelineConfig(configRaw: string): any {
+	if (!configRaw) {
+		throw new Error('Missing pipeline config');
+	}
+	let config;
+	try {
+		config = JSON.parse(configRaw);
+	} catch (e) {
+		throw new Error('Failed to parse pipeline config');
+	}
+	if (!config.pipelines || !Array.isArray(config.pipelines)) {
+		throw new Error('No pipelines configured');
+	}
+	return config;
+}
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 

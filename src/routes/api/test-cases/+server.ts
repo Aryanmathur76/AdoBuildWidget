@@ -1,6 +1,7 @@
 
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import { getAzureDevOpsEnvVars } from '$lib/utils';
 
 /**
  * GET /api/test-cases?releaseId=123&date=YYYY-MM-DD
@@ -8,9 +9,11 @@ import { env } from '$env/dynamic/private';
  */
 
 export async function GET({ url }: { url: URL }) {
-    const { AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT, AZURE_DEVOPS_PAT } = env;
-    if (!AZURE_DEVOPS_ORGANIZATION || !AZURE_DEVOPS_PROJECT || !AZURE_DEVOPS_PAT) {
-        return json({ error: 'Missing Azure DevOps environment variables' }, { status: 500 });
+    let AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT, AZURE_DEVOPS_PAT;
+    try {
+        ({ AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT, AZURE_DEVOPS_PAT } = getAzureDevOpsEnvVars(env));
+    } catch (e: any) {
+        return json({ error: e.message || 'Missing Azure DevOps environment variables' }, { status: 500 });
     }
 
     const releaseId = url.searchParams.get('releaseId');

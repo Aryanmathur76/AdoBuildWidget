@@ -1,30 +1,64 @@
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/public';
+import { getPipelineConfig } from '$lib/utils';
 
 //Returns overall build quality for all configured pipelines for a given date
 //The object returned is { date: 'YYYY-MM-DD', releaseIds: [id1, id2, ...], quality: 'good|ok|bad|in progress|unknown' }
-
 
 // --- In-memory cache ---
 type CacheEntry = { result: any, timestamp: number };
 const cache: Record<string, CacheEntry> = {};
 const CACHE_INTERVAL = 25 * 60 * 1000; // 25 minutes in ms
 
-// --- Types ---
-interface Release {
-  id: number;
-  createdOn: string;
-  status?: string;
-  environments?: Environment[];
-  [key: string]: any;
-}
-interface Environment {
-  status: string;
-  [key: string]: any;
-}
+//list of releaseIds for the pipelines configured
+const releaseIds: string[] = [];
+
+
+// Totals across all pipelines with tests
+let totalPassCount = 0;
+let totalFailCount = 0;
+
 
 function errorJson(error: string, status = 500) {
   return json({ error }, { status });
+}
+
+function checkCache(key: string): any | null {
+  const entry = cache[key];
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp < CACHE_INTERVAL) {
+    return entry.result;
+  }
+  return null;
+}
+
+function computeStatus(data: any) {
+  const status = (data?.status ?? '').toString().toLowerCase();
+  if (!status || status === 'no run found') {
+    return 'unknown';
+  } else if (status === 'succeeded') {
+    return 'good';
+  } else if (status === 'partially succeeded' || status === 'partiallySucceeded') {
+    return 'ok';
+  } else if (status === 'failed' || status === 'interrupted' || status === 'canceled' || status === 'rejected') {
+    return 'bad';
+  } else if (status === 'in progress' || status === 'inProgress' || status === 'active' || status === 'pending' || status === 'queued' || status === 'notStarted' || status === 'notDeployed') {
+    return 'in progress';
+  } else {
+    return 'unknown';
+  }
+}
+
+// Helper to fetch releaseId for a pipeline and date
+async function fetchReleaseId(baseUrl: string, pipelineId: string, date: string): Promise<string> {
+  try {
+    const relRes = await fetch(`${baseUrl}/api/release-id?definitionId=${pipelineId}&date=${date}`);
+    if (!relRes.ok) return '';
+    const relData = await relRes.json();
+    return relData?.releaseId ? relData.releaseId.toString() : '';
+  } catch {
+    return '';
+  }
 }
 
 
@@ -36,55 +70,26 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
       return errorJson('Invalid date format. Expected YYYY-MM-DD', 400);
     }
 
-    // Check cache
-    const cacheKey = date;
-    const now = Date.now();
-    if (cache[cacheKey] && (now - cache[cacheKey].timestamp < CACHE_INTERVAL)) {
-      return json(cache[cacheKey].result);
-    }
+    // Check cache and return early if not expired
+    const cached = checkCache(date);
+    if (cached)
+      return json(cached);
 
-    const pipelineConfigRaw = env.PUBLIC_AZURE_PIPELINE_CONFIG;
-    if (!pipelineConfigRaw) {
-      return errorJson('Missing pipeline config', 500);
-    }
-    let pipelineConfig;
-    try {
-      pipelineConfig = JSON.parse(pipelineConfigRaw);
-    } catch (e) {
-      return errorJson('Failed to parse pipeline config', 500);
-    }
-    if (!pipelineConfig.pipelines || !Array.isArray(pipelineConfig.pipelines)) {
-      return errorJson('No pipelines configured', 500);
-    }
+    //Load pipelines from env variable AZURE_PIPELINE_CONFIG
+    let pipelineConfig = getPipelineConfig(env.PUBLIC_AZURE_PIPELINE_CONFIG);
 
-    // Dynamically determine the base URL for local fetch
-    let baseUrl = '';
-    if (url.origin) {
-      baseUrl = url.origin;
-    } else if (request.headers.get('host')) {
-      baseUrl = `http://${request.headers.get('host')}`;
-    }
+    // Dynamically determine the base URL for local api call
+    let baseUrl = `http://${request.headers.get('host')}`;
 
-    // For each pipeline, get the releaseId for this date
-    const releaseIds: string[] = [];
+    // Collect releaseIds for all pipelines
     for (const pipeline of pipelineConfig.pipelines) {
-      const relRes = await fetch(`${baseUrl}/api/release-id?definitionId=${pipeline.id}&date=${date}`);
-      if (!relRes.ok) {
-        releaseIds.push('');
-        continue;
-      }
-      const relData = await relRes.json();
-      if (relData && relData.releaseId) {
-        releaseIds.push(relData.releaseId.toString());
-      } else {
-        releaseIds.push('');
-      }
+      const releaseId = await fetchReleaseId(baseUrl, pipeline.id, date);
+      releaseIds.push(releaseId);
     }
 
-  const statuses: string[] = [];
-  let releasesWithTestsRan = 0;
-  let totalPassCount = 0;
-  let totalFailCount = 0;
+    const statuses: string[] = [];
+
+
     for (const releaseId of releaseIds) {
       if (!releaseId) {
         statuses.push('unknown');
@@ -104,12 +109,11 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
 
       // Track releases with tests and total pass/fail counts
       if ((passCount ?? 0) + (failCount ?? 0) > 0) {
-        releasesWithTestsRan++;
         totalPassCount += passCount ?? 0;
         totalFailCount += failCount ?? 0;
       }
 
-      // Build pipeline-status URL with test results as query params
+      // Relaese ipeline-status URL with test results as query params
       let pipelineStatusUrl = `${baseUrl}/api/pipeline-status?releaseId=${releaseId}`;
       if (passCount !== null) pipelineStatusUrl += `&passCount=${passCount}`;
       if (failCount !== null) pipelineStatusUrl += `&failCount=${failCount}`;
@@ -119,20 +123,8 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
         continue;
       }
       const data = await res.json();
-      let status = data.status;
-      if (!status || status === 'No Run Found') {
-        statuses.push('unknown');
-      } else if (status === 'succeeded') {
-        statuses.push('good');
-      } else if (status === 'partially succeeded' || status === 'partiallySucceeded') {
-        statuses.push('ok');
-      } else if (status === 'failed' || status === 'interrupted' || status === 'canceled' || status === 'rejected') {
-        statuses.push('bad');
-      } else if (status === 'in progress' || status === 'inProgress' || status === 'active' || status === 'pending' || status === 'queued' || status === 'notStarted' || status === 'notDeployed') {
-        statuses.push('in progress');
-      } else {
-        statuses.push('unknown');   
-      }
+
+      statuses.push(computeStatus(data.status));
     }
 
     // Determine overall quality, prioritizing 'in progress' status
@@ -152,9 +144,9 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
         }
       }
     }
-  const response = { date, releaseIds, quality: result, releasesWithTestsRan, totalPassCount, totalFailCount };
+  const response = { date, releaseIds, quality: result, totalPassCount, totalFailCount };
     // Update cache
-    cache[cacheKey] = { result: response, timestamp: now };
+    cache[date] = { result: response, timestamp: Date.now() };
     return json(response);
   } catch (e: any) {
     if (e && typeof e === 'object' && 'error' in e && 'status' in e) {
