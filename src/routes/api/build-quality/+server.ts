@@ -10,10 +10,6 @@ type CacheEntry = { result: any, timestamp: number };
 const cache: Record<string, CacheEntry> = {};
 const CACHE_INTERVAL = 25 * 60 * 1000; // 25 minutes in ms
 
-// Note: releaseIds, totalPassCount, and totalFailCount are now declared inside the handler
-// to avoid accumulation across requests
-
-
 function errorJson(error: string, status = 500) {
   return json({ error }, { status });
 }
@@ -60,6 +56,62 @@ async function fetchReleaseId(baseUrl: string, pipelineId: string, date: string)
   }
 }
 
+// Helper to fetch test-run results for a release
+async function fetchTestRunResults(baseUrl: string, releaseId: string, date: string): Promise<{ passCount: number | null, failCount: number | null }> {
+  try {
+    const testRunRes = await fetch(`${baseUrl}/api/test-run?releaseId=${releaseId}&date=${date}`);
+    if (testRunRes.ok) {
+      const testRunData = await testRunRes.json();
+      const passCount = typeof testRunData.passCount === 'number' ? testRunData.passCount : null;
+      const failCount = typeof testRunData.failCount === 'number' ? testRunData.failCount : null;
+      return { passCount, failCount };
+    }
+  } catch (error) {
+    // Silent error handling
+  }
+  return { passCount: null, failCount: null };
+}
+
+// Helper to fetch pipeline status with test results
+async function fetchPipelineStatus(baseUrl: string, releaseId: string, passCount: number | null, failCount: number | null): Promise<string> {
+  try {
+    let pipelineStatusUrl = `${baseUrl}/api/pipeline-status?releaseId=${releaseId}`;
+    if (passCount !== null) pipelineStatusUrl += `&passCount=${passCount}`;
+    if (failCount !== null) pipelineStatusUrl += `&failCount=${failCount}`;
+    
+    const res = await fetch(pipelineStatusUrl);
+    if (!res.ok) {
+      return 'unknown';
+    }
+    const data = await res.json();
+    return computeStatus(data.status);
+  } catch (error) {
+    return 'unknown';
+  }
+}
+
+// Helper to determine overall quality based on statuses and test results
+function determineOverallQuality(statuses: string[], totalPassCount: number, totalFailCount: number): string {
+  // Prioritize 'in progress' status
+  if (statuses.includes('in progress')) {
+    return 'in progress';
+  }
+  
+  const totalTests = totalPassCount + totalFailCount;
+  if (totalTests > 0) {
+    const passRate = (totalPassCount / totalTests) * 100;
+    if (passRate >= 95) {
+      return 'good';
+    } else if (passRate >= 75) {
+      return 'ok';
+    } else {
+      return 'bad';
+    }
+  }
+  
+  return 'unknown';
+}
+
 
 // --- Main Handler ---
 export async function GET({ url, request }: { url: URL, request: Request }) {
@@ -102,18 +154,7 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
       }
       
       // Fetch test-run results for this releaseId and date
-      let passCount: number | null = null;
-      let failCount: number | null = null;
-      try {
-        const testRunRes = await fetch(`${baseUrl}/api/test-run?releaseId=${releaseId}&date=${date}`);
-        if (testRunRes.ok) {
-          const testRunData = await testRunRes.json();
-          if (typeof testRunData.passCount === 'number') passCount = testRunData.passCount;
-          if (typeof testRunData.failCount === 'number') failCount = testRunData.failCount;
-        }
-      } catch (error) {
-        // Silent error handling
-      }
+      const { passCount, failCount } = await fetchTestRunResults(baseUrl, releaseId, date);
 
       // Track releases with tests and total pass/fail counts
       if ((passCount ?? 0) + (failCount ?? 0) > 0) {
@@ -121,39 +162,13 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
         totalFailCount += failCount ?? 0;
       }
 
-      // Release pipeline-status URL with test results as query params
-      let pipelineStatusUrl = `${baseUrl}/api/pipeline-status?releaseId=${releaseId}`;
-      if (passCount !== null) pipelineStatusUrl += `&passCount=${passCount}`;
-      if (failCount !== null) pipelineStatusUrl += `&failCount=${failCount}`;
-      
-      const res = await fetch(pipelineStatusUrl);
-      if (!res.ok) {
-        statuses.push('unknown');
-        continue;
-      }
-      const data = await res.json();
-      const computedStatus = computeStatus(data.status);
-
+      // Fetch pipeline status
+      const computedStatus = await fetchPipelineStatus(baseUrl, releaseId, passCount, failCount);
       statuses.push(computedStatus);
     }
 
-    // Determine overall quality, prioritizing 'in progress' status
-    let result: string = 'unknown';
-    if (statuses.includes('in progress')) {
-      result = 'in progress';
-    } else {
-      const totalTests = totalPassCount + totalFailCount;
-      if (totalTests > 0) {
-        const passRate = (totalPassCount / totalTests) * 100;
-        if (passRate >= 95) {
-          result = 'good';
-        } else if (passRate >= 75) {
-          result = 'ok';
-        } else {
-          result = 'bad';
-        }
-      }
-    }
+    // Determine overall quality
+    const result = determineOverallQuality(statuses, totalPassCount, totalFailCount);
     
     const response = { date, releaseIds, quality: result, totalPassCount, totalFailCount };
     
