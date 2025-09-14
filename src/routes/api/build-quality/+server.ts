@@ -10,13 +10,8 @@ type CacheEntry = { result: any, timestamp: number };
 const cache: Record<string, CacheEntry> = {};
 const CACHE_INTERVAL = 25 * 60 * 1000; // 25 minutes in ms
 
-//list of releaseIds for the pipelines configured
-const releaseIds: string[] = [];
-
-
-// Totals across all pipelines with tests
-let totalPassCount = 0;
-let totalFailCount = 0;
+// Note: releaseIds, totalPassCount, and totalFailCount are now declared inside the handler
+// to avoid accumulation across requests
 
 
 function errorJson(error: string, status = 500) {
@@ -32,8 +27,9 @@ function checkCache(key: string): any | null {
   return null;
 }
 
-function computeStatus(data: any) {
-  const status = (data?.status ?? '').toString().toLowerCase();
+function computeStatus(statusValue: any) {
+  const status = (statusValue ?? '').toString().toLowerCase();
+  
   if (!status || status === 'no run found') {
     return 'unknown';
   } else if (status === 'succeeded') {
@@ -53,10 +49,13 @@ function computeStatus(data: any) {
 async function fetchReleaseId(baseUrl: string, pipelineId: string, date: string): Promise<string> {
   try {
     const relRes = await fetch(`${baseUrl}/api/release-id?definitionId=${pipelineId}&date=${date}`);
-    if (!relRes.ok) return '';
+    if (!relRes.ok) {
+      return '';
+    }
     const relData = await relRes.json();
-    return relData?.releaseId ? relData.releaseId.toString() : '';
-  } catch {
+    const releaseId = relData?.releaseId ? relData.releaseId.toString() : '';
+    return releaseId;
+  } catch (error) {
     return '';
   }
 }
@@ -66,14 +65,21 @@ async function fetchReleaseId(baseUrl: string, pipelineId: string, date: string)
 export async function GET({ url, request }: { url: URL, request: Request }) {
   try {
     const date = url.searchParams.get('date');
+    
     if (!date || typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return errorJson('Invalid date format. Expected YYYY-MM-DD', 400);
     }
 
     // Check cache and return early if not expired
     const cached = checkCache(date);
-    if (cached)
+    if (cached) {
       return json(cached);
+    }
+
+    // Initialize variables for this request (avoiding global state accumulation)
+    const releaseIds: string[] = [];
+    let totalPassCount = 0;
+    let totalFailCount = 0;
 
     //Load pipelines from env variable AZURE_PIPELINE_CONFIG
     let pipelineConfig = getPipelineConfig(env.PUBLIC_AZURE_PIPELINE_CONFIG);
@@ -89,12 +95,12 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
 
     const statuses: string[] = [];
 
-
     for (const releaseId of releaseIds) {
       if (!releaseId) {
         statuses.push('unknown');
         continue;
       }
+      
       // Fetch test-run results for this releaseId and date
       let passCount: number | null = null;
       let failCount: number | null = null;
@@ -105,7 +111,9 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
           if (typeof testRunData.passCount === 'number') passCount = testRunData.passCount;
           if (typeof testRunData.failCount === 'number') failCount = testRunData.failCount;
         }
-      } catch {}
+      } catch (error) {
+        // Silent error handling
+      }
 
       // Track releases with tests and total pass/fail counts
       if ((passCount ?? 0) + (failCount ?? 0) > 0) {
@@ -113,18 +121,20 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
         totalFailCount += failCount ?? 0;
       }
 
-      // Relaese ipeline-status URL with test results as query params
+      // Release pipeline-status URL with test results as query params
       let pipelineStatusUrl = `${baseUrl}/api/pipeline-status?releaseId=${releaseId}`;
       if (passCount !== null) pipelineStatusUrl += `&passCount=${passCount}`;
       if (failCount !== null) pipelineStatusUrl += `&failCount=${failCount}`;
+      
       const res = await fetch(pipelineStatusUrl);
       if (!res.ok) {
         statuses.push('unknown');
         continue;
       }
       const data = await res.json();
+      const computedStatus = computeStatus(data.status);
 
-      statuses.push(computeStatus(data.status));
+      statuses.push(computedStatus);
     }
 
     // Determine overall quality, prioritizing 'in progress' status
@@ -144,11 +154,16 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
         }
       }
     }
-  const response = { date, releaseIds, quality: result, totalPassCount, totalFailCount };
+    
+    const response = { date, releaseIds, quality: result, totalPassCount, totalFailCount };
+    
     // Update cache
     cache[date] = { result: response, timestamp: Date.now() };
+    
     return json(response);
   } catch (e: any) {
+    // Always log errors
+    console.error(`[build-quality] Error:`, e);
     if (e && typeof e === 'object' && 'error' in e && 'status' in e) {
       return errorJson(e.error, e.status);
     }

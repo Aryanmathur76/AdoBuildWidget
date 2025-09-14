@@ -72,6 +72,7 @@ export async function GET({ url }: { url: URL }) {
     }
     return json({ passCount, failCount });
   } catch (e: any) {
+    console.error(`[test-run] Error:`, e);
     const err = e instanceof Error ? e : { message: String(e) };
     return errorJson('Error fetching test run: ' + err.message, 500);
   }

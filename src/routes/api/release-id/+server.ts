@@ -47,6 +47,7 @@ export async function GET({ url }: { url: URL }) {
     const latest = data.value.sort((a: { createdOn: string }, b: { createdOn: string }) => new Date(b.createdOn).getTime() - new Date(a.createdOn).getTime())[0];
     return json({ releaseId: latest.id, release: latest });
   } catch (e: any) {
+    console.error(`[release-id] Error:`, e);
     const err = e instanceof Error ? e : { message: String(e) };
     return errorJson('Error fetching release ID: ' + err.message, 500);
   }

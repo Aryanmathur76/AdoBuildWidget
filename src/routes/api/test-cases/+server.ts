@@ -9,12 +9,13 @@ import { getAzureDevOpsEnvVars } from '$lib/utils';
  */
 
 export async function GET({ url }: { url: URL }) {
-    let AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT, AZURE_DEVOPS_PAT;
     try {
-        ({ AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT, AZURE_DEVOPS_PAT } = getAzureDevOpsEnvVars(env));
-    } catch (e: any) {
-        return json({ error: e.message || 'Missing Azure DevOps environment variables' }, { status: 500 });
-    }
+        let AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT, AZURE_DEVOPS_PAT;
+        try {
+            ({ AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT, AZURE_DEVOPS_PAT } = getAzureDevOpsEnvVars(env));
+        } catch (e: any) {
+            return json({ error: e.message || 'Missing Azure DevOps environment variables' }, { status: 500 });
+        }
 
     const releaseId = url.searchParams.get('releaseId');
     const date = url.searchParams.get('date');
@@ -91,4 +92,9 @@ export async function GET({ url }: { url: URL }) {
     }
 
     return json({ testCases: allTestCases });
+    } catch (e: any) {
+        console.error(`[test-cases] Error:`, e);
+        const err = e instanceof Error ? e : { message: String(e) };
+        return json({ error: 'Error fetching test cases', details: err.message }, { status: 500 });
+    }
 }

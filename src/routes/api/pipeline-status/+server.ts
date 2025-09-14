@@ -109,6 +109,7 @@ export async function GET({ url }: { url: URL }) {
     const status = derivePipelineStatus(details, passCount, failCount);
     return json({ status, raw: details });
   } catch (e: any) {
+    console.error(`[pipeline-status] Error:`, e);
     if (e && typeof e === 'object' && 'error' in e && 'status' in e) {
       return errorJson(e.error, e.status);
     }

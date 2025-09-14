@@ -32,6 +32,7 @@ export async function GET({ url }: RequestEvent) {
     // Return the description field (may be empty string)
     return json({ description: data.description ?? '' });
   } catch (e) {
+    console.error(`[release-description] Error:`, e);
     const err = e instanceof Error ? e : { message: String(e) };
     return json({ error: 'Error fetching release description', details: err.message }, { status: 500 });
   }
