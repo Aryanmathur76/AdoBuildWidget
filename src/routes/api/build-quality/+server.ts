@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/public';
-import { getPipelineConfig } from '$lib/utils';
+import { getPipelineConfig, successThreshold, partiallySucceededThreshold } from '$lib/utils';
 
 //Returns overall build quality for all configured pipelines for a given date
 //The object returned is { date: 'YYYY-MM-DD', releaseIds: [id1, id2, ...], quality: 'good|ok|bad|in progress|unknown' }
@@ -23,21 +23,22 @@ function checkCache(key: string): any | null {
   return null;
 }
 
-function computeStatus(statusValue: any) {
-  const status = (statusValue ?? '').toString().toLowerCase();
+// Helper to compute status based on pass/fail counts
+function computeStatus(passCount: number | null, failCount: number | null): string {
+  const totalTests = (passCount ?? 0) + (failCount ?? 0);
   
-  if (!status || status === 'no run found') {
+  if (totalTests === 0) {
     return 'unknown';
-  } else if (status === 'succeeded') {
+  }
+  
+  const passRate = ((passCount ?? 0) / totalTests) * 100;
+  
+  if (passRate >= successThreshold) {
     return 'good';
-  } else if (status === 'partially succeeded' || status === 'partiallySucceeded') {
+  } else if (passRate >= partiallySucceededThreshold) {
     return 'ok';
-  } else if (status === 'failed' || status === 'interrupted' || status === 'canceled' || status === 'rejected') {
-    return 'bad';
-  } else if (status === 'in progress' || status === 'inProgress' || status === 'active' || status === 'pending' || status === 'queued' || status === 'notStarted' || status === 'notDeployed') {
-    return 'in progress';
   } else {
-    return 'unknown';
+    return 'bad';
   }
 }
 
@@ -84,32 +85,43 @@ async function fetchPipelineStatus(baseUrl: string, releaseId: string, passCount
       return 'unknown';
     }
     const data = await res.json();
-    return computeStatus(data.status);
+    
+    // Check if pipeline is in progress first
+    const pipelineStatus = (data.status ?? '').toString().toLowerCase();
+    if (pipelineStatus === 'in progress') {
+      return 'in progress';
+    }
+    
+    // Use test results to determine status
+    return computeStatus(passCount, failCount);
   } catch (error) {
     return 'unknown';
   }
 }
 
 // Helper to determine overall quality based on statuses and test results
-function determineOverallQuality(statuses: string[], totalPassCount: number, totalFailCount: number): string {
+function determineOverallDayQuality(statuses: string[], totalPassCount: number, totalFailCount: number): string {
   // Prioritize 'in progress' status
   if (statuses.includes('in progress')) {
     return 'in progress';
   }
-  
+    
   const totalTests = totalPassCount + totalFailCount;
+  
   if (totalTests > 0) {
     const passRate = (totalPassCount / totalTests) * 100;
-    if (passRate >= 95) {
+    if (passRate >= successThreshold) {
       return 'good';
-    } else if (passRate >= 75) {
+    } else if (passRate >= partiallySucceededThreshold) {
       return 'ok';
-    } else {
+    } else if (passRate < partiallySucceededThreshold) {
       return 'bad';
+    } else {
+      return 'unknown';
     }
+  } else {
+    return 'unknown';
   }
-  
-  return 'unknown';
 }
 
 
@@ -168,7 +180,7 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
     }
 
     // Determine overall quality
-    const result = determineOverallQuality(statuses, totalPassCount, totalFailCount);
+    const result = determineOverallDayQuality(statuses, totalPassCount, totalFailCount);
     
     const response = { date, releaseIds, quality: result, totalPassCount, totalFailCount };
     
