@@ -92,6 +92,7 @@
             const day = dIdx + 1;
             const dateStr = getDateString(currentYear, currentMonth, day);
             let colorClass = "";
+            let animationClass = "";
             const quality = dayBuildQuality[dateStr]?.quality ?? "unknown";
             switch (quality) {
                 case "good":
@@ -105,6 +106,11 @@
                     break;
                 case "in progress":
                     colorClass = "bg-sky-500 text-white";
+                    animationClass = "animate-pulse";
+                    break;
+                case "interrupted":
+                    colorClass = "bg-red-600 text-white";
+                    animationClass = "animate-pulse";
                     break;
                 case "unknown":
                     colorClass = "bg-zinc-700 text-white";
@@ -118,6 +124,7 @@
                 day,
                 dateStr,
                 colorClass,
+                animationClass,
                 disabled: isFutureDay(currentYear, currentMonth, day),
             };
         },
@@ -228,7 +235,7 @@
                                 onclick={() => {
                                     goto(`/build/${dayObj.dateStr}`);
                                 }}
-                                class={`w-full h-full min-w-0 min-h-0 cursor-pointer ${dayObj.colorClass}`}
+                                class={`w-full h-full min-w-0 min-h-0 cursor-pointer ${dayObj.colorClass} ${dayObj.animationClass}`}
                                 style={`aspect-ratio: 1 / 1; transition: transform 0.2s;`}
                                 disabled={dayObj.disabled}
                             >

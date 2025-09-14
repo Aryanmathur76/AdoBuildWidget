@@ -91,6 +91,10 @@ async function fetchPipelineStatus(baseUrl: string, releaseId: string, passCount
     if (pipelineStatus === 'in progress') {
       return 'in progress';
     }
+
+    if (pipelineStatus === 'interrupted') {
+      return 'interrupted';
+    }
     
     // Use test results to determine status
     return computeStatus(passCount, failCount);
@@ -104,6 +108,11 @@ function determineOverallDayQuality(statuses: string[], totalPassCount: number, 
   // Prioritize 'in progress' status
   if (statuses.includes('in progress')) {
     return 'in progress';
+  }
+
+  if (statuses.includes('interrupted')) {
+    console.log("interrupted");
+    return 'interrupted';
   }
     
   const totalTests = totalPassCount + totalFailCount;

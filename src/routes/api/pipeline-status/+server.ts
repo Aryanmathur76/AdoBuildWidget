@@ -73,10 +73,12 @@ function derivePipelineStatus(details: Release, passCount: number | null, failCo
   }
 
   if (allEnvs.some(env => interrupted.includes(env.status))) {
+    console.log('bye');
     return 'interrupted';
   }
 
   if (testEnvs.some(env => env.status === 'partiallySucceeded')) {
+    console.log('hi');
     return 'partially succeeded';
   }
 
