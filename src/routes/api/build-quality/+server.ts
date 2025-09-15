@@ -95,6 +95,10 @@ async function fetchPipelineStatus(baseUrl: string, releaseId: string, passCount
     if (pipelineStatus === 'interrupted') {
       return 'interrupted';
     }
+
+    if ((pipelineStatus === 'failed') && passCount === 0 && failCount === 0) {
+      return 'failed';
+    }
     
     // Use test results to determine status
     return computeStatus(passCount, failCount);
@@ -119,8 +123,10 @@ function determineOverallDayQuality(statuses: string[], totalPassCount: number, 
   
   if (totalTests > 0) {
     const passRate = (totalPassCount / totalTests) * 100;
-    if (passRate >= successThreshold) {
+    if ((passRate >= successThreshold) && !statuses.includes('failed')) {
       return 'good';
+    } else if (passRate >= successThreshold){
+      return 'ok';
     } else if (passRate >= partiallySucceededThreshold) {
       return 'ok';
     } else if (passRate < partiallySucceededThreshold) {
@@ -129,7 +135,12 @@ function determineOverallDayQuality(statuses: string[], totalPassCount: number, 
       return 'unknown';
     }
   } else {
-    return 'unknown';
+    if (statuses.includes('failed') || statuses.includes('interrupted')) {
+    return 'bad';
+    }
+    else{
+      return 'unknown';
+    }
   }
 }
 
@@ -138,6 +149,7 @@ function determineOverallDayQuality(statuses: string[], totalPassCount: number, 
 export async function GET({ url, request }: { url: URL, request: Request }) {
   try {
     const date = url.searchParams.get('date');
+    console.log(`[build-quality] Fetching build quality for date: ${date}`);
     
     if (!date || typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return errorJson('Invalid date format. Expected YYYY-MM-DD', 400);
@@ -190,6 +202,8 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
 
     // Determine overall quality
     const result = determineOverallDayQuality(statuses, totalPassCount, totalFailCount);
+    console.log(`[build-quality] Result for ${date}:`, { date, releaseIds, quality: result, totalPassCount, totalFailCount });
+    console.log(statuses);
     
     const response = { date, releaseIds, quality: result, totalPassCount, totalFailCount };
     
