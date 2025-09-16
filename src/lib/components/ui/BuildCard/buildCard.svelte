@@ -23,7 +23,6 @@
     export let status: string | null = null;
     export let passCount: number | null = null;
     export let failCount: number | null = null;
-    export let releaseId: number | null = null;
     export let date: string | null = null;
 
     let chartCycleInterval: ReturnType<typeof setInterval> | null = null;
