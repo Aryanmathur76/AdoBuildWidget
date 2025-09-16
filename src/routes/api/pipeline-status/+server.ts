@@ -139,7 +139,16 @@ export async function GET({ url }: { url: URL }) {
         return json({ status: 'No Run Found', raw: null });
       }
 
-      return json({ status: details.status, raw: details });
+      if (details.result === 'succeeded') return json({ status: 'succeeded', raw: details });
+      if (details.result === 'partiallySucceeded') return json({ status: 'partially succeeded', raw: details });
+      if (details.result === 'failed') return json({ status: 'failed', raw: details });
+
+      if (details.status == 'none') return json({ status: 'No Run Found', raw: details });
+      if (details.status == 'completed') return json({ status: 'succeeded', raw: details });
+      if (details.status == 'cancelling' || details.status == 'postponed' || details.status == 'canceled') return json({ status: 'interrupted', raw: details });
+      if (details.status == 'inProgress') return json({ status: 'in progress', raw: details });
+
+      return json({ status: 'No Run Found', raw: details });
     }
 
 
