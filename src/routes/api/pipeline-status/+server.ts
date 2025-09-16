@@ -29,8 +29,8 @@ function getEnvVars() {
   return { pat, org, project };
 }
 
-async function fetchReleaseDetails(org: string, project: string, releaseId: number, pat: string): Promise<Release | null> {
-  const url = `https://vsrm.dev.azure.com/${org}/${project}/_apis/release/releases/${releaseId}?api-version=7.1-preview.8`;
+async function fetchReleaseDetails(org: string, project: string, pipelineId: number, pat: string): Promise<Release | null> {
+  const url = `https://vsrm.dev.azure.com/${org}/${project}/_apis/release/releases/${pipelineId}?api-version=7.1-preview.8`;
   const auth = btoa(':' + pat);
   const res = await fetch(url, {
     headers: {
@@ -44,6 +44,23 @@ async function fetchReleaseDetails(org: string, project: string, releaseId: numb
   const details = await res.json();
   return details;
 }
+
+async function fetchBuildDetails(org: string, project: string, pipelineId: number, pat: string): Promise<any | null> {
+  const url = `https://dev.azure.com/${org}/${project}/_apis/build/builds/${pipelineId}?api-version=7.1`;
+  const auth = btoa(':' + pat);
+  const res = await fetch(url, {
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Accept': 'application/json'
+      }
+    });
+    if (!res.ok) {
+        return null;
+    }
+    const details = await res.json();
+    return details;
+}
+
 
 function derivePipelineStatus(details: Release, passCount: number | null, failCount: number | null): string {
   const inProgress = ['inProgress', 'active', 'pending', 'queued'];
@@ -93,21 +110,39 @@ function derivePipelineStatus(details: Release, passCount: number | null, failCo
 
 export async function GET({ url }: { url: URL }) {
   try {
-    const releaseId = url.searchParams.get('releaseId');
-    if (!releaseId || typeof releaseId !== 'string' || !releaseId.trim()) {
-      return errorJson('Missing or invalid releaseId', 400);
+    const pipelineId = url.searchParams.get('pipelineId');
+    const pipelineType = url.searchParams.get('pipelineType');
+    if (!pipelineId || typeof pipelineId !== 'string' || !pipelineId.trim()) {
+      return errorJson('Missing or invalid pipelineId', 400);
+    }
+    if (!pipelineType || (pipelineType !== 'release' && pipelineType !== 'build')) {
+      return errorJson('Missing or invalid pipelineType (must be "release" or "build")', 400);
     }
 
     const passCount = url.searchParams.has('passCount') ? Number(url.searchParams.get('passCount')) : null;
     const failCount = url.searchParams.has('failCount') ? Number(url.searchParams.get('failCount')) : null;
 
     const { pat, org, project } = getEnvVars();
-    const details = await fetchReleaseDetails(org, project, Number(releaseId), pat);
-    if (!details) {
-      return json({ status: 'No Run Found', raw: null });
+
+    if (pipelineType === 'release'){
+      const details = await fetchReleaseDetails(org, project, Number(pipelineId), pat);
+      if (!details) {
+        return json({ status: 'No Run Found', raw: null });
+      }
+      const status = derivePipelineStatus(details, passCount, failCount);
+      return json({ status, raw: details });
     }
-    const status = derivePipelineStatus(details, passCount, failCount);
-    return json({ status, raw: details });
+
+    if (pipelineType === 'build'){
+      const details = await fetchBuildDetails(org, project, Number(pipelineId), pat);
+      if (!details) {
+        return json({ status: 'No Run Found', raw: null });
+      }
+
+      return json({ status: details.status, raw: details });
+    }
+
+
   } catch (e: any) {
     console.error(`[pipeline-status] Error:`, e);
     if (e && typeof e === 'object' && 'error' in e && 'status' in e) {

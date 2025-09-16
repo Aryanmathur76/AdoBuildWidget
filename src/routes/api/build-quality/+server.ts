@@ -3,7 +3,7 @@ import { env } from '$env/dynamic/public';
 import { getPipelineConfig, successThreshold, partiallySucceededThreshold } from '$lib/utils';
 
 //Returns overall build quality for all configured pipelines for a given date
-//The object returned is { date: 'YYYY-MM-DD', releaseIds: [id1, id2, ...], quality: 'good|ok|bad|in progress|unknown' }
+//The object returned is { date: 'YYYY-MM-DD', pipelineIds: [id1, id2, ...], quality: 'good|ok|bad|in progress|unknown' }
 
 // --- In-memory cache ---
 type CacheEntry = { result: any, timestamp: number };
@@ -57,10 +57,24 @@ async function fetchReleaseId(baseUrl: string, pipelineId: string, date: string)
   }
 }
 
-// Helper to fetch test-run results for a release
-async function fetchTestRunResults(baseUrl: string, releaseId: string, date: string): Promise<{ passCount: number | null, failCount: number | null }> {
+async function fetchBuildId(baseUrl: string, pipelineId: string, date: string): Promise<string> {
   try {
-    const testRunRes = await fetch(`${baseUrl}/api/test-run?releaseId=${releaseId}&date=${date}`);
+    const buildRes = await fetch(`${baseUrl}/api/build-id?definitionId=${pipelineId}&date=${date}`);
+    if (!buildRes.ok) {
+      return '';
+    }
+    const buildData = await buildRes.json();
+    const buildId = buildData?.buildId ? buildData.buildId.toString() : '';
+    return buildId;
+  } catch (error) {
+    return '';
+  }
+}
+
+// Helper to fetch test-run results for a pipeline run
+async function fetchTestRunResults(baseUrl: string, pipelineId: string, pipelineType: string, date: string): Promise<{ passCount: number | null, failCount: number | null }> {
+  try {
+    const testRunRes = await fetch(`${baseUrl}/api/test-run?pipelineId=${pipelineId}&pipelineType=${pipelineType}&date=${date}`);
     if (testRunRes.ok) {
       const testRunData = await testRunRes.json();
       const passCount = typeof testRunData.passCount === 'number' ? testRunData.passCount : null;
@@ -74,9 +88,9 @@ async function fetchTestRunResults(baseUrl: string, releaseId: string, date: str
 }
 
 // Helper to fetch pipeline status with test results
-async function fetchPipelineStatus(baseUrl: string, releaseId: string, passCount: number | null, failCount: number | null): Promise<string> {
+async function fetchPipelineStatus(baseUrl: string, pipelineId: string, pipelineType: string, passCount: number | null, failCount: number | null): Promise<string> {
   try {
-    let pipelineStatusUrl = `${baseUrl}/api/pipeline-status?releaseId=${releaseId}`;
+    let pipelineStatusUrl = `${baseUrl}/api/pipeline-status?pipelineId=${pipelineId}&pipelineType=${pipelineType}`;
     if (passCount !== null) pipelineStatusUrl += `&passCount=${passCount}`;
     if (failCount !== null) pipelineStatusUrl += `&failCount=${failCount}`;
     
@@ -161,8 +175,8 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
       return json(cached);
     }
 
-    // Initialize variables for this request (avoiding global state accumulation)
-    const releaseIds: string[] = [];
+  // Initialize variables for this request (avoiding global state accumulation)
+  const pipelineIds: Array<["build"|"release", string]> = [];
     let totalPassCount = 0;
     let totalFailCount = 0;
 
@@ -172,40 +186,45 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
     // Dynamically determine the base URL for local api call
     let baseUrl = `http://${request.headers.get('host')}`;
 
-    // Collect releaseIds for all pipelines
+    // Collect pipelineIds / buildIds for all pipelines
     for (const pipeline of pipelineConfig.pipelines) {
-      const releaseId = await fetchReleaseId(baseUrl, pipeline.id, date);
-      releaseIds.push(releaseId);
+      if (pipeline.type == 'build') {
+        const buildId = await fetchBuildId(baseUrl, pipeline.id, date);
+        pipelineIds.push(["build", buildId]);
+      }
+      else if (pipeline.type == 'release') {
+        const releaseId = await fetchReleaseId(baseUrl, pipeline.id, date);
+        pipelineIds.push(["release", releaseId]);
+      }
     }
 
     const statuses: string[] = [];
 
-    for (const releaseId of releaseIds) {
-      if (!releaseId) {
+    for (const [type, id] of pipelineIds) {
+      if (!id) {
         statuses.push('unknown');
         continue;
       }
-      
-      // Fetch test-run results for this releaseId and date
-      const { passCount, failCount } = await fetchTestRunResults(baseUrl, releaseId, date);
+      // Fetch test-run results for this id and date
+      const { passCount, failCount } = await fetchTestRunResults(baseUrl, id, type, date);
 
-      // Track releases with tests and total pass/fail counts
+      // Track releases/builds with tests and total pass/fail counts
       if ((passCount ?? 0) + (failCount ?? 0) > 0) {
         totalPassCount += passCount ?? 0;
         totalFailCount += failCount ?? 0;
       }
 
       // Fetch pipeline status
-      const computedStatus = await fetchPipelineStatus(baseUrl, releaseId, passCount, failCount);
+      const computedStatus = await fetchPipelineStatus(baseUrl, id, type, passCount, failCount);
       statuses.push(computedStatus);
     }
 
     // Determine overall quality
     const result = determineOverallDayQuality(statuses, totalPassCount, totalFailCount);
-    console.log(`[build-quality] Result for ${date}:`, { date, releaseIds, quality: result, totalPassCount, totalFailCount });
+    console.log(`[build-quality] Result for ${date}:`, { date, pipelineIds, quality: result, totalPassCount, totalFailCount });
     console.log(statuses);
     
-    const response = { date, releaseIds, quality: result, totalPassCount, totalFailCount };
+  const response = { date, pipelineIds, quality: result, totalPassCount, totalFailCount };
     
     // Update cache
     cache[date] = { result: response, timestamp: Date.now() };

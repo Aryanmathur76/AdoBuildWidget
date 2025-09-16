@@ -107,7 +107,7 @@ let selectedDate = $state<DateValue | undefined>(
         let failCount: number | null = null;
         try {
             let dateStr = selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString().split("T")[0] : undefined;
-            const testRunRes = await fetch(`/api/test-run?releaseId=${releaseId}&date=${dateStr}`);
+            const testRunRes = await fetch(`/api/test-run?pipelineId=${releaseId}&pipelineType=release&date=${dateStr}`);
             if (testRunRes.ok) {
                 const testRunData = await testRunRes.json();
                 if (typeof testRunData.passCount === 'number') passCount = testRunData.passCount;

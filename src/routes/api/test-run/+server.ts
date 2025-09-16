@@ -9,10 +9,14 @@ function errorJson(error: string, status = 500) {
 
 export async function GET({ url }: { url: URL }) {
   try {
-    const releaseId = url.searchParams.get('releaseId');
+    const pipelineId = url.searchParams.get('pipelineId');
+    const pipelineType = url.searchParams.get('pipelineType');
     const date = url.searchParams.get('date');
-    if (!releaseId) {
-      return errorJson('Missing releaseId', 400);
+    if (!pipelineId) {
+      return errorJson('Missing pipelineId', 400);
+    }
+    if (pipelineType !== 'build' && pipelineType !== 'release') {
+      return errorJson('Invalid pipelineType, must be "build" or "release"', 400);
     }
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return errorJson('Missing or invalid date (YYYY-MM-DD required)', 400);
@@ -34,7 +38,17 @@ export async function GET({ url }: { url: URL }) {
     maxDateObj.setDate(baseDate.getDate() + 5);
     const minLastUpdatedDate = minDateObj.toISOString().split("T")[0] + "T00:00:00Z";
     const maxLastUpdatedDate = maxDateObj.toISOString().split("T")[0] + "T23:59:59Z";
-    const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/test/runs?releaseIds=${releaseId}&minLastUpdatedDate=${encodeURIComponent(minLastUpdatedDate)}&maxLastUpdatedDate=${encodeURIComponent(maxLastUpdatedDate)}&api-version=7.1`;
+    let apiUrl;
+    if (pipelineType === 'build') {
+          apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/test/runs?buildIds=${pipelineId}&minLastUpdatedDate=${encodeURIComponent(minLastUpdatedDate)}&maxLastUpdatedDate=${encodeURIComponent(maxLastUpdatedDate)}&api-version=7.1`;
+    }
+    else if (pipelineType === 'release') {
+          apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/test/runs?releaseIds=${pipelineId}&minLastUpdatedDate=${encodeURIComponent(minLastUpdatedDate)}&maxLastUpdatedDate=${encodeURIComponent(maxLastUpdatedDate)}&api-version=7.1`;
+    }
+
+    if (!apiUrl) {
+      return errorJson('Failed to construct API URL', 500);
+    }
 
     const res = await fetch(apiUrl, {
       headers: {
@@ -46,11 +60,16 @@ export async function GET({ url }: { url: URL }) {
       return errorJson(`Azure DevOps API error: ${res.statusText}`, res.status);
     }
     const data = await res.json();
+    if(pipelineType==='build'){
+      return json({passCount:data.value[0].passedTests, failCount:data.value[0].notApplicableTests+data.value[0].unanalyzedTests+data.value[0].failedTests+data.value[0].incompleteTests, message: 'No message available for build pipelines'});
+    }
 
-    // Aggregate pass/fail counts for the latest run per unique environmentId (from run.release.environmentId)
+    // Aggregate pass/fail cournts for the latest run per unique environmentId (from run.release.environmentId)
     if (!Array.isArray(data.value)) {
       return json({ passCount: 0, failCount: 0, message: 'No test run with environment found' });
     }
+
+
     // Map of environmentId to latest run
     const envRuns: Record<string, any> = {};
     for (const run of data.value) {
