@@ -1,4 +1,6 @@
 <script lang="ts">
+    export let pipelineType: "build" | "release" | null = null;
+    export let pipelineId: number | null = null;
     import * as Card from "$lib/components/ui/card/index.js";
     import PipelineStatusBadge from "$lib/components/ui/PipelineStatusBadge/pipelineStatusBadge.svelte";
     import { toast } from "svelte-sonner";
@@ -49,14 +51,15 @@
         passCount !== null &&
         failCount !== null &&
         passCount + failCount > 0 &&
-        releaseId &&
+        pipelineId &&
+        pipelineType &&
         date
     ) {
         isLoading = true;
         testCases = null;
         testCasesError = null;
         fetch(
-            `/api/test-cases?releaseId=${releaseId}&date=${encodeURIComponent(date.length > 10 ? date.slice(0, 10) : date)}`,
+            `/api/test-cases?pipelineId=${pipelineId}&pipelineType=${pipelineType}&date=${encodeURIComponent(date.length > 10 ? date.slice(0, 10) : date)}`,
         )
             .then((r) => r.json())
             .then((data) => {
@@ -110,8 +113,8 @@
                     <DialogContent>
                         <DialogDescription>
                             <div class="py-2">
-                                {#if passCount !== null && failCount !== null && passCount + failCount > 0 && releaseId && date}
-                                    {#key `${releaseId}-${date}`}
+                                {#if passCount !== null && failCount !== null && passCount + failCount > 0 && pipelineId && date}
+                                    {#key `${pipelineId}-${date}`}
                                         {#if isLoading}
                                             <TestChart isLoading={true} />
                                         {:else if testCases}

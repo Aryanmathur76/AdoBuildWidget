@@ -61,7 +61,12 @@ export async function GET({ url }: { url: URL }) {
     }
     const data = await res.json();
     if(pipelineType==='build'){
-      return json({passCount:data.value[0].passedTests, failCount:data.value[0].notApplicableTests+data.value[0].unanalyzedTests+data.value[0].failedTests+data.value[0].incompleteTests, message: 'No message available for build pipelines'});
+      const run = data.value?.[0] ?? {};
+      return json({
+        passCount: run.passedTests ?? 0,
+        failCount: (run.notApplicableTests ?? 0) + (run.unanalyzedTests ?? 0) + (run.failedTests ?? 0) + (run.incompleteTests ?? 0),
+        message: 'No message available for build pipelines'
+      });
     }
 
     // Aggregate pass/fail cournts for the latest run per unique environmentId (from run.release.environmentId)
