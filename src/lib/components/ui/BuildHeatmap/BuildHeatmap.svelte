@@ -1,7 +1,7 @@
 <script lang="ts">
     import { slide } from "svelte/transition";
     import { Card, CardContent } from "$lib/components/ui/card/index.js";
-    import { Button } from "$lib/components/ui/button/index.js";
+    import HeatmapButton from "./HeatmapButton.svelte";
     import { goto } from "$app/navigation";
     import * as Pagination from "$lib/components/ui/pagination/index.js";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
@@ -120,12 +120,16 @@
                     break;
             }
 
+            const buildQuality = dayBuildQuality[dateStr] ?? {};
             return {
                 day,
                 dateStr,
                 colorClass,
                 animationClass,
                 disabled: isFutureDay(currentYear, currentMonth, day),
+                totalPassCount: buildQuality.totalPassCount,
+                totalFailCount: buildQuality.totalFailCount,
+                releasesWithTestsRan: buildQuality.releasesWithTestsRan
             };
         },
     );
@@ -227,32 +231,9 @@
                 {#each daysInMonth as dayObj}
                     <div class="w-full aspect-square min-w-0 min-h-0">
                         {#if dayBuildQuality[dayObj.dateStr]}
-                            <!-- @ts-ignore -->
-                            <Button
-                                size="icon"
-                                type="button"
-                                aria-label={`Go to build ${dayObj.dateStr}`}
-                                onclick={() => {
-                                    goto(`/build/${dayObj.dateStr}`);
-                                }}
-                                class={`w-full h-full min-w-0 min-h-0 cursor-pointer ${dayObj.colorClass} ${dayObj.animationClass}`}
-                                style={`aspect-ratio: 1 / 1; transition: transform 0.2s;`}
-                                disabled={dayObj.disabled}
-                            >
-                                <strong>{dayObj.day}</strong>
-                            </Button>
+                            <HeatmapButton {dayObj} />
                         {:else if dayObj.disabled}
-                            <!-- For future days, show disabled button immediately -->
-                            <Button
-                                size="icon"
-                                type="button"
-                                aria-label={`Go to build ${dayObj.dateStr}`}
-                                class={`w-full h-full min-w-0 min-h-0 bg-zinc-500 text-white cursor-not-allowed`}
-                                style="aspect-ratio: 1 / 1;"
-                                disabled={true}
-                            >
-                                <strong>{dayObj.day}</strong>
-                            </Button>
+                            <HeatmapButton {dayObj} />
                         {:else}
                             <Skeleton
                                 class="w-full h-full min-w-0 min-h-0 rounded"
