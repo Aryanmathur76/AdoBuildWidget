@@ -133,11 +133,26 @@ export async function GET({ url }: { url: URL }) {
                     return stageName.toLowerCase().includes('tests');
                 });
 
-                // Aggregate test results from all test runs in environments with 'tests' in their name
+                console.log(filteredRuns);
+
+                // Deduplicate test runs by environment ID, keeping only the latest one per environment
+                const envRuns: Record<string, any> = {};
+                for (const run of filteredRuns) {
+                    const envId = run.release?.environmentId;
+                    if (!envId) continue;
+                    
+                    // If we haven't seen this envId or this run is newer, keep it
+                    if (!envRuns[envId] || new Date(run.createdDate) > new Date(envRuns[envId].createdDate)) {
+                        envRuns[envId] = run;
+                    }
+                }
+
+                // Aggregate test results from the latest test run per environment
                 let passCount = 0;
                 let failCount = 0;
 
-                for (const run of filteredRuns) {
+                for (const envId in envRuns) {
+                    const run = envRuns[envId];
                     passCount += run.passedTests ?? 0;
                     failCount += (run.failedTests ?? 0) + (run.unanalyzedTests ?? 0);
                 }
