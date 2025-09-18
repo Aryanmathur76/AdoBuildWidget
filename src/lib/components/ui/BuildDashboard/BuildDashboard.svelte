@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { Release } from "$lib/types/release";
     import { slide } from 'svelte/transition';
     import CalendarIcon from "@lucide/svelte/icons/calendar";
     const { date } = $props<{ date?: string }>();
@@ -16,16 +17,15 @@
     import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
     import { env } from "$env/dynamic/public";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+    import { today, parseDate } from "@internationalized/date";
 
     const df = new DateFormatter("en-US", {
         dateStyle: "long",
     });
 
-
-import { today, parseDate } from "@internationalized/date";
-let selectedDate = $state<DateValue | undefined>(
-    date ? parseDate(date) : today(getLocalTimeZone())
-);
+    let selectedDate = $state<DateValue | undefined>(
+        date ? parseDate(date) : today(getLocalTimeZone())
+    );
 
     let contentRef = $state<HTMLElement | null>(null);
     let popoverOpen = $state(false);
@@ -52,192 +52,63 @@ let selectedDate = $state<DateValue | undefined>(
 
     const pipelineConfig = parsedConfig;
 
-
-    // pipelineStatuses now holds an object with status, passCount, and failCount
-    let pipelineStatuses = $state<Record<string, { status: string | null, passCount: number | null, failCount: number | null }>>(
-        Object.fromEntries(
-            pipelineConfig.pipelines.map((p: { displayName: string }) => [
-                p.displayName,
-                { status: null, passCount: null, failCount: null },
-            ]),
-        ),
+    // Array of release objects to fetch release details for
+    let releasePipelines = $state<Release[]>(
+        Array(pipelineConfig.pipelines.length).fill(null)
     );
 
-    // pipelineIds now stores a tuple: [type, id] where type is 'build' or 'release'
-    let pipelineIds = $state<Record<string, ["build" | "release", number | null] | null>>(
-        Object.fromEntries(
-            pipelineConfig.pipelines.map((p: { displayName: string }) => [
-                p.displayName,
-                null,
-            ]),
-        ),
-    );
-
-    let pipelineLinks = $state<Record<string, string | null>>(
-        Object.fromEntries(
-            pipelineConfig.pipelines.map((p: { displayName: string }) => [
-                p.displayName,
-                null,
-            ]),
-        ),
-    );
-
-    let pipelineDescriptions = $state<Record<string, string | null>>(
-        Object.fromEntries(
-            pipelineConfig.pipelines.map((p: { displayName: string }) => [
-                p.displayName,
-                null,
-            ]),
-        ),
-    );
-
-    async function getPipelineStatus(
-        pipelineName: string,
-        tuple: ["build" | "release", number | null] | null,
-    ) {
-        if (!selectedDate || !tuple || !tuple[1]) {
-            pipelineStatuses = { ...pipelineStatuses, [pipelineName]: { status: 'Unknown', passCount: 0, failCount: 0 } };
-            pipelineLinks = { ...pipelineLinks, [pipelineName]: null };
-            return;
-        }
-
-        const [pipelineType, pipelineId] = tuple;
-        let passCount: number | null = null;
-        let failCount: number | null = null;
-        try {
-            let dateStr = selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString().split("T")[0] : undefined;
-            const testRunRes = await fetch(`/api/test-run?pipelineId=${pipelineId}&pipelineType=${pipelineType}&date=${dateStr}`);
-            if (testRunRes.ok) {
-                const testRunData = await testRunRes.json();
-                if (typeof testRunData.passCount === 'number') passCount = testRunData.passCount;
-                if (typeof testRunData.failCount === 'number') failCount = testRunData.failCount;
+    async function fetchReleasePipelineDetails(pipelines: any[]){
+        for (let i = 0; i < pipelines.length; i++) {
+            const pipeline = pipelines[i];
+            if (pipeline.type === 'release') {
+                // Fetch release details for the release pipeline
+                try {
+                    const releaseDetailsRes = await fetch(`/newApi/constructRelease?date=${selectedDate?.toString()}&releaseDefinitionId=${pipeline.id}`);
+                    if (releaseDetailsRes.ok) {
+                        const releaseDetails = await releaseDetailsRes.json();
+                        releaseDetails.name = pipeline.displayName;
+                        releasePipelines[i] = releaseDetails;
+                    }
+                    else{
+                        //Default object to use if no run is found
+                        releasePipelines[i] = {
+                            id: pipeline.id,
+                            name: pipeline.displayName,
+                            status: 'unknown',
+                            createdOn: new Date().toISOString(),
+                            modifiedOn: new Date().toISOString(),
+                            envs: [],
+                            passedTestCount: 0,
+                            failedTestCount: 0
+                        };
+                    }
+                } catch (error) {
+                    console.error(`Error fetching release details for pipeline ID ${pipeline.id}:`, error);
+                }
             }
-        } catch {}
-
-        // STATUS SETTER: pass passCount and failCount as query params
-        let pipelineStatusUrl = `/api/pipeline-status?pipelineId=${pipelineId}&pipelineType=${pipelineType}`;
-        if (passCount !== null) pipelineStatusUrl += `&passCount=${passCount}`;
-        if (failCount !== null) pipelineStatusUrl += `&failCount=${failCount}`;
-        const res = await fetch(pipelineStatusUrl);
-        const data = await res.json();
-
-        pipelineStatuses = {
-            ...pipelineStatuses,
-            [pipelineName]: {
-                status: data.status || null,
-                passCount,
-                failCount
-            },
-        };
-
-        // LINK SETTER
-        let linkUrl = pipelineType === "release"
-            ? `/api/release-link?releaseId=${pipelineId}`
-            : `/api/build-link?buildId=${pipelineId}`;
-        const linkRes = await fetch(linkUrl);
-        const linkData = await linkRes.json();
-        pipelineLinks = {
-            ...pipelineLinks,
-            [pipelineName]: linkData.link || null,
-        };
+        }
     }
 
-
-    // Reset pipelineStatuses, pipelineDescriptions, and pipelineIds to null and fetch each pipeline's releaseId, then use releaseId for all API calls
+    // Reset pipelineStatuses to null and etch again when date changes
     let prevDate: string | undefined;
     $effect(() => {
         const currentDate = selectedDate ? selectedDate.toString() : undefined;
         if (currentDate === prevDate) return;
-        // Only run if the date actually changed
-        pipelineStatuses = Object.fromEntries(
-            Object.keys(pipelineStatuses).map((k) => [k, { status: null, passCount: null, failCount: null }]),
-        );
-        pipelineDescriptions = Object.fromEntries(
-            Object.keys(pipelineDescriptions).map((k) => [k, null]),
-        );
-        pipelineIds = Object.fromEntries(
-            Object.keys(pipelineIds).map((k) => [k, null]),
-        );
         prevDate = currentDate;
-        // Fetch pipeline IDs for each pipeline for the selected date, then fetch status, description, and link using the tuple
-        if (selectedDate) {
-            const dateStr = selectedDate.toDate(getLocalTimeZone()).toISOString().split("T")[0];
-            (async () => {
-                for (const pipeline of pipelineConfig.pipelines) {
-                    try {
-                        let tuple: ["build" | "release", number | null] | null = null;
-                        if (pipeline.type === "build") {
-                            const res = await fetch(`/api/build-id?definitionId=${pipeline.id}&date=${dateStr}`);
-                            const data = await res.json();
-                            tuple = ["build", data.buildId ?? null];
-                        } else if (pipeline.type === "release") {
-                            const res = await fetch(`/api/release-id?definitionId=${pipeline.id}&date=${dateStr}`);
-                            const data = await res.json();
-                            tuple = ["release", data.releaseId ?? null];
-                        }
-                        pipelineIds = {
-                            ...pipelineIds,
-                            [pipeline.displayName]: tuple,
-                        };
-                        // Only fetch status, description, and link if id is available
-                        getPipelineStatus(pipeline.displayName, tuple);
-
-                        if (!tuple || !tuple[1]) {
-                            pipelineDescriptions = {
-                                ...pipelineDescriptions,
-                                [pipeline.displayName]: "No description available"
-                            };
-                            continue;
-                        }
-                        // Description: release pipelines use API, build pipelines use default message
-                        if (tuple[0] === "release") {
-                            let descUrl = `/api/release-description?releaseId=${tuple[1]}`;
-                            fetch(descUrl)
-                                .then(res => res.json())
-                                .then(data => {
-                                    let desc = typeof data.description === "string" ? data.description.trim() : "";
-                                    pipelineDescriptions = {
-                                        ...pipelineDescriptions,
-                                        [pipeline.displayName]: desc ? desc : "No description available"
-                                    };
-                                })
-                                .catch(() => {
-                                    pipelineDescriptions = {
-                                        ...pipelineDescriptions,
-                                        [pipeline.displayName]: "No description available"
-                                    };
-                                });
-                        } else {
-                            pipelineDescriptions = {
-                                ...pipelineDescriptions,
-                                [pipeline.displayName]: "Descriptions for build pipelines aren't supported yet."
-                            };
-                        }
-                    } catch {
-                        pipelineIds = {
-                            ...pipelineIds,
-                            [pipeline.displayName]: null,
-                        };
-                        pipelineDescriptions = {
-                            ...pipelineDescriptions,
-                            [pipeline.displayName]: "No description available"
-                        };
-                        getPipelineStatus(pipeline.displayName, null);
-                    }
-                }
-            })();
+        if (selectedDate){
+            releasePipelines = Array(pipelineConfig.pipelines.length).fill(null);
+            fetchReleasePipelineDetails(pipelineConfig.pipelines);
         }
         // Close the calendar popover after a new date is picked
         if (popoverOpen) {
             popoverOpen = false;
         }
     });
-
 </script>
 
 <div class="w-full h-full min-h-screen"
     transition:slide={{ duration: 300 }}>
-    <Card.Root class="border-0 shadow-none w-full h-screen min-h-screen rounded-none">
+    <Card.Root class="border-0 shadow-nonew-full h-screen min-h-screen rounded-none">
         <ScrollArea class="h-full w-full">
             <Card.Header class="flex items-center justify-between">
                 <a href="/"
@@ -281,26 +152,25 @@ let selectedDate = $state<DateValue | undefined>(
             </Card.Header>
             <Card.Content>
                 <div class="mt-8 flex flex-col gap-4 w-full">
-                    {#each Object.entries(pipelineIds) as [displayName, tuple]}
-                        <BuildCard
-                            pipelineName={displayName}
-                            link={pipelineLinks[displayName] ?? null}
-                            status={pipelineStatuses[displayName]?.status ?? null}
-                            passCount={pipelineStatuses[displayName]?.passCount}
-                            failCount={pipelineStatuses[displayName]?.failCount}
-                            pipelineType={tuple ? tuple[0] : null}
-                            pipelineId={tuple ? tuple[1] : null}
-                            date={selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString() : null}
-                        >
-                            {#if pipelineDescriptions[displayName] === null}
-                                <Skeleton class="h-5 w-3/4" />
-                            {:else}
-                                {pipelineDescriptions[displayName]}
-                            {/if}
-                        </BuildCard>
+                    {#each releasePipelines as pipeline}
+                        {#if pipeline}
+                            <BuildCard
+                                pipelineName={pipeline.name}
+                                link="Not Implemented"
+                                status={pipeline.status}
+                                passCount={pipeline.passedTestCount}
+                                failCount={pipeline.failedTestCount}
+                                pipelineType="release"
+                                pipelineId={pipeline.id}
+                                date={selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString() : null}
+                            />
+                        {:else}
+                            <Skeleton class="h-32 w-full rounded-lg" />
+                        {/if}
                     {/each}
                 </div>
             </Card.Content>
         </ScrollArea>
     </Card.Root>
 </div>
+ 

@@ -1,6 +1,5 @@
 export interface Release {
   id: number;
-  description: string;
   name: string;
   status: string;
   createdOn: string;

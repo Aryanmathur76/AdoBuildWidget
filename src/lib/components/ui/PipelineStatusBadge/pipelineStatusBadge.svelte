@@ -6,18 +6,16 @@ export let status: string | null = null;
 
 {#if status === null}
     <Skeleton class="h-6 w-24 rounded" />
-{:else if status === 'succeeded'}
-    <Badge style="background: var(--success);" variant="default"><strong>Success</strong></Badge>
-{:else if status === 'failed'}
-    <Badge style="background: var(--failure);" variant="destructive"><strong>Failed</strong></Badge>
-{:else if status === 'not completed'}
-    <Badge style="background: var(--failure);" variant="destructive"><strong>Not Completed</strong></Badge>
+{:else if status === 'good'}
+    <Badge style="background: var(--success);" variant="default"><strong>Good</strong></Badge>
+{:else if status === 'bad'}
+    <Badge style="background: var(--failure);" variant="destructive"><strong>Bad</strong></Badge>
 {:else if status === 'interrupted'}
     <Badge style="background: var(--failure);" variant="destructive"><strong>Interrupted</strong></Badge>
-{:else if status === 'partially succeeded'}
+{:else if status === 'ok'}
     <Badge style="background: var(--partially-succeeded);" variant="secondary"><strong>Partially Succeeded</strong></Badge>
-{:else if status === 'in progress' || status === 'active'}
+{:else if status === 'inProgress'}
     <Badge style="background: var(--in-progress);" variant="secondary"><strong>In Progress</strong></Badge>
-{:else if status === 'Unknown'}
-    <Badge variant="outline"><strong>No Run Found</strong></Badge>
+{:else if status === 'unknown'}
+    <Badge variant="outline"><strong>Unknown</strong></Badge>
 {/if}

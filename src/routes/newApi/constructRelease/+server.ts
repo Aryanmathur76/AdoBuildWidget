@@ -8,7 +8,7 @@ import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { getAzureDevOpsEnvVars } from '$lib/utils';
 import type { Release } from '$lib/types/release';
-import {getLatestRelease} from '$lib/utils/getReleasePipelineStatus';
+import {getLatestRelease, getReleasePipelineStatus} from '$lib/utils/getReleasePipelineStatus';
 
 export async function GET({ url }: { url: URL }) {
 
@@ -95,14 +95,11 @@ export async function GET({ url }: { url: URL }) {
     // Construct release object
     const release: Release = {
         id: releaseDetails.id,
-        description: releaseDetails.description,
         name: releaseDetails.name,
         createdOn: releaseDetails.createdOn,
         modifiedOn: releaseDetails.modifiedOn,
-        status: releaseDetails.status,
-        envs: releaseDetails.environments,
-        passedTestCount: releaseDetails.passedTestCount,
-        failedTestCount: releaseDetails.failedTestCount
+        status: 'unknown', // Default status, will be updated later
+        envs: releaseDetails.environments
     };
     //#endregion
 
@@ -148,6 +145,8 @@ export async function GET({ url }: { url: URL }) {
                 // Update release object with aggregated test results
                 release.passedTestCount = passCount;
                 release.failedTestCount = failCount;
+
+                release.status = await getReleasePipelineStatus(release);
             }
         }
     } catch (e: any) {
