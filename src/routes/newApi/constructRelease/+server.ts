@@ -133,7 +133,6 @@ export async function GET({ url }: { url: URL }) {
                     return stageName.toLowerCase().includes('tests');
                 });
 
-                console.log(filteredRuns);
 
                 // Deduplicate test runs by environment ID, keeping only the latest one per environment
                 const envRuns: Record<string, any> = {};
@@ -168,6 +167,10 @@ export async function GET({ url }: { url: URL }) {
        console.warn('Error fetching test results: ' + (e.message || 'Unknown error'));
        // Keep default test counts from release details
     }
+    //#endregion
+    
+    //#region Construct link to release in Azure DevOps
+    release.link = `https://dev.azure.com/${organization}/${project}/_releaseProgress?_a=release-pipeline-progress&releaseId=${release.id}`;
     //#endregion
 
     return json(release);

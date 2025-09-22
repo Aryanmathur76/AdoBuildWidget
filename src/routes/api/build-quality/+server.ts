@@ -182,7 +182,7 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
 
     //Load pipelines from env variable AZURE_PIPELINE_CONFIG
     let pipelineConfig = getPipelineConfig(env.PUBLIC_AZURE_PIPELINE_CONFIG);
-
+    console.log(`[build-quality] Loaded pipeline config:`, pipelineConfig);
     // Dynamically determine the base URL for local api call
     let baseUrl = `http://${request.headers.get('host')}`;
 
@@ -193,6 +193,7 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
         pipelineIds.push(["build", buildId]);
       }
       else if (pipeline.type == 'release') {
+        console.log('Fetching releaseId for pipeline:', pipeline);
         const releaseId = await fetchReleaseId(baseUrl, pipeline.id, date);
         pipelineIds.push(["release", releaseId]);
       }

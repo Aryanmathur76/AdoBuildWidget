@@ -54,37 +54,71 @@
 
     // Array of release objects to fetch release details for
     let releasePipelines = $state<Release[]>(
-        Array(pipelineConfig.pipelines.length).fill(null)
+        Array(pipelineConfig.pipelines.filter((p: any) => p.type === 'release').length).fill(null)
     );
 
-    async function fetchReleasePipelineDetails(pipelines: any[]){
-        for (let i = 0; i < pipelines.length; i++) {
-            const pipeline = pipelines[i];
-            if (pipeline.type === 'release') {
-                // Fetch release details for the release pipeline
-                try {
-                    const releaseDetailsRes = await fetch(`/newApi/constructRelease?date=${selectedDate?.toString()}&releaseDefinitionId=${pipeline.id}`);
-                    if (releaseDetailsRes.ok) {
-                        const releaseDetails = await releaseDetailsRes.json();
-                        releaseDetails.name = pipeline.displayName;
-                        releasePipelines[i] = releaseDetails;
-                    }
-                    else{
-                        //Default object to use if no run is found
-                        releasePipelines[i] = {
+    let buildPipelines = $state<any[]>(
+        Array(pipelineConfig.pipelines.filter((p: any) => p.type === 'build').length).fill(null)
+    );
+
+    async function fetchReleasePipelineDetails(pipelines: any[]) {
+        const releasePipes = pipelines.filter((p: any) => p.type === 'release');
+        for (let i = 0; i < releasePipes.length; i++) {
+            const pipeline = releasePipes[i];
+            try {
+                const releaseDetailsRes = await fetch(`/newApi/constructRelease?date=${selectedDate?.toString()}&releaseDefinitionId=${pipeline.id}`);
+                if (releaseDetailsRes.ok) {
+                    const releaseDetails = await releaseDetailsRes.json();
+                    releaseDetails.name = pipeline.displayName;
+                    releasePipelines[i] = releaseDetails;
+                } else {
+                    // Default object to use if no run is found
+                    releasePipelines[i] = {
+                        id: pipeline.id,
+                        name: pipeline.displayName,
+                        status: 'unknown',
+                        createdOn: new Date().toISOString(),
+                        modifiedOn: new Date().toISOString(),
+                        envs: [],
+                        passedTestCount: 0,
+                        failedTestCount: 0
+                    };
+                }
+            } catch (error) {
+                console.error(`Error fetching release details for pipeline ID ${pipeline.id}:`, error);
+            }
+        }
+    }
+
+    async function fetchBuildPipelineDetails(pipelines: any[]){
+        const buildPipes = pipelines.filter((p: any) => p.type === 'build');
+        for (let i = 0; i < buildPipes.length; i++) {
+            const pipeline = buildPipes[i];
+            try {
+                const buildDetailsRes = await fetch(`/newApi/constructBuild?date=${selectedDate?.toString()}&buildDefinitionId=${pipeline.id}`);
+                if (buildDetailsRes.ok) {
+                    const buildDetailsArr = await buildDetailsRes.json();
+                    // If multiple builds, keep all of them and increase the size of buildPipelines
+                    if (Array.isArray(buildDetailsArr) && buildDetailsArr.length > 0) {
+                        buildDetailsArr.forEach((buildDetails: any) => {
+                            buildDetails.name = buildDetails.testRunName;
+                            buildPipelines.push(buildDetails);
+                        });
+                    } else {
+                        buildPipelines.push({
                             id: pipeline.id,
                             name: pipeline.displayName,
                             status: 'unknown',
                             createdOn: new Date().toISOString(),
                             modifiedOn: new Date().toISOString(),
-                            envs: [],
                             passedTestCount: 0,
                             failedTestCount: 0
-                        };
+                        });
                     }
-                } catch (error) {
-                    console.error(`Error fetching release details for pipeline ID ${pipeline.id}:`, error);
                 }
+                console.log("Fetched build details:", buildPipelines[i]);
+            } catch (error) {
+                console.error(`Error fetching build details for pipeline ID ${pipeline.id}:`, error);
             }
         }
     }
@@ -96,8 +130,11 @@
         if (currentDate === prevDate) return;
         prevDate = currentDate;
         if (selectedDate){
-            releasePipelines = Array(pipelineConfig.pipelines.length).fill(null);
+            releasePipelines = Array(pipelineConfig.pipelines.filter((p: any) => p.type === 'release').length).fill(null);
             fetchReleasePipelineDetails(pipelineConfig.pipelines);
+
+            buildPipelines = Array(pipelineConfig.pipelines.filter((p: any) => p.type === 'build').length).fill(null);
+            fetchBuildPipelineDetails(pipelineConfig.pipelines);
         }
         // Close the calendar popover after a new date is picked
         if (popoverOpen) {
@@ -156,11 +193,28 @@
                         {#if pipeline}
                             <BuildCard
                                 pipelineName={pipeline.name}
-                                link="Not Implemented"
+                                link={pipeline.link}
                                 status={pipeline.status}
                                 passCount={pipeline.passedTestCount}
                                 failCount={pipeline.failedTestCount}
                                 pipelineType="release"
+                                pipelineId={pipeline.id}
+                                date={selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString() : null}
+                            />
+                        {:else}
+                            <Skeleton class="h-32 w-full rounded-lg" />
+                        {/if}
+                    {/each}
+
+                    {#each buildPipelines as pipeline}
+                        {#if pipeline}
+                            <BuildCard
+                                pipelineName={pipeline.name}
+                                link={pipeline.link}
+                                status={pipeline.status}
+                                passCount={pipeline.passedTestCount}
+                                failCount={pipeline.failedTestCount}
+                                pipelineType="build"
                                 pipelineId={pipeline.id}
                                 date={selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString() : null}
                             />

@@ -1,8 +1,12 @@
 export interface Build {
   id: number;
-  description: string;
   name: string;
   status: string;
-  createdOn: string;
+  result: string;
+  startTime: string;
   modifiedOn: string;
+  testRunName?: string;
+  passedTestCount?: number;
+  failedTestCount?: number;
+  link?: string;
 }
