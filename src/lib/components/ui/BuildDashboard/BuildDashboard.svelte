@@ -66,7 +66,7 @@
         for (let i = 0; i < releasePipes.length; i++) {
             const pipeline = releasePipes[i];
             try {
-                const releaseDetailsRes = await fetch(`/newApi/constructRelease?date=${selectedDate?.toString()}&releaseDefinitionId=${pipeline.id}`);
+                const releaseDetailsRes = await fetch(`/api/constructRelease?date=${selectedDate?.toString()}&releaseDefinitionId=${pipeline.id}`);
                 if (releaseDetailsRes.ok) {
                     const releaseDetails = await releaseDetailsRes.json();
                     releaseDetails.name = pipeline.displayName;
@@ -109,7 +109,7 @@
         for (let i = 0; i < buildPipes.length; i++) {
             const pipeline = buildPipes[i];
             try {
-                const buildDetailsRes = await fetch(`/newApi/constructBuild?date=${selectedDate?.toString()}&buildDefinitionId=${pipeline.id}`);
+                const buildDetailsRes = await fetch(`/api/constructBuild?date=${selectedDate?.toString()}&buildDefinitionId=${pipeline.id}`);
                 if (buildDetailsRes.ok) {
                     const buildDetailsArr = await buildDetailsRes.json();
                     // If multiple builds, add all of them

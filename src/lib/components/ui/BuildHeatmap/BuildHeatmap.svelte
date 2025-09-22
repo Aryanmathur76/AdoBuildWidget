@@ -2,7 +2,6 @@
     import { slide } from "svelte/transition";
     import { Card, CardContent } from "$lib/components/ui/card/index.js";
     import HeatmapButton from "./HeatmapButton.svelte";
-    import { goto } from "$app/navigation";
     import * as Pagination from "$lib/components/ui/pagination/index.js";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import CardTitle from "../card/card-title.svelte";
@@ -69,7 +68,7 @@
             return;
         }
         try {
-            const res = await fetch(`/api/build-quality?date=${dateStr}`);
+            const res = await fetch(`/api/getDayQuality?date=${dateStr}`);
             if (res.ok) {
                 const data = await res.json();
                 dayBuildQuality[dateStr] = {

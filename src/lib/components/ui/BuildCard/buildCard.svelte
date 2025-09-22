@@ -57,9 +57,9 @@
         isLoading = true;
         testCases = null;
         testCasesError = null;
-        const apiUrl = `/api/test-cases?pipelineId=${pipelineId}&pipelineType=${pipelineType}&date=${encodeURIComponent(date.length > 10 ? date.slice(0, 10) : date)}`;
-        console.log('Fetching test cases from:', apiUrl);
-        fetch(apiUrl)
+        fetch(
+            `/api/test-cases?pipelineId=${pipelineId}&pipelineType=${pipelineType}&date=${encodeURIComponent(date.length > 10 ? date.slice(0, 10) : date)}`,
+        )
             .then((r) => r.json())
             .then((data) => {
                 testCases = data.testCases;
@@ -138,46 +138,23 @@
             style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%;"
         >
             <div class="flex flex-col items-start min-w-0 flex-1">
-                <div class="flex items-center min-w-0 pb-1">
-                    <span
-                        class="font-semibold text-[1.1rem] leading-[1.2] truncate"
-                        >{pipelineName}</span
-                    >
-                    <span class="ml-2 flex items-center gap-1">
-                        <PipelineStatusBadge {status} />
-                        {#if link}
-                            <button
-                                title="Copy link"
-                                aria-label="Copy link"
-                                on:click={handleCopy}
-                                style="background: none; border: none; padding: 5px; cursor: pointer; display: flex; align-items: center;"
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="18"
-                                    height="18"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        fill="none"
-                                        d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"
-                                    />
-                                    <circle
-                                        cx="12"
-                                        cy="12"
-                                        r="3"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        fill="none"
-                                    />
-                                </svg>
-                            </button>
-                        {/if}
-                    </span>
+                <div class="font-semibold text-[1.1rem] leading-[1.2] truncate pb-1">
+                    {pipelineName}
+                </div>
+                <div class="flex items-center gap-1 mb-1">
+                    <PipelineStatusBadge {status} />
+                    {#if link}
+                        <button
+                            title="Copy link"
+                            aria-label="Copy link"
+                            on:click={handleCopy}
+                            style="background: none; border: none; padding: 5px; cursor: pointer; display: flex; align-items: center;"
+                        >
+                            <span class="material-icons" style="font-size: 18px;">
+                                link
+                            </span>
+                        </button>
+                    {/if}
                 </div>
                 <div class="text-xs text-muted-foreground mb-1">
                     <slot />
