@@ -45,7 +45,7 @@ export async function GET({ url }: { url: URL }) {
     try {
         const minTime = `${date}T00:00:00Z`;
         const maxTime = `${date}T23:59:59Z`;
-        const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds?definitions=${buildDefinitionId}&minTime=${encodeURIComponent(minTime)}&maxTime=${encodeURIComponent(maxTime)}&queryOrder=queueTimeAscending&$top=10&api-version=7.1`;
+        const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds?definitions=${buildDefinitionId}&minTime=${encodeURIComponent(minTime)}&maxTime=${encodeURIComponent(maxTime)}&queryOrder=queueTimeDescending&$top=10&api-version=7.1`;
 
         const res = await fetch(apiUrl, {
             headers: {

@@ -6,9 +6,9 @@ export let status: string | null = null;
 
 {#if status === null}
     <Skeleton class="h-6 w-24 rounded" />
-{:else if status === 'good'}
+{:else if status === 'good' || status === 'succeeded'}
     <Badge style="background: var(--success);" variant="default"><strong>Good</strong></Badge>
-{:else if status === 'bad'}
+{:else if status === 'bad' || status === 'failed'}
     <Badge style="background: var(--failure);" variant="destructive"><strong>Bad</strong></Badge>
 {:else if status === 'interrupted'}
     <Badge style="background: var(--failure);" variant="destructive"><strong>Interrupted</strong></Badge>

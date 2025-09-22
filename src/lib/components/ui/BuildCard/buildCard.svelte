@@ -57,9 +57,9 @@
         isLoading = true;
         testCases = null;
         testCasesError = null;
-        fetch(
-            `/api/test-cases?pipelineId=${pipelineId}&pipelineType=${pipelineType}&date=${encodeURIComponent(date.length > 10 ? date.slice(0, 10) : date)}`,
-        )
+        const apiUrl = `/api/test-cases?pipelineId=${pipelineId}&pipelineType=${pipelineType}&date=${encodeURIComponent(date.length > 10 ? date.slice(0, 10) : date)}`;
+        console.log('Fetching test cases from:', apiUrl);
+        fetch(apiUrl)
             .then((r) => r.json())
             .then((data) => {
                 testCases = data.testCases;

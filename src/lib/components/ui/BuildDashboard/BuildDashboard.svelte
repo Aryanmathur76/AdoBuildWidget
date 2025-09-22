@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Release } from "$lib/types/release";
-    import { slide } from 'svelte/transition';
+    import { slide, fade } from 'svelte/transition';
     import CalendarIcon from "@lucide/svelte/icons/calendar";
     const { date } = $props<{ date?: string }>();
     import {
@@ -53,16 +53,16 @@
     const pipelineConfig = parsedConfig;
 
     // Array of release objects to fetch release details for
-    let releasePipelines = $state<Release[]>(
-        Array(pipelineConfig.pipelines.filter((p: any) => p.type === 'release').length).fill(null)
-    );
+    let releasePipelines = $state<Release[]>([]);
 
-    let buildPipelines = $state<any[]>(
-        Array(pipelineConfig.pipelines.filter((p: any) => p.type === 'build').length).fill(null)
-    );
+    // Array of build objects - don't pre-allocate since we might get multiple builds per config
+    let buildPipelines = $state<any[]>([]);
 
     async function fetchReleasePipelineDetails(pipelines: any[]) {
+        releasePipelines = []; // Clear the array
+        
         const releasePipes = pipelines.filter((p: any) => p.type === 'release');
+        
         for (let i = 0; i < releasePipes.length; i++) {
             const pipeline = releasePipes[i];
             try {
@@ -70,10 +70,10 @@
                 if (releaseDetailsRes.ok) {
                     const releaseDetails = await releaseDetailsRes.json();
                     releaseDetails.name = pipeline.displayName;
-                    releasePipelines[i] = releaseDetails;
+                    releasePipelines.push(releaseDetails);
                 } else {
                     // Default object to use if no run is found
-                    releasePipelines[i] = {
+                    releasePipelines.push({
                         id: pipeline.id,
                         name: pipeline.displayName,
                         status: 'unknown',
@@ -82,23 +82,37 @@
                         envs: [],
                         passedTestCount: 0,
                         failedTestCount: 0
-                    };
+                    });
                 }
             } catch (error) {
                 console.error(`Error fetching release details for pipeline ID ${pipeline.id}:`, error);
+                // Add error placeholder
+                releasePipelines.push({
+                    id: pipeline.id,
+                    name: pipeline.displayName,
+                    status: 'unknown',
+                    createdOn: new Date().toISOString(),
+                    modifiedOn: new Date().toISOString(),
+                    envs: [],
+                    passedTestCount: 0,
+                    failedTestCount: 0
+                });
             }
         }
     }
 
     async function fetchBuildPipelineDetails(pipelines: any[]){
+        buildPipelines = []; // Clear the array
+        
         const buildPipes = pipelines.filter((p: any) => p.type === 'build');
+        
         for (let i = 0; i < buildPipes.length; i++) {
             const pipeline = buildPipes[i];
             try {
                 const buildDetailsRes = await fetch(`/newApi/constructBuild?date=${selectedDate?.toString()}&buildDefinitionId=${pipeline.id}`);
                 if (buildDetailsRes.ok) {
                     const buildDetailsArr = await buildDetailsRes.json();
-                    // If multiple builds, keep all of them and increase the size of buildPipelines
+                    // If multiple builds, add all of them
                     if (Array.isArray(buildDetailsArr) && buildDetailsArr.length > 0) {
                         buildDetailsArr.forEach((buildDetails: any) => {
                             buildDetails.name = buildDetails.testRunName;
@@ -115,12 +129,45 @@
                             failedTestCount: 0
                         });
                     }
+                } else {
+                    // Add error placeholder
+                    buildPipelines.push({
+                        id: pipeline.id,
+                        name: pipeline.displayName,
+                        status: 'unknown',
+                        createdOn: new Date().toISOString(),
+                        modifiedOn: new Date().toISOString(),
+                        passedTestCount: 0,
+                        failedTestCount: 0
+                    });
                 }
-                console.log("Fetched build details:", buildPipelines[i]);
+                console.log("Fetched build details:", buildPipelines);
             } catch (error) {
                 console.error(`Error fetching build details for pipeline ID ${pipeline.id}:`, error);
+                // Add error placeholder
+                buildPipelines.push({
+                    id: pipeline.id,
+                    name: pipeline.displayName,
+                    status: 'unknown',
+                    createdOn: new Date().toISOString(),
+                    modifiedOn: new Date().toISOString(),
+                    passedTestCount: 0,
+                    failedTestCount: 0
+                });
             }
         }
+    }
+
+    async function fetchAllPipelineDetails(pipelines: any[]) {
+        // Clear both arrays first
+        releasePipelines = [];
+        buildPipelines = [];
+        
+        // Fetch release pipelines first
+        await fetchReleasePipelineDetails(pipelines);
+        
+        // Then fetch build pipelines
+        await fetchBuildPipelineDetails(pipelines);
     }
 
     // Reset pipelineStatuses to null and etch again when date changes
@@ -130,11 +177,7 @@
         if (currentDate === prevDate) return;
         prevDate = currentDate;
         if (selectedDate){
-            releasePipelines = Array(pipelineConfig.pipelines.filter((p: any) => p.type === 'release').length).fill(null);
-            fetchReleasePipelineDetails(pipelineConfig.pipelines);
-
-            buildPipelines = Array(pipelineConfig.pipelines.filter((p: any) => p.type === 'build').length).fill(null);
-            fetchBuildPipelineDetails(pipelineConfig.pipelines);
+            fetchAllPipelineDetails(pipelineConfig.pipelines);
         }
         // Close the calendar popover after a new date is picked
         if (popoverOpen) {
@@ -189,8 +232,8 @@
             </Card.Header>
             <Card.Content>
                 <div class="mt-8 flex flex-col gap-4 w-full">
-                    {#each releasePipelines as pipeline}
-                        {#if pipeline}
+                    {#each releasePipelines as pipeline, index}
+                        <div in:fade={{ delay: index * 100, duration: 300 }}>
                             <BuildCard
                                 pipelineName={pipeline.name}
                                 link={pipeline.link}
@@ -201,13 +244,11 @@
                                 pipelineId={pipeline.id}
                                 date={selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString() : null}
                             />
-                        {:else}
-                            <Skeleton class="h-32 w-full rounded-lg" />
-                        {/if}
+                        </div>
                     {/each}
 
-                    {#each buildPipelines as pipeline}
-                        {#if pipeline}
+                    {#each buildPipelines as pipeline, index}
+                        <div in:fade={{ delay: (releasePipelines.length * 100) + (index * 100), duration: 300 }}>
                             <BuildCard
                                 pipelineName={pipeline.name}
                                 link={pipeline.link}
@@ -218,9 +259,7 @@
                                 pipelineId={pipeline.id}
                                 date={selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString() : null}
                             />
-                        {:else}
-                            <Skeleton class="h-32 w-full rounded-lg" />
-                        {/if}
+                        </div>
                     {/each}
                 </div>
             </Card.Content>

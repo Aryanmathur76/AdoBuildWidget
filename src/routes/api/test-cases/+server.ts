@@ -104,6 +104,7 @@ export async function GET({ url }: { url: URL }) {
 
             // 1. Get all test runs for this build in the date window
             const runsUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/test/runs?buildIds=${pipelineId}&minLastUpdatedDate=${encodeURIComponent(minLastUpdatedDate)}&maxLastUpdatedDate=${encodeURIComponent(maxLastUpdatedDate)}&api-version=7.1`;
+            console.log(`[test-cases] Fetching test runs from: ${runsUrl}`);
             const runsRes = await fetch(runsUrl, {
                 headers: {
                     'Authorization': `Basic ${btoa(':' + AZURE_DEVOPS_PAT)}`,
@@ -117,24 +118,11 @@ export async function GET({ url }: { url: URL }) {
             if (!Array.isArray(runsData.value)) {
                 return json({ testCases: [] });
             }
+            console.log("Got test runs:", runsData.value.length);
 
-            // 2. For each unique plan, get the latest test run
-            const planRuns: Record<string, any> = {};
-            for (const run of runsData.value) {
-                const planId = run.plan?.id;
-                if (!planId) continue;
-                if (!planRuns[planId] || new Date(run.createdDate) > new Date(planRuns[planId].createdDate)) {
-                    planRuns[planId] = run;
-                }
-            }
-            const testRunIds = Object.values(planRuns).map((run: any) => run.id);
-            if (testRunIds.length === 0) {
-                return json({ testCases: [] });
-            }
-
-            // 3. For each test run ID, fetch all test case results
+            // 2. For each test run ID, fetch all test case results
             let allTestCases = [];
-            for (const runId of testRunIds) {
+            for (const runId of runsData.value.map((r: any) => r.id)) {
                 const endpoint = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/test/Runs/${runId}/results?api-version=7.1`;
                 const res = await fetch(endpoint, {
                     headers: {
