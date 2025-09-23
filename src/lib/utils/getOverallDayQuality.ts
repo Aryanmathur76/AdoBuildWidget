@@ -1,8 +1,8 @@
 // Helper to determine overall quality based on individual pipeline statuses
 export function determineOverallDayQuality(statuses: string[]): string {
-  // Prioritize 'in progress' status
-  if (statuses.includes('in progress')) {
-    return 'in progress';
+  // Prioritize 'inProgress' status
+  if (statuses.includes('inProgress')) {
+    return 'inProgress';
   }
 
   if (statuses.includes('interrupted')) {

@@ -13,6 +13,8 @@ export async function getReleasePipelineStatus(releaseDetails: Release) {
       throw new Error('Release has no environments');
     }
 
+    console.log('All Env statuses: ' + JSON.stringify(releaseDetails.envs.map(env => env.status)));
+
     if (releaseDetails.envs.some(env => env.status === 'inProgress')) {
       return 'inProgress';
     }
@@ -21,7 +23,8 @@ export async function getReleasePipelineStatus(releaseDetails: Release) {
       return 'interrupted';
     }
 
-    if (releaseDetails.envs.some(env => env.status === 'failed')) {
+    if (releaseDetails.envs.some(env => env.status === 'failed' || env.status === 'rejected')) {
+      console.log('Release pipeline: ' + JSON.stringify(releaseDetails));
       return 'failed';
     }
 

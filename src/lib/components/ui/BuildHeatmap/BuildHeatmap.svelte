@@ -181,7 +181,7 @@
                 case "bad":
                     colorClass = "bg-red-600 text-white";
                     break;
-                case "in progress":
+                case "inProgress":
                     colorClass = "bg-sky-500 text-white";
                     break;
                 case "interrupted":
