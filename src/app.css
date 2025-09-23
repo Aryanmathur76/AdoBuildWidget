@@ -18,6 +18,7 @@
   --secondary-foreground: oklch(0.984 0.003 247.858);
   --success: #65a30d;       /* Lime - 600 - success */
   --failure: #b91c1c;       /* Red - 600 - failure */
+  --interrupted: #f97316;   /* Orange 600 - interrupted */
   --partially-succeeded: #facc15;  /* Yellow 400 - warning/partial */
   --in-progress: #0284c7;    /* Sky 500 - in prog */
   --muted: oklch(0.968 0.007 247.896);

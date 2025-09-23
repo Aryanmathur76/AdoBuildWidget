@@ -11,7 +11,7 @@ export let status: string | null = null;
 {:else if status === 'bad' || status === 'failed'}
     <Badge style="background: var(--failure); border-radius: 4px;" variant="destructive"><strong>Bad</strong></Badge>
 {:else if status === 'interrupted'}
-    <Badge style="background: var(--failure); border-radius: 4px;" variant="destructive"><strong>Interrupted</strong></Badge>
+    <Badge style="background: var(--interrupted); border-radius: 4px;" variant="destructive"><strong>Interrupted</strong></Badge>
 {:else if status === 'ok'}
     <Badge style="background: var(--partially-succeeded); color: black; border-radius: 4px;" variant="secondary"><strong>Partially Succeeded</strong></Badge>
 {:else if status === 'inProgress'}
