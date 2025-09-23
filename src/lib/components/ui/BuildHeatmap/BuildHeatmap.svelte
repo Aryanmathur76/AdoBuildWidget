@@ -5,6 +5,9 @@
     import * as Pagination from "$lib/components/ui/pagination/index.js";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import CardTitle from "../card/card-title.svelte";
+    import { getCachedDayQuality, setCachedDayQuality } from "$lib/stores/pipelineCache.js";
+    import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
+    import { env } from "$env/dynamic/public";
 
     // Svelte binding for Pagination.Root (1-based page index)
     const today = new Date();
@@ -59,6 +62,17 @@
     };
     let dayBuildQuality: Record<string, DayBuildQuality> = {};
 
+    // Get pipeline configuration for optional prefetching
+    let pipelineConfig: { pipelines: Array<{ id: string; type: string }> } | null = null;
+    
+    try {
+        if (env.PUBLIC_AZURE_PIPELINE_CONFIG) {
+            pipelineConfig = JSON.parse(env.PUBLIC_AZURE_PIPELINE_CONFIG);
+        }
+    } catch (e) {
+        console.warn("Failed to parse pipeline config for prefetching:", e);
+    }
+
     // Fetch build quality for a given date (YYYY-MM-DD), skip future days
     async function fetchBuildQualityForDay(dateStr: string) {
         // Parse dateStr to year, month, day
@@ -67,6 +81,19 @@
             dayBuildQuality[dateStr] = { quality: "unknown" };
             return;
         }
+        
+        // Check cache first
+        const cached = getCachedDayQuality(dateStr);
+        if (cached) {
+            dayBuildQuality[dateStr] = {
+                quality: cached.quality,
+                releasesWithTestsRan: cached.releaseIds?.length || 0,
+                totalPassCount: cached.totalPassCount,
+                totalFailCount: cached.totalFailCount,
+            };
+            return;
+        }
+        
         try {
             const res = await fetch(`/api/getDayQuality?date=${dateStr}`);
             if (res.ok) {
@@ -77,6 +104,25 @@
                     totalPassCount: data.totalPassCount,
                     totalFailCount: data.totalFailCount,
                 };
+                
+                // Cache the result
+                setCachedDayQuality(dateStr, {
+                    quality: data.quality,
+                    releaseIds: data.releaseIds || [],
+                    totalPassCount: data.totalPassCount || 0,
+                    totalFailCount: data.totalFailCount || 0,
+                });
+                
+                // Optional: Prefetch pipeline data for this day to improve navigation performance
+                // This runs in the background and doesn't block the UI
+                if (pipelineConfig?.pipelines) {
+                    pipelineDataService.prefetchPipelineData(
+                        dateStr, 
+                        pipelineConfig.pipelines.map(p => p.id)
+                    ).catch(() => {
+                        // Silently ignore prefetch errors - this is just an optimization
+                    });
+                }
             } else {
                 dayBuildQuality[dateStr] = { quality: "unknown" };
             }
@@ -105,11 +151,9 @@
                     break;
                 case "in progress":
                     colorClass = "bg-sky-500 text-white";
-                    animationClass = "animate-pulse";
                     break;
                 case "interrupted":
-                    colorClass = "bg-red-600 text-white";
-                    animationClass = "animate-pulse";
+                    colorClass = "bg-orange-600 text-white";
                     break;
                 case "unknown":
                     colorClass = "bg-zinc-700 text-white";

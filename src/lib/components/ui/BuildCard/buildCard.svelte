@@ -17,6 +17,7 @@
         DialogTrigger,
     } from "$lib/components/ui/dialog";
     import TestChart from "$lib/components/ui/TestChart/testChart.svelte";
+    import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
 
     export let pipelineName: string = "PipelineName";
     export let link: string | null = null;
@@ -57,8 +58,13 @@
         isLoading = true;
         testCases = null;
         testCasesError = null;
+        
+        // For test cases, we need a releaseId which we might not have directly
+        // We'll fallback to the original API call for now, but could be enhanced
+        // to use the cache if we have the releaseId
+        const cleanDate = date.length > 10 ? date.slice(0, 10) : date;
         fetch(
-            `/api/test-cases?pipelineId=${pipelineId}&pipelineType=${pipelineType}&date=${encodeURIComponent(date.length > 10 ? date.slice(0, 10) : date)}`,
+            `/api/test-cases?pipelineId=${pipelineId}&pipelineType=${pipelineType}&date=${encodeURIComponent(cleanDate)}`,
         )
             .then((r) => r.json())
             .then((data) => {

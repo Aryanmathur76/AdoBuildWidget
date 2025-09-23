@@ -18,6 +18,7 @@
     import { env } from "$env/dynamic/public";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import { today, parseDate } from "@internationalized/date";
+    import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
 
     const df = new DateFormatter("en-US", {
         dateStyle: "long",
@@ -66,24 +67,12 @@
         for (let i = 0; i < releasePipes.length; i++) {
             const pipeline = releasePipes[i];
             try {
-                const releaseDetailsRes = await fetch(`/api/constructRelease?date=${selectedDate?.toString()}&releaseDefinitionId=${pipeline.id}`);
-                if (releaseDetailsRes.ok) {
-                    const releaseDetails = await releaseDetailsRes.json();
-                    releaseDetails.name = pipeline.displayName;
-                    releasePipelines.push(releaseDetails);
-                } else {
-                    // Default object to use if no run is found
-                    releasePipelines.push({
-                        id: pipeline.id,
-                        name: pipeline.displayName,
-                        status: 'unknown',
-                        createdOn: new Date().toISOString(),
-                        modifiedOn: new Date().toISOString(),
-                        envs: [],
-                        passedTestCount: 0,
-                        failedTestCount: 0
-                    });
-                }
+                const releaseDetails = await pipelineDataService.fetchReleaseData(
+                    selectedDate?.toString() || '', 
+                    pipeline.id
+                );
+                releaseDetails.name = pipeline.displayName;
+                releasePipelines.push(releaseDetails);
             } catch (error) {
                 console.error(`Error fetching release details for pipeline ID ${pipeline.id}:`, error);
                 // Add error placeholder
@@ -109,28 +98,18 @@
         for (let i = 0; i < buildPipes.length; i++) {
             const pipeline = buildPipes[i];
             try {
-                const buildDetailsRes = await fetch(`/api/constructBuild?date=${selectedDate?.toString()}&buildDefinitionId=${pipeline.id}`);
-                if (buildDetailsRes.ok) {
-                    const buildDetailsArr = await buildDetailsRes.json();
-                    // If multiple builds, add all of them
-                    if (Array.isArray(buildDetailsArr) && buildDetailsArr.length > 0) {
-                        buildDetailsArr.forEach((buildDetails: any) => {
-                            buildDetails.name = buildDetails.testRunName;
-                            buildPipelines.push(buildDetails);
-                        });
-                    } else {
-                        buildPipelines.push({
-                            id: pipeline.id,
-                            name: pipeline.displayName,
-                            status: 'unknown',
-                            createdOn: new Date().toISOString(),
-                            modifiedOn: new Date().toISOString(),
-                            passedTestCount: 0,
-                            failedTestCount: 0
-                        });
-                    }
+                const buildDetailsArr = await pipelineDataService.fetchBuildData(
+                    selectedDate?.toString() || '', 
+                    pipeline.id
+                );
+                
+                // If multiple builds, add all of them
+                if (Array.isArray(buildDetailsArr) && buildDetailsArr.length > 0) {
+                    buildDetailsArr.forEach((buildDetails: any) => {
+                        buildDetails.name = buildDetails.testRunName;
+                        buildPipelines.push(buildDetails);
+                    });
                 } else {
-                    // Add error placeholder
                     buildPipelines.push({
                         id: pipeline.id,
                         name: pipeline.displayName,
