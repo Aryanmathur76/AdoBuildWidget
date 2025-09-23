@@ -158,7 +158,7 @@
                 <div class="font-semibold text-[1.1rem] leading-[1.2] truncate pb-1">
                     {pipelineName}
                 </div>
-                <div class="flex items-center gap-1 mb-1">
+                <div class="flex items-center gap-1 mt-2 mb-1">
                     <PipelineStatusBadge {status} />
                     {#if link}
                         <button
