@@ -237,7 +237,7 @@
 
 <div class="w-full h-full max-h-[500px]" transition:slide={{ duration: 300 }}>
     <Card
-        class="py-0 border-0 shadow-none h-full rounded-none overflow-y-auto max-h-[500px] gap-4"
+        class="py-0 border-0 shadow-none h-full rounded-none overflow-y-auto gap-4"
     >
         <CardTitle class="px-2 pt-2 pb-1">
             <span
