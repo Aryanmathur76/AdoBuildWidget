@@ -13,8 +13,6 @@ export async function getReleasePipelineStatus(releaseDetails: Release) {
       throw new Error('Release has no environments');
     }
 
-    console.log('All Env statuses: ' + JSON.stringify(releaseDetails.envs.map(env => env.status)));
-
     if (releaseDetails.envs.some(env => env.status === 'inProgress')) {
       return 'inProgress';
     }

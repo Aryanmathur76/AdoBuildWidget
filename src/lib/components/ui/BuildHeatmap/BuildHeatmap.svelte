@@ -199,6 +199,7 @@
             return {
                 day,
                 dateStr,
+                quality,
                 colorClass,
                 animationClass,
                 disabled: isFutureDay(currentYear, currentMonth, day),
