@@ -81,7 +81,32 @@
     function handleCopy() {
         if (link) {
             navigator.clipboard.writeText(link);
-            toast.info(link, { duration: 6000 });
+            toast.info(link, { 
+                duration: 6000,
+                onAutoClose: () => {
+                    // Clear selection when toast closes
+                    if (window.getSelection) {
+                        window.getSelection()?.removeAllRanges();
+                    }
+                }
+            });
+            
+            // Use setTimeout to ensure the toast is rendered before selecting text
+            setTimeout(() => {
+                // Find the toast content and select the text
+                const toastElements = document.querySelectorAll('[data-sonner-toast]');
+                const latestToast = toastElements[toastElements.length - 1];
+                if (latestToast) {
+                    const textContent = latestToast.querySelector('[data-content]') || latestToast;
+                    if (textContent && window.getSelection) {
+                        const selection = window.getSelection();
+                        const range = document.createRange();
+                        range.selectNodeContents(textContent);
+                        selection?.removeAllRanges();
+                        selection?.addRange(range);
+                    }
+                }
+            }, 50);
         }
     }
 
