@@ -1,5 +1,6 @@
 <script lang="ts">
     import { slide } from "svelte/transition";
+    import { fly } from "svelte/transition";
     import { Card, CardContent } from "$lib/components/ui/card/index.js";
     import HeatmapButton from "./HeatmapButton.svelte";
     import * as Pagination from "$lib/components/ui/pagination/index.js";
@@ -131,6 +132,20 @@
         }
     }
 
+    // Calculate what days of the week each position represents based on the 1st of the month
+    $: dayLabels = (() => {
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+        
+        // Create labels based on what day the 1st falls on
+        const labels = [];
+        for (let i = 0; i < 7; i++) {
+            const dayIndex = (firstDayOfMonth + i) % 7;
+            labels.push(dayNames[dayIndex]);
+        }
+        return labels;
+    })();
+
     $: daysInMonth = Array.from(
         { length: months[currentMonth].days },
         (_, dIdx) => {
@@ -220,13 +235,13 @@
     }
 </script>
 
-<div class="w-full h-full min-h-screen" transition:slide={{ duration: 300 }}>
+<div class="w-full h-full max-h-[500px]" transition:slide={{ duration: 300 }}>
     <Card
-        class="py-0 border-0 shadow-none h-full rounded-none overflow-y-auto max-h-[100vh]"
+        class="py-0 border-0 shadow-none h-full rounded-none overflow-y-auto max-h-[500px] gap-4"
     >
-        <CardTitle class="px-2 pt-5">
+        <CardTitle class="px-2 pt-2 pb-1">
             <span
-                class={`inline-flex rounded text-white text-lg font-bold px-2 py-1 items-center gap-2 ${
+                class={`inline-flex rounded text-white text-base font-bold px-2 py-1 items-center gap-1 ${
                     dayBuildQuality[
                         getDateString(
                             currentYear,
@@ -264,13 +279,26 @@
             >
                 <span
                     class="material-symbols-outlined"
-                    style="font-size: 2em; line-height: 1;">health_metrics</span
+                    style="font-size: 1.75em; line-height: 1;">health_metrics</span
                 >
                     DELTAV BUILD HEALTH
             </span>
         </CardTitle>
-        <CardContent class="h-full px-2">
-            <div class="grid grid-cols-7 gap-1">
+        <CardContent class="h-full px-2 pb-2">
+            <!-- Dynamic day of week labels with animation -->
+            <div class="grid grid-cols-7 gap-0.5 mb-1 h-5 items-center">
+                {#each dayLabels as label, i (currentMonth + '-' + i)}
+                    <div 
+                        class="text-center text-xs font-medium text-muted-foreground h-full flex items-center justify-center"
+                        in:fly="{{ y: -15, duration: 250, delay: i * 30 }}"
+                        out:fly="{{ y: 15, duration: 150 }}"
+                    >
+                        {label}
+                    </div>
+                {/each}
+            </div>
+            
+            <div class="grid grid-cols-7 gap-0.5 mb-2">
                 {#each daysInMonth as dayObj}
                     <div class="w-full aspect-square min-w-0 min-h-0">
                         {#if dayBuildQuality[dayObj.dateStr]}
@@ -286,7 +314,7 @@
                     </div>
                 {/each}
             </div>
-            <div class="flex justify-center my-3">
+            <div class="flex justify-center">
                 <Pagination.Root
                     count={months.length}
                     perPage={1}
