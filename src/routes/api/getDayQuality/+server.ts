@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/public';
-import { getPipelineConfig, successThreshold, partiallySucceededThreshold } from '$lib/utils';
+import { getPipelineConfig} from '$lib/utils';
+import { determineOverallDayQuality } from '$lib/utils/getOverallDayQuality';
 
 //Returns overall day quality for all configured pipelines for a given date using constructBuild and constructRelease APIs
 //The object returned is { date: 'YYYY-MM-DD', pipelineIds: [id1, id2, ...], quality: 'good|ok|bad|in progress|unknown|interrupted' }
@@ -21,25 +22,6 @@ function checkCache(key: string): any | null {
     return entry.result;
   }
   return null;
-}
-
-// Helper to compute status based on pass/fail counts
-function computeStatus(passCount: number | null, failCount: number | null): string {
-  const totalTests = (passCount ?? 0) + (failCount ?? 0);
-  
-  if (totalTests === 0) {
-    return 'unknown';
-  }
-  
-  const passRate = ((passCount ?? 0) / totalTests) * 100;
-  
-  if (passRate >= successThreshold) {
-    return 'good';
-  } else if (passRate >= partiallySucceededThreshold) {
-    return 'ok';
-  } else {
-    return 'bad';
-  }
 }
 
 // Helper to fetch release pipeline data
@@ -99,38 +81,6 @@ async function fetchBuildPipeline(baseUrl: string, pipelineId: string, date: str
     console.error(`Error fetching build pipeline ${pipelineId}:`, error);
     return [{ id: pipelineId, status: 'unknown', passCount: 0, failCount: 0 }];
   }
-}
-
-// Helper to determine overall quality based on individual pipeline statuses
-function determineOverallDayQuality(statuses: string[]): string {
-  // Prioritize 'in progress' status
-  if (statuses.includes('in progress')) {
-    return 'in progress';
-  }
-
-  if (statuses.includes('interrupted')) {
-    return 'interrupted';
-  }
-
-  // If any pipeline is bad/failed, overall is bad
-  if (statuses.includes('bad') || statuses.includes('failed')) {
-    return 'bad';
-  }
-
-  // If any pipeline is ok/partially succeeded, overall is ok
-  if (statuses.includes('ok') || statuses.includes('partially succeeded')) {
-    return 'ok';
-  }
-
-  // If all pipelines are good, overall is good
-  if (statuses.includes('good') && statuses.every(status => 
-    ['good', 'succeeded'].includes(status)
-  )) {
-    return 'good';
-  }
-
-  // Default to unknown if no clear determination can be made
-  return 'unknown';
 }
 
 // --- Main Handler ---

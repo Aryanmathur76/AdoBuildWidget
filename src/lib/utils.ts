@@ -3,9 +3,9 @@
  * Throws if any required variable is missing.
  */
 export function getAzureDevOpsEnvVars(env: Record<string, any>) {
-	const AZURE_DEVOPS_ORGANIZATION = env.AZURE_DEVOPS_ORGANIZATION;
-	const AZURE_DEVOPS_PROJECT = env.AZURE_DEVOPS_PROJECT;
-	const AZURE_DEVOPS_PAT = env.AZURE_DEVOPS_PAT;
+	const AZURE_DEVOPS_ORGANIZATION = env.AZURE_DEVOPS_ORGANIZATION?.trim();
+	const AZURE_DEVOPS_PROJECT = env.AZURE_DEVOPS_PROJECT?.trim();
+	const AZURE_DEVOPS_PAT = env.AZURE_DEVOPS_PAT?.trim();
 	if (!AZURE_DEVOPS_ORGANIZATION || !AZURE_DEVOPS_PROJECT || !AZURE_DEVOPS_PAT) {
 		throw new Error('Missing Azure DevOps environment variables');
 	}
@@ -17,7 +17,7 @@ export function getAzureDevOpsEnvVars(env: Record<string, any>) {
  * Throws errors for missing/invalid config or pipelines.
  */
 export function getPipelineConfig(configRaw: string): any {
-	if (!configRaw) {
+	if (!configRaw || !configRaw.trim()) {
 		throw new Error('Missing pipeline config');
 	}
 	let config;

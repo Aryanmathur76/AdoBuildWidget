@@ -22,7 +22,7 @@ export async function getBuildPipelineStatus(buildDetails: Build) {
     }
 
     if (buildDetails.result === 'failed') {
-      return 'failed';
+      return 'bad';
     }
 
     if (buildDetails.passedTestCount === undefined || buildDetails.failedTestCount === undefined) {
