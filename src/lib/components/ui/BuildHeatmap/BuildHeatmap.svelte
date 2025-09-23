@@ -299,8 +299,11 @@
             </div>
             
             <div class="grid grid-cols-7 gap-0.5 mb-2">
-                {#each daysInMonth as dayObj}
-                    <div class="w-full aspect-square min-w-0 min-h-0">
+                {#each daysInMonth as dayObj, index (currentMonth + '-' + dayObj.day)}
+                    <div 
+                        class="w-full aspect-square min-w-0 min-h-0"
+                        in:fly="{{ y: 10, duration: 200, delay: index * 15 }}"
+                    >
                         {#if dayBuildQuality[dayObj.dateStr]}
                             <HeatmapButton {dayObj} />
                         {:else if dayObj.disabled}
