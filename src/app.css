@@ -59,7 +59,7 @@
   --failure: #b91c1c;       /* Red - 600 - failure */
   --partially-succeeded: #facc15;  /* Yellow 400 - warning/partial */
   --in-progress: #0284c7;    /* Sky 500 - in prog */
-  --muted: oklch(0.279 0.041 260.031);
+  --muted: oklch(34.415% 0.00752 264.512);
   --muted-foreground: oklch(0.704 0.04 256.788);
   --accent: oklch(34.415% 0.00752 264.512);
   --accent-foreground: oklch(0.984 0.003 247.858);

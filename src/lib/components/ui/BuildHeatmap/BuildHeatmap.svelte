@@ -1,12 +1,16 @@
 <script lang="ts">
     import { slide } from "svelte/transition";
     import { fly } from "svelte/transition";
+    import * as Tabs from "$lib/components/ui/tabs/index.js";
     import { Card, CardContent } from "$lib/components/ui/card/index.js";
     import HeatmapButton from "./HeatmapButton.svelte";
     import * as Pagination from "$lib/components/ui/pagination/index.js";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import CardTitle from "../card/card-title.svelte";
-    import { getCachedDayQuality, setCachedDayQuality } from "$lib/stores/pipelineCache.js";
+    import {
+        getCachedDayQuality,
+        setCachedDayQuality,
+    } from "$lib/stores/pipelineCache.js";
     import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
     import { env } from "$env/dynamic/public";
 
@@ -15,6 +19,15 @@
     let currentMonth = today.getMonth();
     let currentMonthPage = currentMonth + 1;
     $: currentMonth = currentMonthPage - 1;
+
+    // Track current tab for animations
+    let currentTab = "Monthly";
+    let tabAnimationKey = 0;
+
+    // Trigger animation when switching back to Monthly tab
+    $: if (currentTab === "Monthly") {
+        tabAnimationKey = Date.now();
+    }
 
     const monthNames = [
         "January",
@@ -64,8 +77,10 @@
     let dayBuildQuality: Record<string, DayBuildQuality> = {};
 
     // Get pipeline configuration for optional prefetching
-    let pipelineConfig: { pipelines: Array<{ id: string; type: string }> } | null = null;
-    
+    let pipelineConfig: {
+        pipelines: Array<{ id: string; type: string }>;
+    } | null = null;
+
     try {
         if (env.PUBLIC_AZURE_PIPELINE_CONFIG) {
             pipelineConfig = JSON.parse(env.PUBLIC_AZURE_PIPELINE_CONFIG);
@@ -82,7 +97,7 @@
             dayBuildQuality[dateStr] = { quality: "unknown" };
             return;
         }
-        
+
         // Check cache first
         const cached = getCachedDayQuality(dateStr);
         if (cached) {
@@ -94,7 +109,7 @@
             };
             return;
         }
-        
+
         try {
             const res = await fetch(`/api/getDayQuality?date=${dateStr}`);
             if (res.ok) {
@@ -105,7 +120,7 @@
                     totalPassCount: data.totalPassCount,
                     totalFailCount: data.totalFailCount,
                 };
-                
+
                 // Cache the result
                 setCachedDayQuality(dateStr, {
                     quality: data.quality,
@@ -113,16 +128,18 @@
                     totalPassCount: data.totalPassCount || 0,
                     totalFailCount: data.totalFailCount || 0,
                 });
-                
+
                 // Optional: Prefetch pipeline data for this day to improve navigation performance
                 // This runs in the background and doesn't block the UI
                 if (pipelineConfig?.pipelines) {
-                    pipelineDataService.prefetchPipelineData(
-                        dateStr, 
-                        pipelineConfig.pipelines.map(p => p.id)
-                    ).catch(() => {
-                        // Silently ignore prefetch errors - this is just an optimization
-                    });
+                    pipelineDataService
+                        .prefetchPipelineData(
+                            dateStr,
+                            pipelineConfig.pipelines.map((p) => p.id),
+                        )
+                        .catch(() => {
+                            // Silently ignore prefetch errors - this is just an optimization
+                        });
                 }
             } else {
                 dayBuildQuality[dateStr] = { quality: "unknown" };
@@ -136,7 +153,7 @@
     $: dayLabels = (() => {
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-        
+
         // Create labels based on what day the 1st falls on
         const labels = [];
         for (let i = 0; i < 7; i++) {
@@ -187,7 +204,7 @@
                 disabled: isFutureDay(currentYear, currentMonth, day),
                 totalPassCount: buildQuality.totalPassCount,
                 totalFailCount: buildQuality.totalFailCount,
-                releasesWithTestsRan: buildQuality.releasesWithTestsRan
+                releasesWithTestsRan: buildQuality.releasesWithTestsRan,
             };
         },
     );
@@ -235,127 +252,163 @@
     }
 </script>
 
-<div class="w-full h-full max-h-[500px]" transition:slide={{ duration: 300 }}>
+<div class="w-full h-full" transition:slide={{ duration: 300 }}>
     <Card
-        class="py-0 border-0 shadow-none h-full rounded-none overflow-y-auto gap-4"
+        class="py-0 border-0 shadow-none h-full rounded-none overflow-hidden flex flex-col"
     >
-        <CardTitle class="px-2 pt-2 pb-1">
-            <span
-                class={`inline-flex rounded text-white text-base font-bold px-2 py-1 items-center gap-1 ${
-                    dayBuildQuality[
-                        getDateString(
-                            currentYear,
-                            currentMonth,
-                            today.getDate(),
-                        )
-                    ]?.quality === "good"
-                        ? "bg-lime-600"
-                        : dayBuildQuality[
+        <Tabs.Root bind:value={currentTab} class="h-full flex flex-col">
+            <div class="flex items-center justify-between px-2 pt-4 pb-2 flex-shrink-0">
+                <CardTitle class="flex-shrink-0">
+                    <span
+                        class={`inline-flex rounded text-white text-base font-bold px-2 py-1 items-center gap-1 ${
+                            dayBuildQuality[
                                 getDateString(
                                     currentYear,
                                     currentMonth,
                                     today.getDate(),
                                 )
-                            ]?.quality === "ok"
-                          ? "bg-yellow-400 text-black"
-                          : dayBuildQuality[
-                                  getDateString(
-                                      currentYear,
-                                      currentMonth,
-                                      today.getDate(),
-                                  )
-                              ]?.quality === "bad"
-                            ? "bg-red-600"
-                            : dayBuildQuality[
-                                    getDateString(
-                                        currentYear,
-                                        currentMonth,
-                                        today.getDate(),
-                                    )
-                                ]?.quality === "in progress"
-                              ? "bg-sky-500"
-                              : "bg-zinc-700"
-                }`}
-            >
-                <span
-                    class="material-symbols-outlined"
-                    style="font-size: 1.75em; line-height: 1;">health_metrics</span
-                >
-                    DELTAV BUILD HEALTH
-            </span>
-        </CardTitle>
-        <CardContent class="h-full px-2 pb-2">
-            <!-- Dynamic day of week labels with animation -->
-            <div class="grid grid-cols-7 gap-0.5 mb-1 h-5 items-center">
-                {#each dayLabels as label, i (currentMonth + '-' + i)}
-                    <div 
-                        class="text-center text-xs font-medium text-muted-foreground h-full flex items-center justify-center"
-                        in:fly="{{ y: -15, duration: 250, delay: i * 30 }}"
-                        out:fly="{{ y: 15, duration: 150 }}"
+                            ]?.quality === "good"
+                                ? "bg-lime-600"
+                                : dayBuildQuality[
+                                        getDateString(
+                                            currentYear,
+                                            currentMonth,
+                                            today.getDate(),
+                                        )
+                                    ]?.quality === "ok"
+                                  ? "bg-yellow-400 text-black"
+                                  : dayBuildQuality[
+                                          getDateString(
+                                              currentYear,
+                                              currentMonth,
+                                              today.getDate(),
+                                          )
+                                      ]?.quality === "bad"
+                                    ? "bg-red-600"
+                                    : dayBuildQuality[
+                                            getDateString(
+                                                currentYear,
+                                                currentMonth,
+                                                today.getDate(),
+                                            )
+                                        ]?.quality === "in progress"
+                                      ? "bg-sky-500"
+                                      : "bg-zinc-700"
+                        }`}
                     >
-                        {label}
-                    </div>
-                {/each}
+                        <span
+                            class="material-symbols-outlined"
+                            style="font-size: 1.75em; line-height: 1;"
+                            >health_metrics</span
+                        >
+                        DELTAV BUILD HEALTH
+                    </span>
+                </CardTitle>
+
+                <Tabs.List class="flex-shrink-0">
+                    <Tabs.Trigger value="Monthly" class="flex items-center gap-2">
+                        <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">view_module</span>
+                        <span class="sr-only">Monthly</span>
+                    </Tabs.Trigger>
+                    <Tabs.Trigger value="Weekly" class="flex items-center gap-2">
+                        <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">view_week</span>
+                        <span class="sr-only">Weekly</span>
+                    </Tabs.Trigger>
+                </Tabs.List>
             </div>
-            
-            <div class="grid grid-cols-7 gap-0.5 mb-2">
-                {#each daysInMonth as dayObj, index (currentMonth + '-' + dayObj.day)}
-                    <div 
-                        class="w-full aspect-square min-w-0 min-h-0"
-                        in:fly="{{ y: 10, duration: 200, delay: index * 15 }}"
-                    >
-                        {#if dayBuildQuality[dayObj.dateStr]}
-                            <HeatmapButton {dayObj} />
-                        {:else if dayObj.disabled}
-                            <HeatmapButton {dayObj} />
-                        {:else}
-                            <Skeleton
-                                class="w-full h-full min-w-0 min-h-0 rounded"
-                                style="aspect-ratio: 1 / 1;"
-                            />
-                        {/if}
-                    </div>
-                {/each}
-            </div>
-            <div class="flex justify-center">
-                <Pagination.Root
-                    count={months.length}
-                    perPage={1}
-                    siblingCount={1}
-                    bind:page={currentMonthPage}
-                >
-                    {#snippet children({ pages, currentPage })}
-                        <Pagination.Content>
-                            <Pagination.Item>
-                                <Pagination.PrevButton />
-                            </Pagination.Item>
-                            {#each pages as page (page.key)}
-                                {#if page.type === "ellipsis"}
-                                    <Pagination.Item>
-                                        <Pagination.Ellipsis />
-                                    </Pagination.Item>
-                                {:else}
-                                    <Pagination.Item>
-                                        <Pagination.Link
-                                            {page}
-                                            isActive={currentPage ===
-                                                page.value}
-                                        >
-                                            {monthNames[page.value - 1].slice(
-                                                0,
-                                                3,
-                                            )}
-                                        </Pagination.Link>
-                                    </Pagination.Item>
-                                {/if}
+
+            <div class="flex-1 overflow-y-auto">
+                <Tabs.Content value="Monthly" class="h-full">
+                    <CardContent class="h-full px-2 pb-2 flex flex-col">
+                        <!-- Dynamic day of week labels with animation -->
+                        <div class="grid grid-cols-7 gap-0.5 mb-1 h-5 items-center flex-shrink-0">
+                            {#each dayLabels as label, i (currentMonth + "-" + i + "-" + tabAnimationKey)}
+                                <div
+                                    class="text-center text-xs font-medium text-muted-foreground h-full flex items-center justify-center"
+                                    in:fly={{
+                                        y: -15,
+                                        duration: 250,
+                                        delay: i * 30,
+                                    }}
+                                    out:fly={{ y: 15, duration: 150 }}
+                                >
+                                    {label}
+                                </div>
                             {/each}
-                            <Pagination.Item>
-                                <Pagination.NextButton />
-                            </Pagination.Item>
-                        </Pagination.Content>
-                    {/snippet}
-                </Pagination.Root>
+                        </div>
+
+                        <div class="grid grid-cols-7 gap-0.5 mb-2 flex-1">
+                            {#each daysInMonth as dayObj, index (currentMonth + "-" + dayObj.day + "-" + tabAnimationKey)}
+                                <div
+                                    class="w-full aspect-square min-w-0 min-h-0"
+                                    in:fly={{
+                                        y: 10,
+                                        duration: 200,
+                                        delay: index * 15,
+                                    }}
+                                >
+                                    {#if dayBuildQuality[dayObj.dateStr]}
+                                        <HeatmapButton {dayObj} />
+                                    {:else if dayObj.disabled}
+                                        <HeatmapButton {dayObj} />
+                                    {:else}
+                                        <Skeleton
+                                            class="w-full h-full min-w-0 min-h-0 rounded"
+                                            style="aspect-ratio: 1 / 1;"
+                                        />
+                                    {/if}
+                                </div>
+                            {/each}
+                        </div>
+                        <div class="flex justify-center flex-shrink-0">
+                            <Pagination.Root
+                                count={months.length}
+                                perPage={1}
+                                siblingCount={1}
+                                bind:page={currentMonthPage}
+                            >
+                                {#snippet children({ pages, currentPage })}
+                                    <Pagination.Content>
+                                        <Pagination.Item>
+                                            <Pagination.PrevButton />
+                                        </Pagination.Item>
+                                        {#each pages as page (page.key)}
+                                            {#if page.type === "ellipsis"}
+                                                <Pagination.Item>
+                                                    <Pagination.Ellipsis />
+                                                </Pagination.Item>
+                                            {:else}
+                                                <Pagination.Item>
+                                                    <Pagination.Link
+                                                        {page}
+                                                        isActive={currentPage ===
+                                                            page.value}
+                                                    >
+                                                        {monthNames[
+                                                            page.value - 1
+                                                        ].slice(0, 3)}
+                                                    </Pagination.Link>
+                                                </Pagination.Item>
+                                            {/if}
+                                        {/each}
+                                        <Pagination.Item>
+                                            <Pagination.NextButton />
+                                        </Pagination.Item>
+                                    </Pagination.Content>
+                                {/snippet}
+                            </Pagination.Root>
+                        </div>
+                    </CardContent>
+                </Tabs.Content>
+                <Tabs.Content value="Weekly" class="h-full">
+                    <CardContent class="h-full px-2 pb-2 flex items-center justify-center">
+                        <div class="text-center text-muted-foreground">
+                            <h3 class="text-lg font-medium mb-2">Weekly View</h3>
+                            <p>Weekly view implementation coming soon...</p>
+                        </div>
+                    </CardContent>
+                </Tabs.Content>
             </div>
-        </CardContent>
+        </Tabs.Root>
     </Card>
 </div>
