@@ -88,26 +88,12 @@
 <Toaster position="top-center" richColors />
 <Card.Root class="shadow-lg border-1 border-accent rounded-lg py-2">
     <link
-        href="https://fonts.googleapis.com/icon?family=Material+Icons"
+        href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined"
         rel="stylesheet"
     />
     <Card.Content style="position: relative;">
         {#if passCount !== null && failCount !== null && passCount + failCount > 0}
             <Dialog bind:open={dialogOpen}>
-                <DialogTrigger
-                    style="position: absolute; top: 0; right: 0.3rem; z-index: 10;"
-                >
-                    <button
-                        title="Maximize"
-                        aria-label="Maximize"
-                        style="width: 28px; height: 28px; border-radius: 50%; background: none; border: none; display: flex; align-items: center; justify-content: center;"
-                    >
-                        <span
-                            class="material-icons text-muted-foreground cursor-pointer group-hover:text-primary"
-                            style="font-size: 20px;">fullscreen</span
-                        >
-                    </button>
-                </DialogTrigger>
                 {#if dialogOpen}
                     <DialogContent>
                         <DialogDescription>
@@ -150,8 +136,26 @@
                             on:click={handleCopy}
                             style="background: none; border: none; padding: 5px; cursor: pointer; display: flex; align-items: center;"
                         >
-                            <span class="material-icons" style="font-size: 18px;">
-                                link
+                            <span
+                                class="material-icons text-muted-foreground hover:text-primary"
+                                style="font-size: 18px;"
+                            >
+                                content_copy
+                            </span>
+                        </button>
+                    {/if}
+                    {#if passCount !== null && failCount !== null && passCount + failCount > 0}
+                        <button
+                            title="View test details"
+                            aria-label="View test details"
+                            on:click={() => dialogOpen = true}
+                            style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;"
+                        >
+                            <span
+                                class="material-icons-outlined text-muted-foreground hover:text-primary"
+                                style="font-size: 22px; line-height: 1; vertical-align: middle;"
+                            >
+                                science
                             </span>
                         </button>
                     {/if}
@@ -169,8 +173,7 @@
                 {:else if passCount !== null && failCount !== null && passCount + failCount > 0}
                     <Chart.Container
                         config={chartConfig}
-                        class="aspect-square max-h-[120px]"
-                        style="width: 120px; height: 120px;"
+                        style="width: 85px; height: 85px;"
                     >
                         <PieChart
                             data={[
@@ -189,7 +192,7 @@
                             value="value"
                             c="color"
                             innerRadius={40}
-                            padding={25}
+                            padding={5}
                             props={{ pie: { motion: "tween" } }}
                         >
                             {#snippet aboveMarks()}
