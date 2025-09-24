@@ -63,13 +63,15 @@ export async function GET({ url }: { url: URL }) {
         const releases = releasesData.value;
 
         if (!releases || releases.length === 0) {
-            return json({ error: 'No releases found for the given date and definition ID' }, { status: 404 });
+            // Return empty/null response instead of 404 when no releases found
+            return json(null, { status: 200 });
         }
 
         // Find the release with the latest creation date
         const latestRelease = getLatestRelease(releases);
         if (!latestRelease?.id) {
-            return json({ error: 'No valid release found' }, { status: 404 });
+            // Return empty/null response instead of 404 when no valid release found
+            return json(null, { status: 200 });
         }
         releaseId = latestRelease.id;
 

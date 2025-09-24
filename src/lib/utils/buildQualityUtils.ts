@@ -115,6 +115,7 @@ export async function fetchBuildQualityForDay(
                     .prefetchPipelineData(
                         dateStr,
                         pipelineConfig.pipelines.map((p) => p.id.toString()),
+                        pipelineConfig
                     )
                     .catch(() => {
                         // Silently ignore prefetch errors - this is just an optimization

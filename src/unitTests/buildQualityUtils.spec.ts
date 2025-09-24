@@ -181,7 +181,8 @@ describe('buildQualityUtils', () => {
 
             expect(pipelineDataService.prefetchPipelineData).toHaveBeenCalledWith(
                 '2024-03-14',
-                ['pipeline1', 'pipeline2']
+                ['pipeline1', 'pipeline2'],
+                mockPipelineConfig
             );
         });
 
