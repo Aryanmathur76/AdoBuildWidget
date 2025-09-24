@@ -24,13 +24,13 @@ describe('Color Constants', () => {
 
   describe('HEADER_STATUS_COLORS', () => {
     it('should have all required header status colors defined', () => {
-      expect(HEADER_STATUS_COLORS.good).toBe('bg-lime-600');
+      expect(HEADER_STATUS_COLORS.good).toBe('bg-lime-600 text-white');
       expect(HEADER_STATUS_COLORS.ok).toBe('bg-yellow-300 text-black');
-      expect(HEADER_STATUS_COLORS.bad).toBe('bg-red-800');
-      expect(HEADER_STATUS_COLORS.inProgress).toBe('bg-sky-500');
-      expect(HEADER_STATUS_COLORS.interrupted).toBe('bg-orange-500');
-      expect(HEADER_STATUS_COLORS.unknown).toBe('bg-zinc-700');
-      expect(HEADER_STATUS_COLORS.default).toBe('bg-zinc-700');
+      expect(HEADER_STATUS_COLORS.bad).toBe('bg-red-800 text-white');
+      expect(HEADER_STATUS_COLORS.inProgress).toBe('bg-sky-500 text-white');
+      expect(HEADER_STATUS_COLORS.interrupted).toBe('bg-orange-500 text-white');
+      expect(HEADER_STATUS_COLORS.unknown).toBe('bg-zinc-700 text-white');
+      expect(HEADER_STATUS_COLORS.default).toBe('bg-zinc-700 text-white');
     });
   });
 
@@ -83,24 +83,24 @@ describe('getBuildStatusColor', () => {
 
 describe('getHeaderStatusColor', () => {
   it('should return correct colors for valid statuses', () => {
-    expect(getHeaderStatusColor('good')).toBe('bg-lime-600');
+    expect(getHeaderStatusColor('good')).toBe('bg-lime-600 text-white');
     expect(getHeaderStatusColor('ok')).toBe('bg-yellow-300 text-black');
-    expect(getHeaderStatusColor('bad')).toBe('bg-red-800');
-    expect(getHeaderStatusColor('inProgress')).toBe('bg-sky-500');
-    expect(getHeaderStatusColor('interrupted')).toBe('bg-orange-500');
-    expect(getHeaderStatusColor('unknown')).toBe('bg-zinc-700');
+    expect(getHeaderStatusColor('bad')).toBe('bg-red-800 text-white');
+    expect(getHeaderStatusColor('inProgress')).toBe('bg-sky-500 text-white');
+    expect(getHeaderStatusColor('interrupted')).toBe('bg-orange-500 text-white');
+    expect(getHeaderStatusColor('unknown')).toBe('bg-zinc-700 text-white');
   });
 
   it('should return default color for invalid statuses', () => {
-    expect(getHeaderStatusColor('invalid')).toBe('bg-zinc-700');
-    expect(getHeaderStatusColor('')).toBe('bg-zinc-700');
-    expect(getHeaderStatusColor('randomStatus')).toBe('bg-zinc-700');
+    expect(getHeaderStatusColor('invalid')).toBe('bg-zinc-700 text-white');
+    expect(getHeaderStatusColor('')).toBe('bg-zinc-700 text-white');
+    expect(getHeaderStatusColor('randomStatus')).toBe('bg-zinc-700 text-white');
   });
 
   it('should handle edge cases', () => {
-    expect(getHeaderStatusColor(null as any)).toBe('bg-zinc-700');
-    expect(getHeaderStatusColor(undefined as any)).toBe('bg-zinc-700');
-    expect(getHeaderStatusColor(123 as any)).toBe('bg-zinc-700');
+    expect(getHeaderStatusColor(null as any)).toBe('bg-zinc-700 text-white');
+    expect(getHeaderStatusColor(undefined as any)).toBe('bg-zinc-700 text-white');
+    expect(getHeaderStatusColor(123 as any)).toBe('bg-zinc-700 text-white');
   });
 });
 
