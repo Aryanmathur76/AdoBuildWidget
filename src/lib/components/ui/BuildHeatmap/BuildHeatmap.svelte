@@ -321,7 +321,7 @@
 
             <div class="flex-1 overflow-y-auto">
                 <Tabs.Content value="Monthly" class="h-full">
-                    <CardContent class="h-full px-2 pb-2 flex flex-col">
+                    <CardContent class="h-full px-4 pb-2 flex flex-col">
                         <!-- Dynamic day of week labels with animation -->
                         <div class="grid grid-cols-7 gap-0.5 mb-1 h-5 items-center flex-shrink-0">
                             {#each dayLabels as label, i (currentMonth + "-" + i + "-" + tabAnimationKey)}

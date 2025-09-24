@@ -1,16 +1,16 @@
 <script lang="ts">
     import { slide } from "svelte/transition";
-    import { fly } from "svelte/transition";
     import { Card, CardContent } from "$lib/components/ui/card/index.js";
     import HeatmapButton from "../BuildHeatmap/HeatmapButton.svelte";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
-    import CardTitle from "../card/card-title.svelte";
     import {
         getCachedDayQuality,
         setCachedDayQuality,
     } from "$lib/stores/pipelineCache.js";
     import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
     import { env } from "$env/dynamic/public";
+    import { Badge } from "$lib/components/ui/badge/index.js";
+    import { getPipelineConfig } from "$lib/utils.js";
 
     const today = new Date();
 
@@ -38,23 +38,23 @@
         totalPassCount?: number;
         totalFailCount?: number;
     };
-    let dayBuildQuality: Record<string, DayBuildQuality> = {};
+    let dayBuildQuality = $state<Record<string, DayBuildQuality>>({});
 
     // Get pipeline configuration for optional prefetching
-    let pipelineConfig: {
-        pipelines: Array<{ id: string; type: string }>;
-    } | null = null;
+    let pipelineConfig = $state<{
+        pipelines: Array<{ id: string | number; type: string; displayName?: string }>;
+    } | null>(null);
 
     try {
         if (env.PUBLIC_AZURE_PIPELINE_CONFIG) {
-            pipelineConfig = JSON.parse(env.PUBLIC_AZURE_PIPELINE_CONFIG);
+            pipelineConfig = getPipelineConfig(env.PUBLIC_AZURE_PIPELINE_CONFIG);
         }
     } catch (e) {
         console.warn("Failed to parse pipeline config for prefetching:", e);
     }
 
     // Calculate the last 7 days from today (including today)
-    $: last7Days = (() => {
+    const last7Days = $derived((() => {
         const days = [];
         for (let i = 6; i >= 0; i--) {
             const date = new Date(today);
@@ -102,16 +102,116 @@
             });
         }
         return days;
-    })();
+    })());
+
+    // Calculate weekly statistics
+    const weeklyStats = $derived((() => {
+        const completedDays = last7Days.filter(day => !day.disabled && dayBuildQuality[day.dateStr]);
+        
+        if (completedDays.length === 0) {
+            return {
+                totalBuilds: 0,
+                successRate: 0,
+                totalTests: 0,
+                totalPassed: 0,
+                totalFailed: 0,
+                mostProblematicPipeline: "Loading...",
+                bestPerformingDay: null,
+                worstPerformingDay: null,
+                goodDays: 0,
+                badDays: 0,
+                okDays: 0,
+                inProgressDays: 0,
+                interruptedDays: 0,
+                unknownDays: 0
+            };
+        }
+
+        const totalPassed = completedDays.reduce((sum, day) => sum + (day.totalPassCount || 0), 0);
+        const totalFailed = completedDays.reduce((sum, day) => sum + (day.totalFailCount || 0), 0);
+        const totalTests = totalPassed + totalFailed;
+        const successRate = totalTests > 0 ? Math.round((totalPassed / totalTests) * 100) : 0;
+
+        // Count day qualities
+        const goodDays = completedDays.filter(day => day.quality === "good").length;
+        const badDays = completedDays.filter(day => day.quality === "bad").length;
+        const okDays = completedDays.filter(day => day.quality === "ok").length;
+        const inProgressDays = completedDays.filter(day => day.quality === "inProgress").length;
+        const interruptedDays = completedDays.filter(day => day.quality === "interrupted").length;
+        const unknownDays = completedDays.filter(day => day.quality === "unknown").length;
+
+        // Find best performing day (prioritizes: pipelines ran, test volume, pass rate)
+        const bestDay = completedDays.reduce((best, day) => {
+            // Calculate comprehensive score for current day
+            const dayTotalTests = (day.totalPassCount || 0) + (day.totalFailCount || 0);
+            const dayPassRate = dayTotalTests > 0 ? (day.totalPassCount || 0) / dayTotalTests : 0;
+            const dayPipelinesRan = day.releasesWithTestsRan || 0;
+            
+            // Composite score: pipelines weight (40%) + test volume weight (30%) + pass rate weight (30%)
+            const dayScore = (dayPipelinesRan * 0.4) + (dayTotalTests * 0.0001 * 0.3) + (dayPassRate * 0.3);
+            
+            // Calculate comprehensive score for current best day
+            const bestTotalTests = (best.totalPassCount || 0) + (best.totalFailCount || 0);
+            const bestPassRate = bestTotalTests > 0 ? (best.totalPassCount || 0) / bestTotalTests : 0;
+            const bestPipelinesRan = best.releasesWithTestsRan || 0;
+            
+            const bestScore = (bestPipelinesRan * 0.4) + (bestTotalTests * 0.0001 * 0.3) + (bestPassRate * 0.3);
+            
+            return dayScore > bestScore ? day : best;
+        }, completedDays[0]);
+
+        // Find worst performing day (prioritizes: fewer pipelines, fewer tests, lower pass rate)
+        const worstDay = completedDays.reduce((worst, day) => {
+            // Calculate comprehensive score for current day
+            const dayTotalTests = (day.totalPassCount || 0) + (day.totalFailCount || 0);
+            const dayPassRate = dayTotalTests > 0 ? (day.totalPassCount || 0) / dayTotalTests : 0;
+            const dayPipelinesRan = day.releasesWithTestsRan || 0;
+            
+            // Composite score: pipelines weight (40%) + test volume weight (30%) + pass rate weight (30%)
+            const dayScore = (dayPipelinesRan * 0.4) + (dayTotalTests * 0.0001 * 0.3) + (dayPassRate * 0.3);
+            
+            // Calculate comprehensive score for current worst day
+            const worstTotalTests = (worst.totalPassCount || 0) + (worst.totalFailCount || 0);
+            const worstPassRate = worstTotalTests > 0 ? (worst.totalPassCount || 0) / worstTotalTests : 0;
+            const worstPipelinesRan = worst.releasesWithTestsRan || 0;
+            
+            const worstScore = (worstPipelinesRan * 0.4) + (worstTotalTests * 0.0001 * 0.3) + (worstPassRate * 0.3);
+            
+            return dayScore < worstScore ? day : worst;
+        }, completedDays[0]);
+
+        // For most problematic pipeline, we'll use a simple heuristic
+        // In a real implementation, you'd track per-pipeline failure rates
+        const mostProblematicPipeline = pipelineConfig?.pipelines?.[0]?.displayName || 
+                                      pipelineConfig?.pipelines?.[0]?.id?.toString() || 
+                                      "Unknown";
+
+        return {
+            totalBuilds: completedDays.reduce((sum, day) => sum + (day.releasesWithTestsRan || 1), 0),
+            successRate,
+            totalTests,
+            totalPassed,
+            totalFailed,
+            mostProblematicPipeline,
+            bestPerformingDay: bestDay,
+            worstPerformingDay: worstDay,
+            goodDays,
+            badDays,
+            okDays,
+            inProgressDays,
+            interruptedDays,
+            unknownDays
+        };
+    })());
 
     // Fetch build quality for all days in the last 7 days
-    $: {
+    $effect(() => {
         last7Days.forEach(dayObj => {
             if (!dayObj.disabled && !dayBuildQuality[dayObj.dateStr]) {
                 fetchBuildQualityForDay(dayObj.dateStr);
             }
         });
-    }
+    });
 
     // Fetch build quality for a given date (YYYY-MM-DD), skip future days
     async function fetchBuildQualityForDay(dateStr: string) {
@@ -160,7 +260,7 @@
                     pipelineDataService
                         .prefetchPipelineData(
                             dateStr,
-                            pipelineConfig.pipelines.map((p) => p.id),
+                            pipelineConfig.pipelines.map((p) => p.id.toString()),
                         )
                         .catch(() => {
                             // Silently ignore prefetch errors - this is just an optimization
@@ -176,60 +276,165 @@
 </script>
 
 <div class="w-full h-full" transition:slide={{ duration: 300 }}>
-    <Card
-        class="py-0 border-0 shadow-none h-full rounded-none overflow-hidden flex flex-col"
-    >
-        <CardContent class="h-full px-2 pb-2 flex flex-col">
-            <!-- Day labels for the last 7 days -->
-            <div class="grid grid-cols-7 gap-0.5 mb-1 h-5 items-center flex-shrink-0">
-                {#each last7Days as dayObj, i (dayObj.dateStr)}
-                    <div
-                        class="text-center text-xs font-medium text-muted-foreground h-full flex items-center justify-center"
-                        in:fly={{
-                            y: -15,
-                            duration: 250,
-                            delay: i * 30,
-                        }}
-                        out:fly={{ y: 15, duration: 150 }}
-                    >
-                        {dayObj.dayName}
-                    </div>
-                {/each}
-            </div>
-
-            <!-- Last 7 days grid -->
-            <div class="grid grid-cols-7 gap-0.5 mb-4 flex-shrink-0" style="height: 120px;">
-                {#each last7Days as dayObj, index (dayObj.dateStr)}
-                    <div
-                        class="w-full aspect-square min-w-0 min-h-0"
-                        in:fly={{
-                            y: 10,
-                            duration: 200,
-                            delay: index * 15,
-                        }}
-                    >
-                        {#if dayBuildQuality[dayObj.dateStr]}
-                            <HeatmapButton {dayObj} />
-                        {:else if dayObj.disabled}
-                            <HeatmapButton {dayObj} />
-                        {:else}
-                            <Skeleton
-                                class="w-full h-full min-w-0 min-h-0 rounded"
-                                style="aspect-ratio: 1 / 1;"
-                            />
-                        {/if}
-                    </div>
-                {/each}
-            </div>
-            
-            <!-- Empty space placeholder as requested -->
-            <div class="flex-1 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg mt-10 p-5">
-                <div class="text-center text-muted-foreground">
-                    <span class="material-symbols-outlined text-4xl block opacity-50">construction</span>
-                    <p class="text-sm">Additional content area</p>
-                    <p class="text-xs opacity-75">Reserved for future features</p>
+    <Card class="h-full flex flex-col py-2 border-0">
+        <CardContent class="p-4 pt-0 flex flex-col h-full">
+            <!-- Day labels and buttons row -->
+            <div class="mb-4">
+                <div class="grid grid-cols-7 gap-0.5 mb-2">
+                    {#each last7Days as dayObj, i (dayObj.dateStr)}
+                        <div class="text-center text-xs font-medium text-muted-foreground">
+                            {dayObj.dayName}
+                        </div>
+                    {/each}
+                </div>
+                <div class="grid grid-cols-7 gap-0.5">
+                    {#each last7Days as dayObj, index (dayObj.dateStr)}
+                        <div class="aspect-square">
+                            {#if dayBuildQuality[dayObj.dateStr]}
+                                <HeatmapButton {dayObj} />
+                            {:else if dayObj.disabled}
+                                <HeatmapButton {dayObj} />
+                            {:else}
+                                <Skeleton class="w-full h-full rounded" />
+                            {/if}
+                        </div>
+                    {/each}
                 </div>
             </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 gap-3 flex-1">
+                <!-- Combined Test Statistics -->
+                <Card class="p-3 col-span-2">
+                    <div class="flex flex-col space-y-2">
+                        <div class="grid grid-cols-4 gap-4">
+                            <div class="text-center">
+                                <p class="text-xs text-muted-foreground">Total Tests</p>
+                                <p class="text-lg font-bold">{weeklyStats.totalTests.toLocaleString()}</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-xs text-muted-foreground">Passed</p>
+                                <p class="text-lg font-bold text-green-600">{weeklyStats.totalPassed.toLocaleString()}</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-xs text-muted-foreground">Failed</p>
+                                <p class="text-lg font-bold text-red-600">{weeklyStats.totalFailed.toLocaleString()}</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-xs text-muted-foreground">Pass Rate</p>
+                                <p class="text-lg font-bold {weeklyStats.successRate === 100 ? 'text-green-600' : weeklyStats.successRate >= 70 ? 'text-yellow-600' : 'text-red-600'}">{weeklyStats.successRate}%</p>
+                            </div>
+                        </div>
+                    </div>
+                </Card>
+
+                <!-- Best & Worst Day Performance -->
+                <div class="col-span-2 flex gap-3">
+                    <!-- Best Day Performance -->
+                    <Card class="p-3 flex-1">
+                        <div class="flex flex-col space-y-2">
+                            <div class="grid grid-cols-3 gap-4">
+                                <div class="text-center">
+                                    <p class="text-xs text-muted-foreground">Best Day</p>
+                                    <p class="text-lg font-bold text-green-600">
+                                        {weeklyStats.bestPerformingDay ? weeklyStats.bestPerformingDay.dayName : '-'}
+                                    </p>
+                                </div>
+                                {#if weeklyStats.bestPerformingDay}
+                                    <div class="text-center">
+                                        <p class="text-xs text-muted-foreground">Tests</p>
+                                        <p class="text-lg font-bold">
+                                            {((dayBuildQuality[weeklyStats.bestPerformingDay.dateStr]?.totalPassCount || 0) + (dayBuildQuality[weeklyStats.bestPerformingDay.dateStr]?.totalFailCount || 0)).toLocaleString()}
+                                        </p>
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="text-xs text-muted-foreground">Pass Rate</p>
+                                        <p class="text-lg font-bold {(() => {
+                                            const passRate = ((dayBuildQuality[weeklyStats.bestPerformingDay.dateStr]?.totalPassCount || 0) + (dayBuildQuality[weeklyStats.bestPerformingDay.dateStr]?.totalFailCount || 0)) > 0 
+                                                ? Math.round(((dayBuildQuality[weeklyStats.bestPerformingDay.dateStr]?.totalPassCount || 0) / ((dayBuildQuality[weeklyStats.bestPerformingDay.dateStr]?.totalPassCount || 0) + (dayBuildQuality[weeklyStats.bestPerformingDay.dateStr]?.totalFailCount || 0))) * 100)
+                                                : 0;
+                                            return passRate === 100 ? 'text-green-600' : passRate >= 70 ? 'text-yellow-600' : 'text-red-600';
+                                        })()}">
+                                            {((dayBuildQuality[weeklyStats.bestPerformingDay.dateStr]?.totalPassCount || 0) + (dayBuildQuality[weeklyStats.bestPerformingDay.dateStr]?.totalFailCount || 0)) > 0 
+                                                ? Math.round(((dayBuildQuality[weeklyStats.bestPerformingDay.dateStr]?.totalPassCount || 0) / ((dayBuildQuality[weeklyStats.bestPerformingDay.dateStr]?.totalPassCount || 0) + (dayBuildQuality[weeklyStats.bestPerformingDay.dateStr]?.totalFailCount || 0))) * 100)
+                                                : 0}%
+                                        </p>
+                                    </div>
+                                {:else}
+                                    <div class="text-center">
+                                        <p class="text-xs text-muted-foreground">Tests</p>
+                                        <p class="text-lg font-bold">-</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="text-xs text-muted-foreground">Pass Rate</p>
+                                        <p class="text-lg font-bold">-</p>
+                                    </div>
+                                {/if}
+                            </div>
+                        </div>
+                    </Card>
+
+                    <!-- Worst Day Performance -->
+                    <Card class="p-3 flex-1">
+                        <div class="flex flex-col space-y-2">
+                            <div class="grid grid-cols-3 gap-4">
+                                <div class="text-center">
+                                    <p class="text-xs text-muted-foreground text-center">Worst Day</p>
+                                    <p class="text-lg font-bold text-red-600">
+                                        {weeklyStats.worstPerformingDay ? weeklyStats.worstPerformingDay.dayName : '-'}
+                                    </p>
+                                </div>
+                                {#if weeklyStats.worstPerformingDay}
+                                    <div class="text-center">
+                                        <p class="text-xs text-muted-foreground">Tests</p>
+                                        <p class="text-lg font-bold">
+                                            {((dayBuildQuality[weeklyStats.worstPerformingDay.dateStr]?.totalPassCount || 0) + (dayBuildQuality[weeklyStats.worstPerformingDay.dateStr]?.totalFailCount || 0)).toLocaleString()}
+                                        </p>
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="text-xs text-muted-foreground">Pass Rate</p>
+                                        <p class="text-lg font-bold {(() => {
+                                            const passRate = ((dayBuildQuality[weeklyStats.worstPerformingDay.dateStr]?.totalPassCount || 0) + (dayBuildQuality[weeklyStats.worstPerformingDay.dateStr]?.totalFailCount || 0)) > 0 
+                                                ? Math.round(((dayBuildQuality[weeklyStats.worstPerformingDay.dateStr]?.totalPassCount || 0) / ((dayBuildQuality[weeklyStats.worstPerformingDay.dateStr]?.totalPassCount || 0) + (dayBuildQuality[weeklyStats.worstPerformingDay.dateStr]?.totalFailCount || 0))) * 100)
+                                                : 0;
+                                            return passRate === 100 ? 'text-green-600' : passRate >= 70 ? 'text-yellow-600' : 'text-red-600';
+                                        })()}">
+                                            {((dayBuildQuality[weeklyStats.worstPerformingDay.dateStr]?.totalPassCount || 0) + (dayBuildQuality[weeklyStats.worstPerformingDay.dateStr]?.totalFailCount || 0)) > 0 
+                                                ? Math.round(((dayBuildQuality[weeklyStats.worstPerformingDay.dateStr]?.totalPassCount || 0) / ((dayBuildQuality[weeklyStats.worstPerformingDay.dateStr]?.totalPassCount || 0) + (dayBuildQuality[weeklyStats.worstPerformingDay.dateStr]?.totalFailCount || 0))) * 100)
+                                                : 0}%
+                                        </p>
+                                    </div>
+                                {:else}
+                                    <div class="text-center">
+                                        <p class="text-xs text-muted-foreground">Tests</p>
+                                        <p class="text-lg font-bold">-</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="text-xs text-muted-foreground">Pass Rate</p>
+                                        <p class="text-lg font-bold">-</p>
+                                    </div>
+                                {/if}
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+
+                <!-- Work in Progress Placeholder -->
+                <Card class="p-4 col-span-2">
+                    <div class="flex flex-col items-center justify-center space-y-3 h-24">
+                        <div class="w-8 h-8 border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center">
+                            <svg class="w-4 h-4 text-muted-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-xs text-muted-foreground/70 font-medium">More insights coming soon</p>
+                            <p class="text-xs text-muted-foreground/50">Additional metrics and analytics</p>
+                        </div>
+                    </div>
+                </Card>
+            </div>
+
         </CardContent>
     </Card>
 </div>
