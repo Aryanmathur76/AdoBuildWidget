@@ -27,7 +27,7 @@ describe('getReleasePipelineStatus', () => {
 
 // If any of the envs are "inProgress" then return "inProgress"
 describe('getReleasePipelineStatus - inProgress', () => {
-  it('should return "inProgress" if any environment is in progress', async () => {
+  it('should return "inProgress" if any environment is inProgress', async () => {
     const release = {
       id: 2,
       description: 'Test release with inProgress env',
@@ -87,7 +87,7 @@ describe('getReleasePipelineStatus - failed', () => {
 
 // If none of the above, return "unknown"
 describe('getReleasePipelineStatus - unknown', () => {
-  it('should return "unknown" if no environments are in progress, interrupted, or failed', async () => {
+  it('should return "unknown" if no environments are inProgress, interrupted, or failed', async () => {
     const release = {
       id: 5,
       description: 'Test release with all succeeded envs',
@@ -629,7 +629,7 @@ describe('getReleasePipelineStatus - Real-world Scenarios', () => {
     expect(status).toBe('failed');
   });
 
-  it('should handle deployment in progress', async () => {
+  it('should handle deployment inProgress', async () => {
     const release = {
       id: 34,
       description: 'Currently deploying',
@@ -642,7 +642,7 @@ describe('getReleasePipelineStatus - Real-world Scenarios', () => {
         { id: 2, name: 'Testing', status: 'succeeded' },
         { id: 3, name: 'Production', status: 'inProgress' }
       ]
-      // No test counts yet as deployment is in progress
+      // No test counts yet as deployment is inProgress
     };
     const status = await getReleasePipelineStatus(release);
     expect(status).toBe('inProgress');

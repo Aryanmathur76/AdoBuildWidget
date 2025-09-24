@@ -4,7 +4,7 @@ import { getPipelineConfig} from '$lib/utils';
 import { determineOverallDayQuality } from '$lib/utils/getOverallDayQuality';
 
 //Returns overall day quality for all configured pipelines for a given date using constructBuild and constructRelease APIs
-//The object returned is { date: 'YYYY-MM-DD', pipelineIds: [id1, id2, ...], quality: 'good|ok|bad|in progress|unknown|interrupted' }
+//The object returned is { date: 'YYYY-MM-DD', pipelineIds: [id1, id2, ...], quality: 'good|ok|bad|inProgress|unknown|interrupted' }
 
 // --- In-memory cache ---
 type CacheEntry = { result: any, timestamp: number };

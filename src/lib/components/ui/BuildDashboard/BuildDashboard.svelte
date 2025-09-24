@@ -19,6 +19,8 @@
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import { today, parseDate } from "@internationalized/date";
     import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
+    import { getDateString, dateValueToString, createErrorPipeline, type PipelineConfig } from "$lib/utils/buildQualityUtils.js";
+    import { getPipelineConfig } from "$lib/utils.js";
 
     const df = new DateFormatter("en-US", {
         dateStyle: "long",
@@ -31,27 +33,24 @@
     let contentRef = $state<HTMLElement | null>(null);
     let popoverOpen = $state(false);
 
-    if (!env.PUBLIC_AZURE_PIPELINE_CONFIG) {
-        throw new Error(
-            "Missing PUBLIC_AZURE_PIPELINE_CONFIG environment variable.",
-        );
-    }
-
-    let parsedConfig;
+    // Get pipeline configuration
+    let pipelineConfig: PipelineConfig | null = null;
     try {
-        parsedConfig = JSON.parse(env.PUBLIC_AZURE_PIPELINE_CONFIG);
+        if (env.PUBLIC_AZURE_PIPELINE_CONFIG) {
+            pipelineConfig = getPipelineConfig(env.PUBLIC_AZURE_PIPELINE_CONFIG);
+        } else {
+            throw new Error("Missing PUBLIC_AZURE_PIPELINE_CONFIG environment variable.");
+        }
     } catch (e) {
         throw new Error(
-            "Failed to parse PUBLIC_AZURE_PIPELINE_CONFIG: " +
+            "Failed to parse pipeline configuration: " +
                 (e instanceof Error ? e.message : String(e)),
         );
     }
 
-    if (!parsedConfig.pipelines || parsedConfig.pipelines.length === 0) {
-        throw new Error("PUBLIC_AZURE_PIPELINE_CONFIG contains no pipelines.");
+    if (!pipelineConfig?.pipelines || pipelineConfig.pipelines.length === 0) {
+        throw new Error("Pipeline configuration contains no pipelines.");
     }
-
-    const pipelineConfig = parsedConfig;
 
     // Array of release objects to fetch release details for
     let releasePipelines = $state<Release[]>([]);
@@ -63,12 +62,13 @@
         releasePipelines = []; // Clear the array
         
         const releasePipes = pipelines.filter((p: any) => p.type === 'release');
+        const dateStr = dateValueToString(selectedDate);
         
         for (let i = 0; i < releasePipes.length; i++) {
             const pipeline = releasePipes[i];
             try {
                 const releaseDetails = await pipelineDataService.fetchReleaseData(
-                    selectedDate?.toString() || '', 
+                    dateStr, 
                     pipeline.id
                 );
                 releaseDetails.name = pipeline.displayName;
@@ -76,16 +76,7 @@
             } catch (error) {
                 console.error(`Error fetching release details for pipeline ID ${pipeline.id}:`, error);
                 // Add error placeholder
-                releasePipelines.push({
-                    id: pipeline.id,
-                    name: pipeline.displayName,
-                    status: 'unknown',
-                    createdOn: new Date().toISOString(),
-                    modifiedOn: new Date().toISOString(),
-                    envs: [],
-                    passedTestCount: 0,
-                    failedTestCount: 0
-                });
+                releasePipelines.push(createErrorPipeline(pipeline.id, pipeline.displayName));
             }
         }
     }
@@ -94,12 +85,13 @@
         buildPipelines = []; // Clear the array
         
         const buildPipes = pipelines.filter((p: any) => p.type === 'build');
+        const dateStr = dateValueToString(selectedDate);
         
         for (let i = 0; i < buildPipes.length; i++) {
             const pipeline = buildPipes[i];
             try {
                 const buildDetailsArr = await pipelineDataService.fetchBuildData(
-                    selectedDate?.toString() || '', 
+                    dateStr, 
                     pipeline.id
                 );
                 
@@ -110,28 +102,12 @@
                         buildPipelines.push(buildDetails);
                     });
                 } else {
-                    buildPipelines.push({
-                        id: pipeline.id,
-                        name: pipeline.displayName,
-                        status: 'unknown',
-                        createdOn: new Date().toISOString(),
-                        modifiedOn: new Date().toISOString(),
-                        passedTestCount: 0,
-                        failedTestCount: 0
-                    });
+                    buildPipelines.push(createErrorPipeline(pipeline.id, pipeline.displayName));
                 }
             } catch (error) {
                 console.error(`Error fetching build details for pipeline ID ${pipeline.id}:`, error);
                 // Add error placeholder
-                buildPipelines.push({
-                    id: pipeline.id,
-                    name: pipeline.displayName,
-                    status: 'unknown',
-                    createdOn: new Date().toISOString(),
-                    modifiedOn: new Date().toISOString(),
-                    passedTestCount: 0,
-                    failedTestCount: 0
-                });
+                buildPipelines.push(createErrorPipeline(pipeline.id, pipeline.displayName));
             }
         }
     }

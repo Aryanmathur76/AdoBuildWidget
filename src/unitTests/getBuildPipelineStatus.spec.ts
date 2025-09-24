@@ -335,7 +335,7 @@ describe('getBuildPipelineStatus - Real-world Scenarios', () => {
   it('should handle build that is currently running', async () => {
     const result = await getBuildPipelineStatus({ 
       status: 'inProgress',
-      // No result or test counts when in progress
+      // No result or test counts when inProgress
     } as any);
     expect(result).toBe('inProgress');
   });

@@ -8,12 +8,17 @@
     import * as Pagination from "$lib/components/ui/pagination/index.js";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import CardTitle from "../card/card-title.svelte";
-    import {
-        getCachedDayQuality,
-        setCachedDayQuality,
-    } from "$lib/stores/pipelineCache.js";
-    import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
     import { env } from "$env/dynamic/public";
+    import { getBuildStatusColor, getHeaderStatusColor } from "$lib/constants/colors.js";
+    import {
+        getDateString,
+        isFutureDay,
+        getDatesInMonth,
+        getDayOfWeekLabels,
+        fetchBuildQualitiesForDates,
+        type DayBuildQuality,
+        type PipelineConfig,
+    } from "$lib/utils/buildQualityUtils.js";
 
     // Svelte binding for Pagination.Root (1-based page index)
     const today = new Date();
@@ -51,36 +56,11 @@
         return { name, days };
     });
 
-    // Helper to get YYYY-MM-DD string for a given year, month (0-based), and day
-    function getDateString(year: number, month: number, day: number) {
-        const mm = String(month + 1).padStart(2, "0");
-        const dd = String(day).padStart(2, "0");
-        return `${year}-${mm}-${dd}`;
-    }
-
-    // Helper to check if a given day is in the future (including today)
-    function isFutureDay(year: number, month: number, day: number) {
-        const dayDate = new Date(year, month, day);
-        // Remove time for comparison
-        dayDate.setHours(0, 0, 0, 0);
-        const todayDate = new Date();
-        todayDate.setHours(0, 0, 0, 0);
-        return dayDate > todayDate;
-    }
-
     // Store build quality for each day (YYYY-MM-DD => quality)
-    type DayBuildQuality = {
-        quality: string;
-        releasesWithTestsRan?: number;
-        totalPassCount?: number;
-        totalFailCount?: number;
-    };
     let dayBuildQuality: Record<string, DayBuildQuality> = {};
 
     // Get pipeline configuration for optional prefetching
-    let pipelineConfig: {
-        pipelines: Array<{ id: string; type: string }>;
-    } | null = null;
+    let pipelineConfig: PipelineConfig | null = null;
 
     try {
         if (env.PUBLIC_AZURE_PIPELINE_CONFIG) {
@@ -90,111 +70,16 @@
         console.warn("Failed to parse pipeline config for prefetching:", e);
     }
 
-    // Fetch build quality for a given date (YYYY-MM-DD), skip future days
-    async function fetchBuildQualityForDay(dateStr: string) {
-        // Parse dateStr to year, month, day
-        const [year, month, day] = dateStr.split("-").map(Number);
-        if (isFutureDay(year, month - 1, day)) {
-            dayBuildQuality[dateStr] = { quality: "unknown" };
-            return;
-        }
-
-        // Check cache first
-        const cached = getCachedDayQuality(dateStr);
-        if (cached) {
-            dayBuildQuality[dateStr] = {
-                quality: cached.quality,
-                releasesWithTestsRan: cached.releaseIds?.length || 0,
-                totalPassCount: cached.totalPassCount,
-                totalFailCount: cached.totalFailCount,
-            };
-            return;
-        }
-
-        try {
-            const res = await fetch(`/api/getDayQuality?date=${dateStr}`);
-            if (res.ok) {
-                const data = await res.json();
-                dayBuildQuality[dateStr] = {
-                    quality: data.quality,
-                    releasesWithTestsRan: data.releasesWithTestsRan,
-                    totalPassCount: data.totalPassCount,
-                    totalFailCount: data.totalFailCount,
-                };
-
-                // Cache the result
-                setCachedDayQuality(dateStr, {
-                    quality: data.quality,
-                    releaseIds: data.releaseIds || [],
-                    totalPassCount: data.totalPassCount || 0,
-                    totalFailCount: data.totalFailCount || 0,
-                });
-
-                // Optional: Prefetch pipeline data for this day to improve navigation performance
-                // This runs in the background and doesn't block the UI
-                if (pipelineConfig?.pipelines) {
-                    pipelineDataService
-                        .prefetchPipelineData(
-                            dateStr,
-                            pipelineConfig.pipelines.map((p) => p.id),
-                        )
-                        .catch(() => {
-                            // Silently ignore prefetch errors - this is just an optimization
-                        });
-                }
-            } else {
-                dayBuildQuality[dateStr] = { quality: "unknown" };
-            }
-        } catch {
-            dayBuildQuality[dateStr] = { quality: "unknown" };
-        }
-    }
-
     // Calculate what days of the week each position represents based on the 1st of the month
-    $: dayLabels = (() => {
-        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-
-        // Create labels based on what day the 1st falls on
-        const labels = [];
-        for (let i = 0; i < 7; i++) {
-            const dayIndex = (firstDayOfMonth + i) % 7;
-            labels.push(dayNames[dayIndex]);
-        }
-        return labels;
-    })();
+    $: dayLabels = getDayOfWeekLabels(currentYear, currentMonth);
 
     $: daysInMonth = Array.from(
         { length: months[currentMonth].days },
         (_, dIdx) => {
             const day = dIdx + 1;
             const dateStr = getDateString(currentYear, currentMonth, day);
-            let colorClass = "";
-            let animationClass = "";
             const quality = dayBuildQuality[dateStr]?.quality ?? "unknown";
-            switch (quality) {
-                case "good":
-                    colorClass = "bg-lime-600 text-white";
-                    break;
-                case "ok":
-                    colorClass = "bg-yellow-400 text-black";
-                    break;
-                case "bad":
-                    colorClass = "bg-red-600 text-white";
-                    break;
-                case "in progress":
-                    colorClass = "bg-sky-500 text-white";
-                    break;
-                case "interrupted":
-                    colorClass = "bg-orange-600 text-white";
-                    break;
-                case "unknown":
-                    colorClass = "bg-zinc-700 text-white";
-                    break;
-                default:
-                    colorClass = "bg-zinc-700 text-white";
-                    break;
-            }
+            const colorClass = getBuildStatusColor(quality);
 
             const buildQuality = dayBuildQuality[dateStr] ?? {};
             return {
@@ -202,7 +87,7 @@
                 dateStr,
                 quality,
                 colorClass,
-                animationClass,
+                animationClass: "",
                 disabled: isFutureDay(currentYear, currentMonth, day),
                 totalPassCount: buildQuality.totalPassCount,
                 totalFailCount: buildQuality.totalFailCount,
@@ -220,36 +105,12 @@
 
     // Parallelize API calls with a concurrency limit
     async function fetchAllBuildQualitiesForMonth() {
-        const concurrency = 10;
-        const tasks = [];
-        for (let d = 1; d <= months[currentMonth].days; d++) {
-            if (!isFutureDay(currentYear, currentMonth, d)) {
-                const dateStr = getDateString(currentYear, currentMonth, d);
-                if (!dayBuildQuality[dateStr]) {
-                    tasks.push(dateStr);
-                }
-            }
-        }
-
-        // Helper to process a batch of up to 'concurrency' tasks at once
-        for (let i = 0; i < tasks.length; i += concurrency) {
-            const batch = tasks.slice(i, i + concurrency);
-            // Save previous values for update detection
-            const prevs = batch.map((dateStr) => dayBuildQuality[dateStr]);
-            await Promise.all(
-                batch.map((dateStr) => fetchBuildQualityForDay(dateStr)),
-            );
-            // Only trigger update if any value actually changed
-            let changed = false;
-            for (let j = 0; j < batch.length; j++) {
-                if (dayBuildQuality[batch[j]] !== prevs[j]) {
-                    changed = true;
-                    break;
-                }
-            }
-            if (changed) {
-                dayBuildQuality = { ...dayBuildQuality };
-            }
+        const dateStrings = getDatesInMonth(currentYear, currentMonth)
+            .filter(dateStr => !dayBuildQuality[dateStr]);
+        
+        if (dateStrings.length > 0) {
+            const results = await fetchBuildQualitiesForDates(dateStrings, pipelineConfig);
+            dayBuildQuality = { ...dayBuildQuality, ...results };
         }
     }
 </script>
@@ -259,44 +120,18 @@
         class="py-0 border-0 shadow-none h-full rounded-none overflow-hidden flex flex-col"
     >
         <Tabs.Root bind:value={currentTab} class="h-full flex flex-col">
-            <div class="flex items-center justify-between px-2 pt-4 pb-2 flex-shrink-0">
+            <div class="flex items-center justify-between px-4 pt-4 pb-2 flex-shrink-0">
                 <CardTitle class="flex-shrink-0">
                     <span
-                        class={`inline-flex rounded text-white text-base font-bold px-2 py-1 items-center gap-1 ${
+                        class={`inline-flex rounded text-white text-base font-bold px-2 py-1 items-center gap-1 ${getHeaderStatusColor(
                             dayBuildQuality[
                                 getDateString(
                                     currentYear,
                                     currentMonth,
                                     today.getDate(),
                                 )
-                            ]?.quality === "good"
-                                ? "bg-lime-600"
-                                : dayBuildQuality[
-                                        getDateString(
-                                            currentYear,
-                                            currentMonth,
-                                            today.getDate(),
-                                        )
-                                    ]?.quality === "ok"
-                                  ? "bg-yellow-400 text-black"
-                                  : dayBuildQuality[
-                                          getDateString(
-                                              currentYear,
-                                              currentMonth,
-                                              today.getDate(),
-                                          )
-                                      ]?.quality === "bad"
-                                    ? "bg-red-600"
-                                    : dayBuildQuality[
-                                            getDateString(
-                                                currentYear,
-                                                currentMonth,
-                                                today.getDate(),
-                                            )
-                                        ]?.quality === "in progress"
-                                      ? "bg-sky-500"
-                                      : "bg-zinc-700"
-                        }`}
+                            ]?.quality ?? "unknown"
+                        )}`}
                     >
                         <span
                             class="material-symbols-outlined"

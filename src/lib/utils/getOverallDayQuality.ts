@@ -2,7 +2,7 @@
 export function determineOverallDayQuality(statuses: string[]): string {
   // Prioritize 'inProgress' status (highest priority)
   if (statuses.includes('inProgress')) {
-    return 'in progress';
+    return 'inProgress';
   }
 
   // Second priority: interrupted
