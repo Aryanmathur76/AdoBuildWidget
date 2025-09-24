@@ -47,8 +47,9 @@
     try {
       for (const pipeline of pipelineConfig.pipelines) {
         if (pipeline.type === 'build') {
-          try {
-            const data = await pipelineDataService.fetchBuildData(dayObj.dateStr, pipeline.id);
+          // Use the silent method to avoid console errors for missing data
+          const data = await pipelineDataService.fetchBuildDataSilent(dayObj.dateStr, pipeline.id);
+          if (data) {
             // Build API might return array of builds
             if (Array.isArray(data)) {
               data.forEach((build: any, index: number) => {
@@ -71,20 +72,21 @@
                 failCount: data.failedTestCount || 0
               });
             }
-          } catch (error) {
-            console.error(`Error fetching build data for pipeline ${pipeline.id}:`, error);
+          } else {
+            // No build data found for this date - show placeholder
             results.push({
               id: pipeline.id,
               name: pipeline.displayName || `Build ${pipeline.id}`,
               type: 'build',
-              status: 'unknown',
+              status: 'no-data',
               passCount: 0,
               failCount: 0
             });
           }
         } else if (pipeline.type === 'release') {
-          try {
-            const data = await pipelineDataService.fetchReleaseData(dayObj.dateStr, pipeline.id);
+          // Use the silent method to avoid console errors for missing data
+          const data = await pipelineDataService.fetchReleaseDataSilent(dayObj.dateStr, pipeline.id);
+          if (data) {
             results.push({
               id: pipeline.id,
               name: pipeline.displayName || `Release ${pipeline.id}`,
@@ -93,13 +95,13 @@
               passCount: data.passedTestCount || 0,
               failCount: data.failedTestCount || 0
             });
-          } catch (error) {
-            console.error(`Error fetching release data for pipeline ${pipeline.id}:`, error);
+          } else {
+            // No release data found for this date - show placeholder
             results.push({
               id: pipeline.id,
               name: pipeline.displayName || `Release ${pipeline.id}`,
               type: 'release',
-              status: 'unknown',
+              status: 'no-data',
               passCount: 0,
               failCount: 0
             });

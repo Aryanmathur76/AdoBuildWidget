@@ -10,11 +10,14 @@ export interface PipelineDataService {
     fetchBuildData: (date: string, pipelineId: string) => Promise<any>;
     fetchTestCases: (releaseId: string) => Promise<any[]>;
     prefetchPipelineData: (date: string, pipelineIds: string[], pipelineConfig?: any) => Promise<void>;
+    // Silent methods that don't throw errors for missing data (useful for interactive elements)
+    fetchReleaseDataSilent: (date: string, pipelineId: string) => Promise<any | null>;
+    fetchBuildDataSilent: (date: string, pipelineId: string) => Promise<any | null>;
 }
 
 class PipelineDataServiceImpl implements PipelineDataService {
     // Silent version of fetchReleaseData that doesn't log 404s as errors
-    private async fetchReleaseDataSilent(date: string, pipelineId: string): Promise<any | null> {
+    async fetchReleaseDataSilent(date: string, pipelineId: string): Promise<any | null> {
         // Check cache first
         const cached = getCachedPipelineData(date, pipelineId);
         if (cached?.releaseData) {
@@ -50,7 +53,7 @@ class PipelineDataServiceImpl implements PipelineDataService {
     }
 
     // Silent version of fetchBuildData that doesn't log 404s as errors
-    private async fetchBuildDataSilent(date: string, pipelineId: string): Promise<any | null> {
+    async fetchBuildDataSilent(date: string, pipelineId: string): Promise<any | null> {
         // Check cache first
         const cached = getCachedPipelineData(date, pipelineId);
         if (cached?.buildData) {
