@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Button } from "$lib/components/ui/button/index.js";
   import * as Popover from "$lib/components/ui/popover/index.js";
   import PipelineStatusBadge from "../PipelineStatusBadge/pipelineStatusBadge.svelte";
   import { Skeleton } from "$lib/components/ui/skeleton/index.js";

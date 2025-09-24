@@ -16,10 +16,9 @@
     import BuildCard from "$lib/components/ui/BuildCard/buildCard.svelte";
     import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
     import { env } from "$env/dynamic/public";
-    import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import { today, parseDate } from "@internationalized/date";
     import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
-    import { getDateString, dateValueToString, createErrorPipeline, type PipelineConfig } from "$lib/utils/buildQualityUtils.js";
+    import { dateValueToString, createErrorPipeline, type PipelineConfig } from "$lib/utils/buildQualityUtils.js";
     import { getPipelineConfig } from "$lib/utils.js";
 
     const df = new DateFormatter("en-US", {

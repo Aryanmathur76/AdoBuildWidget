@@ -3,7 +3,6 @@
     import { Card, CardContent } from "$lib/components/ui/card/index.js";
     import HeatmapButton from "../BuildHeatmap/HeatmapButton.svelte";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
-    import { Badge } from "$lib/components/ui/badge/index.js";
     import { getPipelineConfig } from "$lib/utils.js";
     import { getBuildStatusColor } from "$lib/constants/colors.js";
     import {
