@@ -1,25 +1,26 @@
 // Helper to determine overall quality based on individual pipeline statuses
 export function determineOverallDayQuality(statuses: string[]): string {
-  // Prioritize 'inProgress' status
-  if (statuses.includes('inProgress')) {
-    return 'inProgress';
+  // Prioritize 'in progress' status (highest priority)
+  if (statuses.includes('in progress')) {
+    return 'in progress';
   }
 
+  // Second priority: interrupted
   if (statuses.includes('interrupted')) {
     return 'interrupted';
   }
 
-  // If any pipeline is bad/failed, overall is bad
+  // Third priority: If any pipeline is bad/failed, overall is bad
   if (statuses.includes('bad') || statuses.includes('failed')) {
     return 'bad';
   }
 
-  // If any pipeline is ok/partially succeeded, overall is ok
+  // Fourth priority: If any pipeline is ok/partially succeeded, overall is ok
   if (statuses.includes('ok') || statuses.includes('partially succeeded')) {
     return 'ok';
   }
 
-  // If all pipelines are good, overall is good
+  // Fifth priority: If all pipelines are good/succeeded, overall is good
   if (statuses.every(status => 
     ['good', 'succeeded'].includes(status)
   )) {
