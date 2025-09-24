@@ -22,13 +22,13 @@ export function getBuildStatusColor(status: string): string {
  * Color constants for the header badge (simplified versions)
  */
 export const HEADER_STATUS_COLORS = {
-  good: "bg-lime-600",
+  good: "bg-lime-600 text-white",
   ok: "bg-yellow-300 text-black", 
-  bad: "bg-red-800",
-  "inProgress": "bg-sky-500",
-  interrupted: "bg-orange-500",
-  unknown: "bg-zinc-700",
-  default: "bg-zinc-700"
+  bad: "bg-red-800 text-white",
+  "inProgress": "bg-sky-500 text-white",
+  interrupted: "bg-orange-500 text-white",
+  unknown: "bg-zinc-700 text-white",
+  default: "bg-zinc-700 text-white"
 } as const;
 
 /**

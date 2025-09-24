@@ -123,7 +123,7 @@
             <div class="flex items-center justify-between px-4 pt-4 pb-2 flex-shrink-0">
                 <CardTitle class="flex-shrink-0">
                     <span
-                        class={`inline-flex rounded text-white text-base font-bold px-2 py-1 items-center gap-1 ${getHeaderStatusColor(
+                        class={`inline-flex rounded text-base font-bold px-2 py-1 items-center gap-1 ${getHeaderStatusColor(
                             dayBuildQuality[
                                 getDateString(
                                     currentYear,

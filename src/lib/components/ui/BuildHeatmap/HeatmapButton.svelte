@@ -142,7 +142,7 @@
       onmouseleave={handlePopoverClose}
       disabled={dayObj.disabled}
     >
-      <strong>{dayObj.day}</strong>
+      {dayObj.day}
     </Popover.Trigger>
     
     <Popover.Content 
