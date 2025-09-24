@@ -140,7 +140,6 @@ export async function GET({ url }: { url: URL }) {
     //#region Construct build objects if there are multiple test runs
     const buildsToReturn: Build[] = [];
 
-    console.log("Length of test results:", testResults.length);
     for (const testRun of testResults) {
         const buildCopy: Build = { ...build }; // Shallow copy of build details
         buildCopy.testRunName = testRun.name;
@@ -152,6 +151,5 @@ export async function GET({ url }: { url: URL }) {
     }
 
     //#endregion
-    console.log("Returning builds:", buildsToReturn);
     return json(buildsToReturn);
 }

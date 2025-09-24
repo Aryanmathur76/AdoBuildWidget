@@ -4,6 +4,7 @@
     import * as Tabs from "$lib/components/ui/tabs/index.js";
     import { Card, CardContent } from "$lib/components/ui/card/index.js";
     import HeatmapButton from "./HeatmapButton.svelte";
+    import WeeklyView from "../WeeklyView/WeeklyView.svelte";
     import * as Pagination from "$lib/components/ui/pagination/index.js";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import CardTitle from "../card/card-title.svelte";
@@ -402,12 +403,7 @@
                     </CardContent>
                 </Tabs.Content>
                 <Tabs.Content value="Weekly" class="h-full">
-                    <CardContent class="h-full px-2 pb-2 flex items-center justify-center">
-                        <div class="text-center text-muted-foreground">
-                            <h3 class="text-lg font-medium mb-2">Weekly View</h3>
-                            <p>Weekly view implementation coming soon...</p>
-                        </div>
-                    </CardContent>
+                    <WeeklyView />
                 </Tabs.Content>
             </div>
         </Tabs.Root>

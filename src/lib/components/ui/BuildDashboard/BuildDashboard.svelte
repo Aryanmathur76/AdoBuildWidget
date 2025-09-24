@@ -120,7 +120,6 @@
                         failedTestCount: 0
                     });
                 }
-                console.log("Fetched build details:", buildPipelines);
             } catch (error) {
                 console.error(`Error fetching build details for pipeline ID ${pipeline.id}:`, error);
                 // Add error placeholder

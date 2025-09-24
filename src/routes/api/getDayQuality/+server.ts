@@ -87,7 +87,6 @@ async function fetchBuildPipeline(baseUrl: string, pipelineId: string, date: str
 export async function GET({ url, request }: { url: URL, request: Request }) {
   try {
     const date = url.searchParams.get('date');
-    console.log(`[getDayQuality] Fetching day quality for date: ${date}`);
     
     if (!date || typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return errorJson('Invalid date format. Expected YYYY-MM-DD', 400);
@@ -96,7 +95,6 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
     // Check cache and return early if not expired
     const cached = checkCache(date);
     if (cached) {
-      console.log(`[getDayQuality] Returning cached result for ${date}`);
       return json(cached);
     }
 
@@ -108,7 +106,6 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
 
     // Load pipelines from env variable AZURE_PIPELINE_CONFIG
     let pipelineConfig = getPipelineConfig(env.PUBLIC_AZURE_PIPELINE_CONFIG);
-    console.log(`[getDayQuality] Loaded pipeline config:`, pipelineConfig);
     
     // Dynamically determine the base URL for local api call
     let baseUrl = `http://${request.headers.get('host')}`;

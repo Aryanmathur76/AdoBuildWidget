@@ -22,7 +22,6 @@ export async function getReleasePipelineStatus(releaseDetails: Release) {
     }
 
     if (releaseDetails.envs.some(env => env.status === 'failed' || env.status === 'rejected')) {
-      console.log('Release pipeline: ' + JSON.stringify(releaseDetails));
       return 'failed';
     }
 
