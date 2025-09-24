@@ -98,7 +98,7 @@ export async function GET({ url }: { url: URL }) {
         name: releaseDetails.name,
         createdOn: releaseDetails.createdOn,
         modifiedOn: releaseDetails.modifiedOn,
-        status: 'unknown', // Default status, will be updated later
+        status: releaseDetails.status, // Use actual Azure DevOps status instead of hardcoding 'unknown'
         envs: releaseDetails.environments
     };
     //#endregion
@@ -159,13 +159,15 @@ export async function GET({ url }: { url: URL }) {
                 // Update release object with aggregated test results
                 release.passedTestCount = passCount;
                 release.failedTestCount = failCount;
-
-                release.status = await getReleasePipelineStatus(release);
             }
         }
+        
+        // Always compute the status using our logic, regardless of whether test runs were found
+        release.status = await getReleasePipelineStatus(release);
     } catch (e: any) {
        console.warn('Error fetching test results: ' + (e.message || 'Unknown error'));
-       // Keep default test counts from release details
+       // Keep default test counts from release details, but still compute status
+       release.status = await getReleasePipelineStatus(release);
     }
     //#endregion
     

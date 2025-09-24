@@ -3,13 +3,13 @@ import { determineOverallDayQuality } from '$lib/utils/getOverallDayQuality';
 
 describe('determineOverallDayQuality', () => {
   describe('Priority Order - "in progress" status', () => {
-    it('should return "in progress" when any status is "in progress"', () => {
+    it('should return "in progress" when any status is "inProgress"', () => {
       const testCases = [
-        ['in progress'],
-        ['good', 'in progress'],
-        ['bad', 'in progress', 'ok'],
-        ['failed', 'interrupted', 'in progress', 'good'],
-        ['in progress', 'unknown']
+        ['inProgress'],
+        ['good', 'inProgress'],
+        ['bad', 'inProgress', 'ok'],
+        ['failed', 'interrupted', 'inProgress', 'good'],
+        ['inProgress', 'unknown']
       ];
 
       testCases.forEach(statuses => {
@@ -17,8 +17,8 @@ describe('determineOverallDayQuality', () => {
       });
     });
 
-    it('should prioritize "in progress" over all other statuses', () => {
-      const statuses = ['bad', 'failed', 'interrupted', 'ok', 'partially succeeded', 'good', 'succeeded', 'in progress', 'unknown'];
+    it('should prioritize "inProgress" over all other statuses', () => {
+      const statuses = ['bad', 'failed', 'interrupted', 'ok', 'partially succeeded', 'good', 'succeeded', 'inProgress', 'unknown'];
       expect(determineOverallDayQuality(statuses)).toBe('in progress');
     });
   });
@@ -38,8 +38,8 @@ describe('determineOverallDayQuality', () => {
       });
     });
 
-    it('should not return "interrupted" when "in progress" is present', () => {
-      const statuses = ['interrupted', 'in progress', 'good'];
+    it('should not return "interrupted" when "inProgress" is present', () => {
+      const statuses = ['interrupted', 'inProgress', 'good'];
       expect(determineOverallDayQuality(statuses)).toBe('in progress');
     });
   });
@@ -79,7 +79,7 @@ describe('determineOverallDayQuality', () => {
     });
 
     it('should not return "bad" when higher priority statuses are present', () => {
-      expect(determineOverallDayQuality(['bad', 'in progress'])).toBe('in progress');
+      expect(determineOverallDayQuality(['bad', 'inProgress'])).toBe('in progress');
       expect(determineOverallDayQuality(['failed', 'interrupted'])).toBe('interrupted');
     });
   });
@@ -117,7 +117,7 @@ describe('determineOverallDayQuality', () => {
     });
 
     it('should not return "ok" when higher priority statuses are present', () => {
-      expect(determineOverallDayQuality(['ok', 'in progress'])).toBe('in progress');
+      expect(determineOverallDayQuality(['ok', 'inProgress'])).toBe('in progress');
       expect(determineOverallDayQuality(['partially succeeded', 'interrupted'])).toBe('interrupted');
       expect(determineOverallDayQuality(['ok', 'bad'])).toBe('bad');
       expect(determineOverallDayQuality(['partially succeeded', 'failed'])).toBe('bad');
@@ -158,7 +158,7 @@ describe('determineOverallDayQuality', () => {
         ['good', 'ok'],
         ['succeeded', 'partially succeeded'],
         ['good', 'interrupted'],
-        ['succeeded', 'in progress'],
+        ['succeeded', 'inProgress'],
         ['good', 'unknown']
       ];
 
@@ -227,17 +227,17 @@ describe('determineOverallDayQuality', () => {
       expect(determineOverallDayQuality(['good', 'ok', 'bad'])).toBe('bad');
       expect(determineOverallDayQuality(['succeeded', 'partially succeeded', 'failed'])).toBe('bad');
       expect(determineOverallDayQuality(['good', 'ok', 'interrupted'])).toBe('interrupted');
-      expect(determineOverallDayQuality(['succeeded', 'partially succeeded', 'in progress'])).toBe('in progress');
+      expect(determineOverallDayQuality(['succeeded', 'partially succeeded', 'inProgress'])).toBe('in progress');
     });
 
     it('should handle duplicate statuses', () => {
       expect(determineOverallDayQuality(['good', 'good', 'good'])).toBe('good');
       expect(determineOverallDayQuality(['bad', 'bad', 'ok'])).toBe('bad');
-      expect(determineOverallDayQuality(['in progress', 'in progress'])).toBe('in progress');
+      expect(determineOverallDayQuality(['inProgress', 'inProgress'])).toBe('in progress');
     });
 
     it('should handle single status scenarios', () => {
-      expect(determineOverallDayQuality(['in progress'])).toBe('in progress');
+      expect(determineOverallDayQuality(['inProgress'])).toBe('in progress');
       expect(determineOverallDayQuality(['interrupted'])).toBe('interrupted');
       expect(determineOverallDayQuality(['bad'])).toBe('bad');
       expect(determineOverallDayQuality(['failed'])).toBe('bad');
@@ -260,23 +260,23 @@ describe('determineOverallDayQuality', () => {
     it('should be case sensitive', () => {
       // Assuming the function is case sensitive based on the implementation
       expect(determineOverallDayQuality(['Good'])).toBe('unknown'); // Capital G
-      expect(determineOverallDayQuality(['IN PROGRESS'])).toBe('unknown'); // All caps
+      expect(determineOverallDayQuality(['INPROGRESS'])).toBe('unknown'); // All caps
       expect(determineOverallDayQuality(['Bad'])).toBe('unknown'); // Capital B
     });
   });
 
   describe('Comprehensive Priority Testing', () => {
-    it('should follow exact priority order: in progress > interrupted > bad/failed > ok/partially succeeded > good > unknown', () => {
+    it('should follow exact priority order: inProgress > interrupted > bad/failed > ok/partially succeeded > good > unknown', () => {
       const allStatuses = [
         'unknown', 'pending', 'succeeded', 'good', 
         'partially succeeded', 'ok', 'failed', 'bad', 
-        'interrupted', 'in progress'
+        'interrupted', 'inProgress'
       ];
 
       // Test each priority level
       expect(determineOverallDayQuality(allStatuses)).toBe('in progress');
       
-      const withoutInProgress = allStatuses.filter(s => s !== 'in progress');
+      const withoutInProgress = allStatuses.filter(s => s !== 'inProgress');
       expect(determineOverallDayQuality(withoutInProgress)).toBe('interrupted');
       
       const withoutInterrupted = withoutInProgress.filter(s => s !== 'interrupted');

@@ -100,7 +100,7 @@ export async function GET({ url }: { url: URL }) {
     const build: Build = {
         id: buildDetails.id,
         name: buildDetails.name,
-        status: 'unknown',
+        status: buildDetails.status, // Use actual Azure DevOps status instead of hardcoding 'unknown'
         result: buildDetails.result,
         startTime: buildDetails.startTime,
         modifiedOn: buildDetails.modifiedOn
@@ -140,14 +140,22 @@ export async function GET({ url }: { url: URL }) {
     //#region Construct build objects if there are multiple test runs
     const buildsToReturn: Build[] = [];
 
-    for (const testRun of testResults) {
-        const buildCopy: Build = { ...build }; // Shallow copy of build details
-        buildCopy.testRunName = testRun.name;
-        buildCopy.passedTestCount = testRun.passedTests;
-        buildCopy.failedTestCount = testRun.totalTests - testRun.passedTests;
-        buildCopy.status = await getBuildPipelineStatus(buildCopy);
-        buildCopy.link = `https://dev.azure.com/${organization}/${project}/_build?definitionId=${buildDefinitionId}&view=mine&_a=summary&buildId=${build.id}`;
-        buildsToReturn.push(buildCopy);
+    if (testResults.length === 0) {
+        // No test runs found - return the base build with computed status
+        build.status = await getBuildPipelineStatus(build);
+        build.link = `https://dev.azure.com/${organization}/${project}/_build?definitionId=${buildDefinitionId}&view=mine&_a=summary&buildId=${build.id}`;
+        buildsToReturn.push(build);
+    } else {
+        // Process each test run
+        for (const testRun of testResults) {
+            const buildCopy: Build = { ...build }; // Shallow copy of build details
+            buildCopy.testRunName = testRun.name;
+            buildCopy.passedTestCount = testRun.passedTests;
+            buildCopy.failedTestCount = testRun.totalTests - testRun.passedTests;
+            buildCopy.status = await getBuildPipelineStatus(buildCopy);
+            buildCopy.link = `https://dev.azure.com/${organization}/${project}/_build?definitionId=${buildDefinitionId}&view=mine&_a=summary&buildId=${build.id}`;
+            buildsToReturn.push(buildCopy);
+        }
     }
 
     //#endregion
