@@ -5,6 +5,7 @@
   import { Skeleton } from "$lib/components/ui/skeleton/index.js";
   import { goto } from "$app/navigation";
   import { env } from "$env/dynamic/public";
+  import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
   
   export let dayObj: any;
   
@@ -46,9 +47,8 @@
     try {
       for (const pipeline of pipelineConfig.pipelines) {
         if (pipeline.type === 'build') {
-          const response = await fetch(`/api/constructBuild?date=${dayObj.dateStr}&buildDefinitionId=${pipeline.id}`);
-          if (response.ok) {
-            const data = await response.json();
+          try {
+            const data = await pipelineDataService.fetchBuildData(dayObj.dateStr, pipeline.id);
             // Build API might return array of builds
             if (Array.isArray(data)) {
               data.forEach((build: any, index: number) => {
@@ -71,7 +71,8 @@
                 failCount: data.failedTestCount || 0
               });
             }
-          } else {
+          } catch (error) {
+            console.error(`Error fetching build data for pipeline ${pipeline.id}:`, error);
             results.push({
               id: pipeline.id,
               name: pipeline.displayName || `Build ${pipeline.id}`,
@@ -82,9 +83,8 @@
             });
           }
         } else if (pipeline.type === 'release') {
-          const response = await fetch(`/api/constructRelease?date=${dayObj.dateStr}&releaseDefinitionId=${pipeline.id}`);
-          if (response.ok) {
-            const data = await response.json();
+          try {
+            const data = await pipelineDataService.fetchReleaseData(dayObj.dateStr, pipeline.id);
             results.push({
               id: pipeline.id,
               name: pipeline.displayName || `Release ${pipeline.id}`,
@@ -93,7 +93,8 @@
               passCount: data.passedTestCount || 0,
               failCount: data.failedTestCount || 0
             });
-          } else {
+          } catch (error) {
+            console.error(`Error fetching release data for pipeline ${pipeline.id}:`, error);
             results.push({
               id: pipeline.id,
               name: pipeline.displayName || `Release ${pipeline.id}`,
