@@ -9,6 +9,7 @@
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import CardTitle from "../card/card-title.svelte";
     import { env } from "$env/dynamic/public";
+    import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
     import { getBuildStatusColor, getHeaderStatusColor } from "$lib/constants/colors.js";
     import {
         getDateString,
@@ -107,10 +108,18 @@
     async function fetchAllBuildQualitiesForMonth() {
         const dateStrings = getDatesInMonth(currentYear, currentMonth)
             .filter(dateStr => !dayBuildQuality[dateStr]);
-        
+
         if (dateStrings.length > 0) {
-            const results = await fetchBuildQualitiesForDates(dateStrings, pipelineConfig);
-            dayBuildQuality = { ...dayBuildQuality, ...results };
+            // Prefetch all detailed pipeline data for the month (builds/releases)
+            pipelineDataService.prefetchAllPipelineDataForMonth(dateStrings, pipelineConfig);
+            for (const dateStr of dateStrings) {
+                (async () => {
+                    const result = await fetchBuildQualitiesForDates([dateStr], pipelineConfig);
+                    if (result && result[dateStr]) {
+                        dayBuildQuality = { ...dayBuildQuality, [dateStr]: result[dateStr] };
+                    }
+                })();
+            }
         }
     }
 </script>

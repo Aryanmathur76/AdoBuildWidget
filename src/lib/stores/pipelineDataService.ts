@@ -10,12 +10,37 @@ export interface PipelineDataService {
     fetchBuildData: (date: string, pipelineId: string) => Promise<any>;
     fetchTestCases: (releaseId: string) => Promise<any[]>;
     prefetchPipelineData: (date: string, pipelineIds: string[], pipelineConfig?: any) => Promise<void>;
+    // Prefetch all pipeline data for all days in a month
+    prefetchAllPipelineDataForMonth: (dateStrings: string[], pipelineConfig: any) => Promise<void>;
     // Silent methods that don't throw errors for missing data (useful for interactive elements)
     fetchReleaseDataSilent: (date: string, pipelineId: string) => Promise<any | null>;
     fetchBuildDataSilent: (date: string, pipelineId: string) => Promise<any | null>;
 }
 
 class PipelineDataServiceImpl implements PipelineDataService {
+    /**
+     * Prefetches and caches all pipeline data for all days in a month.
+     * @param dateStrings Array of date strings (YYYY-MM-DD) for the month
+     * @param pipelineConfig Pipeline config object (must have .pipelines array)
+     */
+    async prefetchAllPipelineDataForMonth(dateStrings: string[], pipelineConfig: any): Promise<void> {
+        if (!pipelineConfig?.pipelines) return;
+        // For each day, prefetch all pipeline data
+        const allPrefetches: Promise<any>[] = [];
+        for (const date of dateStrings) {
+            for (const pipeline of pipelineConfig.pipelines) {
+                if (pipeline.type === 'build') {
+                    allPrefetches.push(this.fetchBuildDataSilent(date, pipeline.id));
+                } else if (pipeline.type === 'release') {
+                    allPrefetches.push(this.fetchReleaseDataSilent(date, pipeline.id));
+                } else if (pipeline.type === 'build/release') {
+                    allPrefetches.push(this.fetchBuildDataSilent(date, pipeline.id));
+                    allPrefetches.push(this.fetchReleaseDataSilent(date, pipeline.id));
+                }
+            }
+        }
+        await Promise.allSettled(allPrefetches);
+    }
     // Silent version of fetchReleaseData that doesn't log 404s as errors
     async fetchReleaseDataSilent(date: string, pipelineId: string): Promise<any | null> {
         // Check cache first

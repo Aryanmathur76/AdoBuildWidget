@@ -348,7 +348,7 @@ export function calculateWeeklyStats(
         const dayPipelinesRan = dayData?.releasesWithTestsRan || 0;
         
         // Composite score: pipelines weight (40%) + test volume weight (30%) + pass rate weight (30%)
-        return (dayPipelinesRan * 0.4) + (dayTotalTests * 0.0001 * 0.3) + (dayPassRate * 0.3);
+        return (dayPipelinesRan * 0.4) + ((dayTotalTests / 7000) * 0.3) + (dayPassRate * 0.3);
     };
 
     // Find best and worst performing days
