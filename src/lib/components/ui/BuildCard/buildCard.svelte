@@ -171,7 +171,7 @@
                                 class="material-icons text-muted-foreground hover:text-primary"
                                 style="font-size: 18px;"
                             >
-                                content_copy
+                                visibility
                             </span>
                         </button>
                     {/if}
