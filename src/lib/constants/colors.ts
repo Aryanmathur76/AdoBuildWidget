@@ -4,9 +4,9 @@
 export const BUILD_STATUS_COLORS = {
   good: "bg-lime-600 text-white",
   ok: "bg-yellow-300 text-black", 
-  bad: "bg-red-800 text-white",
+  bad: "bg-red-600 text-white",
   "inProgress": "bg-sky-500 text-white",
-  interrupted: "bg-orange-500 text-white",
+  interrupted: "bg-red-950 text-white",
   unknown: "bg-zinc-700 text-white",
   default: "bg-zinc-700 text-white"
 } as const;
@@ -24,9 +24,9 @@ export function getBuildStatusColor(status: string): string {
 export const HEADER_STATUS_COLORS = {
   good: "bg-lime-600 text-white",
   ok: "bg-yellow-300 text-black", 
-  bad: "bg-red-800 text-white",
+  bad: "bg-red-600 text-white",
   "inProgress": "bg-sky-500 text-white",
-  interrupted: "bg-orange-500 text-white",
+  interrupted: "bg-red-950 text-white",
   unknown: "bg-zinc-700 text-white",
   default: "bg-zinc-700 text-white"
 } as const;
@@ -44,13 +44,13 @@ export function getHeaderStatusColor(status: string): string {
 export const PIPELINE_BADGE_COLORS = {
   good: "bg-lime-600 text-white",
   succeeded: "bg-lime-600 text-white",
-  bad: "bg-red-800 text-white", 
-  failed: "bg-red-800 text-white",
+  bad: "bg-red-600 text-white", 
+  failed: "bg-red-600 text-white",
   ok: "bg-yellow-300 text-black",
   "partially-succeeded": "bg-yellow-300 text-black",
   inProgress: "bg-sky-500 text-white",
   "in progress": "bg-sky-500 text-white",
-  interrupted: "bg-orange-500 text-white",
+  interrupted: "bg-red-950 text-white",
   unknown: "bg-zinc-700 text-white",
   default: "bg-zinc-700 text-white"
 } as const;
@@ -92,7 +92,7 @@ export function getPipelineBadgeText(status: string): string {
  */
 export const TEST_RESULT_COLORS = {
   pass: "bg-lime-600",
-  fail: "bg-red-800",
+  fail: "bg-red-600",
   noData: "bg-zinc-400"
 } as const;
 
