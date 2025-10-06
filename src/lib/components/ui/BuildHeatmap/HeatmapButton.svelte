@@ -64,7 +64,7 @@
             } else {
               results.push({
                 id: pipeline.id,
-                name: data.name || data.testRunName || pipeline.displayName || `Build ${pipeline.id}`,
+                name: pipeline.displayName,
                 type: 'build',
                 status: data.status || 'unknown',
                 passCount: data.passedTestCount || 0,
@@ -75,7 +75,7 @@
             // No build data found for this date - show placeholder
             results.push({
               id: pipeline.id,
-              name: pipeline.displayName || `Build ${pipeline.id}`,
+              name: pipeline.displayName,
               type: 'build',
               status: 'no-data',
               passCount: 0,
@@ -88,7 +88,7 @@
           if (data) {
             results.push({
               id: pipeline.id,
-              name: data.name || pipeline.displayName || `Release ${pipeline.id}`,
+              name: pipeline.displayName,
               type: 'release',
               status: data.status || 'unknown',
               passCount: data.passedTestCount || 0,
@@ -98,7 +98,7 @@
             // No release data found for this date - show placeholder
             results.push({
               id: pipeline.id,
-              name: pipeline.displayName || `Release ${pipeline.id}`,
+              name: pipeline.displayName,
               type: 'release',
               status: 'no-data',
               passCount: 0,
