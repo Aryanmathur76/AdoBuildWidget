@@ -145,7 +145,7 @@
     </Popover.Trigger>
     
     <Popover.Content 
-      class="w-80 p-4" 
+      class="w-80 p-2" 
       side="top"
     >
       <div class="space-y-3">
@@ -207,7 +207,7 @@
         {/if}
         
         {#if dayObj.totalPassCount !== undefined || dayObj.totalFailCount !== undefined}
-          <div class="border-t pt-2">
+          <div class="border-t pt-1">
             <p class="text-xs text-muted-foreground">
               Total Tests: {(dayObj.totalPassCount || 0) + (dayObj.totalFailCount || 0)} 
               (Pass: {dayObj.totalPassCount || 0}, Fail: {dayObj.totalFailCount || 0})
