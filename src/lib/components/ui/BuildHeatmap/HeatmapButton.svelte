@@ -1,6 +1,6 @@
 <script lang="ts">
   import * as Popover from "$lib/components/ui/popover/index.js";
-  import PipelineStatusBadge from "../PipelineStatusBadge/pipelineStatusBadge.svelte";
+  import { getPipelineBadgeColor, getTestPassColor, getTestFailColor, getTestNoDataColor } from "$lib/constants/colors.js";
   import { Skeleton } from "$lib/components/ui/skeleton/index.js";
   import { goto } from "$app/navigation";
   import { env } from "$env/dynamic/public";
@@ -54,7 +54,7 @@
               data.forEach((build: any, index: number) => {
                 results.push({
                   id: `${pipeline.id}-${index}`,
-                  name: `${pipeline.displayName || `Build ${pipeline.id}`}${data.length > 1 ? ` #${index + 1}` : ''}`,
+                  name: build.name || build.testRunName || pipeline.displayName || `Build ${pipeline.id}`,
                   type: 'build',
                   status: build.status || 'unknown',
                   passCount: build.passedTestCount || 0,
@@ -64,7 +64,7 @@
             } else {
               results.push({
                 id: pipeline.id,
-                name: pipeline.displayName || `Build ${pipeline.id}`,
+                name: data.name || data.testRunName || pipeline.displayName || `Build ${pipeline.id}`,
                 type: 'build',
                 status: data.status || 'unknown',
                 passCount: data.passedTestCount || 0,
@@ -88,7 +88,7 @@
           if (data) {
             results.push({
               id: pipeline.id,
-              name: pipeline.displayName || `Release ${pipeline.id}`,
+              name: data.name || pipeline.displayName || `Release ${pipeline.id}`,
               type: 'release',
               status: data.status || 'unknown',
               passCount: data.passedTestCount || 0,
@@ -149,13 +149,6 @@
       side="top"
     >
       <div class="space-y-3">
-        <div class="border-b pb-2">
-          <h4 class="font-semibold text-sm">Build Details - {dayObj.dateStr}</h4>
-          <p class="text-xs text-muted-foreground">
-            Overall Status: <span class="capitalize font-medium">{dayObj.quality || 'Unknown'}</span>
-          </p>
-        </div>
-        
         {#if loadingPipelines}
           <div class="space-y-2">
             <Skeleton class="h-6 w-full" />
@@ -163,17 +156,44 @@
             <Skeleton class="h-6 w-full" />
           </div>
         {:else if pipelineData.length > 0}
-          <div class="space-y-2">
+          <link
+            href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined"
+            rel="stylesheet"
+          />
+          <div class="space-y-1">
             {#each pipelineData as pipeline (pipeline.id)}
-              <div class="flex items-center justify-between py-1">
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium truncate">{pipeline.name}</p>
-                  <p class="text-xs text-muted-foreground">
-                    {pipeline.type} • Pass: {pipeline.passCount} • Fail: {pipeline.failCount}
-                  </p>
+              <div class="flex items-center justify-between gap-2 py-1">
+                <div class="flex-shrink-0">
+                  <span class="inline-block text-sm font-medium px-2 py-0.5 rounded {getPipelineBadgeColor(pipeline.status)}">
+                    <strong>{pipeline.name}</strong>
+                  </span>
                 </div>
-                <div class="ml-2 flex-shrink-0">
-                  <PipelineStatusBadge status={pipeline.status} />
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                  <span
+                    class="material-icons-outlined text-muted-foreground"
+                    style="font-size: 18px; line-height: 1;"
+                  >
+                    science
+                  </span>
+                  <div class="w-40 h-5 bg-zinc-200 rounded overflow-hidden relative">
+                    {#if pipeline.passCount + pipeline.failCount > 0}
+                      {@const totalTests = pipeline.passCount + pipeline.failCount}
+                      {@const passPercentage = (pipeline.passCount / totalTests) * 100}
+                      <div class="h-full flex">
+                        <div class="{getTestPassColor()}" style="width: {passPercentage}%"></div>
+                        <div class="{getTestFailColor()}" style="width: {100 - passPercentage}%"></div>
+                      </div>
+                      <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="text-xs font-semibold text-white drop-shadow-md">
+                          Pass: {pipeline.passCount} Fail: {pipeline.failCount}
+                        </span>
+                      </div>
+                    {:else}
+                      <div class="h-full {getTestNoDataColor()} w-full flex items-center justify-center">
+                        <span class="text-xs font-semibold text-white">No Tests</span>
+                      </div>
+                    {/if}
+                  </div>
                 </div>
               </div>
             {/each}

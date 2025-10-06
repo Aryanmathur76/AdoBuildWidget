@@ -86,3 +86,33 @@ export function getPipelineBadgeText(status: string): string {
       return 'Unknown';
   }
 }
+
+/**
+ * Color constants for test result bars
+ */
+export const TEST_RESULT_COLORS = {
+  pass: "bg-lime-600",
+  fail: "bg-red-800",
+  noData: "bg-zinc-400"
+} as const;
+
+/**
+ * Helper function to get test result pass color
+ */
+export function getTestPassColor(): string {
+  return TEST_RESULT_COLORS.pass;
+}
+
+/**
+ * Helper function to get test result fail color
+ */
+export function getTestFailColor(): string {
+  return TEST_RESULT_COLORS.fail;
+}
+
+/**
+ * Helper function to get test result no-data color
+ */
+export function getTestNoDataColor(): string {
+  return TEST_RESULT_COLORS.noData;
+}
