@@ -127,7 +127,7 @@ export async function GET({ url }: { url: URL }) {
         
 
         if (!testRunResponse.ok) {
-            throw new Error(`Failed to fetch test results: ${testRunResponse.status} ${testRunResponse.statusText}`);
+           console.log(`Failed to fetch test results: ${testRunResponse.status} ${testRunResponse.statusText}`);
         }
 
         const data = await testRunResponse.json();

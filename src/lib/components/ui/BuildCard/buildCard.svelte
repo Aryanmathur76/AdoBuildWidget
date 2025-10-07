@@ -220,10 +220,8 @@
                 style="min-width: 80px; min-height: 80px;"
             >
                 
-                {#if passCount === null || failCount === null}
-                {console.log(passCount, failCount)}
-                    <Skeleton class="h-24 w-24 rounded-full" />
-                {:else if passCount !== null && failCount !== null && passCount + failCount > 0}
+
+                {#if passCount !== null && failCount !== null && passCount + failCount > 0}
                     <Chart.Container
                         config={chartConfig}
                         style="width: 85px; height: 85px;"
