@@ -169,7 +169,7 @@
                   </span>
                 </div>
                 <div class="flex items-center gap-1.5 flex-shrink-0">
-                  <div class="w-40 h-5 bg-zinc-200 rounded overflow-hidden relative">
+                  <div class="w-40 h-4 bg-zinc-200 rounded overflow-hidden relative">
                     {#if pipeline.passCount + pipeline.failCount > 0}
                       {@const totalTests = pipeline.passCount + pipeline.failCount}
                       {@const passPercentage = (pipeline.passCount / totalTests) * 100}
@@ -178,13 +178,13 @@
                         <div class="{getTestFailColor()}" style="width: {100 - passPercentage}%"></div>
                       </div>
                       <div class="absolute inset-0 flex items-center justify-center">
-                        <span class="text-xs font-semibold text-white drop-shadow-md">
+                        <span class="text-xs text-white drop-shadow-md">
                           Pass: {pipeline.passCount} Fail: {pipeline.failCount}
                         </span>
                       </div>
                     {:else}
                       <div class="h-full {getTestNoDataColor()} w-full flex items-center justify-center">
-                        <span class="text-xs font-semibold text-white">No Tests</span>
+                        <span class="text-xs text-white">No Tests</span>
                       </div>
                     {/if}
                   </div>
