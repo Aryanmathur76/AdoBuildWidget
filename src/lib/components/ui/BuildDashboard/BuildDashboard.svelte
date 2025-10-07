@@ -74,7 +74,7 @@
                 releaseDetails.name = pipeline.displayName;
                 releasePipelines.push(releaseDetails);
             } catch (error) {
-                console.error(`Error fetching release details for pipeline ID ${pipeline.id}:`, error);
+                console.log(`Error fetching release details for pipeline ID ${pipeline.id}:`, error);
                 // Add error placeholder
                 releasePipelines.push(createErrorPipeline(pipeline.id, pipeline.displayName));
             }
@@ -98,7 +98,10 @@
                 // If multiple builds, add all of them
                 if (Array.isArray(buildDetailsArr) && buildDetailsArr.length > 0) {
                     buildDetailsArr.forEach((buildDetails: any) => {
-                        buildDetails.name = buildDetails.testRunName;
+                        if (!buildDetails.testRunName)
+                            buildDetails.name = pipeline.displayName;
+                        else
+                            buildDetails.name = buildDetails.testRunName;
                         buildPipelines.push(buildDetails);
                     });
                 } else {

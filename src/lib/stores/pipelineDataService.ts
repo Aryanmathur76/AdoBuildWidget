@@ -68,11 +68,11 @@ class PipelineDataServiceImpl implements PipelineDataService {
                 
                 return data;
             } else {
-                console.error(`Error fetching release data for pipeline ${pipelineId}: ${response.status}`);
+                console.log(`Error fetching release data for pipeline ${pipelineId}: ${response.status}`);
                 return null;
             }
         } catch (error) {
-            console.error(`Network error fetching release data for pipeline ${pipelineId}:`, error);
+            console.log(`Network error fetching release data for pipeline ${pipelineId}:`, error);
             return null;
         }
     }
@@ -140,7 +140,7 @@ class PipelineDataServiceImpl implements PipelineDataService {
                 throw new Error(`Failed to fetch release data: ${response.status}`);
             }
         } catch (error) {
-            console.error(`Error fetching release data for pipeline ${pipelineId}:`, error);
+            console.log(`Error fetching release data for pipeline ${pipelineId}:`, error);
             throw error;
         }
     }
