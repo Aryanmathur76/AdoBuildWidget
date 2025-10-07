@@ -98,10 +98,11 @@
                 // If multiple builds, add all of them
                 if (Array.isArray(buildDetailsArr) && buildDetailsArr.length > 0) {
                     buildDetailsArr.forEach((buildDetails: any) => {
-                        if (!buildDetails.testRunName)
+                        if (!buildDetails.testRunName) {
                             buildDetails.name = pipeline.displayName;
-                        else
+                        } else {
                             buildDetails.name = buildDetails.testRunName;
+                        }
                         buildPipelines.push(buildDetails);
                     });
                 } else {

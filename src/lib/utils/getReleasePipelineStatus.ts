@@ -13,6 +13,10 @@ export async function getReleasePipelineStatus(releaseDetails: Release) {
       throw new Error('Release has no environments');
     }
 
+    //FILTER OUT PTA ENVIRONMENT IF IT EXISTS
+    const filteredEnvs = releaseDetails.envs.filter(env => env.name !== 'PTA');
+    releaseDetails = { ...releaseDetails, envs: filteredEnvs };
+
     if (releaseDetails.envs.some(env => env.status === 'inProgress')) {
       return 'inProgress';
     }

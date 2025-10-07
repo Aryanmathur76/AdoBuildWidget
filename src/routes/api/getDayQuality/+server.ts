@@ -39,6 +39,11 @@ async function fetchReleasePipeline(baseUrl: string, pipelineId: string, date: s
     
     const releaseData = await response.json();
     
+    // Handle null response (no releases found for this date)
+    if (releaseData === null) {
+      return { id: pipelineId, status: 'unknown', passCount: 0, failCount: 0 };
+    }
+    
     return {
       id: pipelineId,
       status: releaseData.status || 'unknown',
@@ -133,14 +138,6 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
 
     // Determine overall quality
     const result = determineOverallDayQuality(statuses);
-    console.log(`[getDayQuality] Result for ${date}:`, { 
-      date, 
-      pipelineIds, 
-      quality: result, 
-      totalPassCount, 
-      totalFailCount,
-      statuses 
-    });
     
     const response = { 
       date, 

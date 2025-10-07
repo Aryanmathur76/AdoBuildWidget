@@ -164,17 +164,11 @@
             {#each pipelineData as pipeline (pipeline.id)}
               <div class="flex items-center justify-between gap-2 py-1">
                 <div class="flex-shrink-0">
-                  <span class="inline-block text-sm font-medium px-2 py-0.5 rounded {getPipelineBadgeColor(pipeline.status)}">
-                    <strong>{pipeline.name}</strong>
+                  <span class="inline-block text-xs px-2 py-0.5 rounded {getPipelineBadgeColor(pipeline.status)}">
+                    {pipeline.name}
                   </span>
                 </div>
                 <div class="flex items-center gap-1.5 flex-shrink-0">
-                  <span
-                    class="material-icons-outlined text-muted-foreground"
-                    style="font-size: 18px; line-height: 1;"
-                  >
-                    science
-                  </span>
                   <div class="w-40 h-5 bg-zinc-200 rounded overflow-hidden relative">
                     {#if pipeline.passCount + pipeline.failCount > 0}
                       {@const totalTests = pipeline.passCount + pipeline.failCount}

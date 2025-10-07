@@ -111,7 +111,10 @@
 
         if (dateStrings.length > 0) {
             // Prefetch all detailed pipeline data for the month (builds/releases)
-            pipelineDataService.prefetchAllPipelineDataForMonth(dateStrings, pipelineConfig);
+            // Only run prefetch in browser (not during SSR)
+            if (typeof window !== 'undefined') {
+                pipelineDataService.prefetchAllPipelineDataForMonth(dateStrings, pipelineConfig);
+            }
             for (const dateStr of dateStrings) {
                 (async () => {
                     const result = await fetchBuildQualitiesForDates([dateStr], pipelineConfig);

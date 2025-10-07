@@ -59,19 +59,39 @@
         testCases = null;
         testCasesError = null;
         
-        // For test cases, we need a releaseId which we might not have directly
-        // We'll fallback to the original API call for now, but could be enhanced
-        // to use the cache if we have the releaseId
         const cleanDate = date.length > 10 ? date.slice(0, 10) : date;
-        fetch(
-            `/api/test-cases?pipelineId=${pipelineId}&pipelineType=${pipelineType}&date=${encodeURIComponent(cleanDate)}`,
-        )
-            .then((r) => r.json())
-            .then((data) => {
-                testCases = data.testCases;
+        
+        // First get the release/build data to extract the releaseId/buildId
+        const fetchPromise = pipelineType === 'release' 
+            ? pipelineDataService.fetchReleaseDataSilent(cleanDate, pipelineId.toString())
+            : pipelineDataService.fetchBuildDataSilent(cleanDate, pipelineId.toString());
+        
+        fetchPromise
+            .then(async (pipelineData) => {
+                if (!pipelineData) {
+                    throw new Error('No pipeline data found');
+                }
+                
+                // Extract releaseId or use the API endpoint that accepts pipelineId
+                const releaseId = pipelineData.id || pipelineData.releaseId;
+                
+                if (releaseId && pipelineType === 'release') {
+                    // Use cached fetchTestCases method
+                    const cases = await pipelineDataService.fetchTestCases(releaseId.toString());
+                    testCases = cases;
+                } else {
+                    // Fallback to the original API call for builds or if no releaseId
+                    const response = await fetch(
+                        `/api/test-cases?pipelineId=${pipelineId}&pipelineType=${pipelineType}&date=${encodeURIComponent(cleanDate)}`
+                    );
+                    const data = await response.json();
+                    testCases = data.testCases;
+                }
+                
                 isLoading = false;
             })
-            .catch(() => {
+            .catch((error) => {
+                console.error('Error loading test cases:', error);
                 testCases = null;
                 isLoading = false;
                 testCasesError = "Failed to load test cases";
@@ -199,7 +219,9 @@
                 class="flex-shrink-0 flex items-center justify-center"
                 style="min-width: 80px; min-height: 80px;"
             >
+                
                 {#if passCount === null || failCount === null}
+                {console.log(passCount, failCount)}
                     <Skeleton class="h-24 w-24 rounded-full" />
                 {:else if passCount !== null && failCount !== null && passCount + failCount > 0}
                     <Chart.Container
