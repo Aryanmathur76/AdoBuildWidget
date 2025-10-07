@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { Release } from "$lib/types/release";
+    import type { Build } from "$lib/types/build";
     import { slide, fade } from 'svelte/transition';
     import CalendarIcon from "@lucide/svelte/icons/calendar";
     const { date } = $props<{ date?: string }>();
@@ -55,7 +56,7 @@
     let releasePipelines = $state<Release[]>([]);
 
     // Array of build objects - don't pre-allocate since we might get multiple builds per config
-    let buildPipelines = $state<any[]>([]);
+    let buildPipelines = $state<Build[]>([]);
 
     async function fetchReleasePipelineDetails(pipelines: any[]) {
         releasePipelines = []; // Clear the array

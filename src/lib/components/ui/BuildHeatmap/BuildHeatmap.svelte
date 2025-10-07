@@ -124,12 +124,12 @@
     }
 </script>
 
-<div class="w-full h-full" transition:slide={{ duration: 300 }}>
+<div class="w-full h-full overflow-hidden" transition:slide={{ duration: 300 }}>
     <Card
         class="py-0 border-0 shadow-none h-full rounded-none overflow-hidden flex flex-col"
     >
         <Tabs.Root bind:value={currentTab} class="h-full flex flex-col">
-            <div class="flex items-center justify-between px-4 pt-4 pb-2 flex-shrink-0">
+            <div class="flex items-center overflow-hidden justify-between px-4 pt-4 pb-2 flex-shrink-0">
                 <CardTitle class="flex-shrink-0">
                     <span
                         class={`inline-flex rounded text-base font-bold px-2 py-1 items-center gap-1 ${getHeaderStatusColor(
@@ -163,7 +163,7 @@
                 </Tabs.List>
             </div>
 
-            <div class="flex-1 overflow-y-auto">
+            <div class="flex-1 overflow-hidden">
                 <Tabs.Content value="Monthly" class="h-full">
                     <CardContent class="h-full px-4 pb-2 flex flex-col">
                         <!-- Dynamic day of week labels with animation -->
