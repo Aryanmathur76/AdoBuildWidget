@@ -26,7 +26,7 @@ describe('getBuildPipelineStatus - inProgress', () => {
 // If the build result is "canceled" or "aborted" then return "interrupted"
 describe('getBuildPipelineStatus - interrupted', () => {
   it('should return "interrupted" if build result is canceled', async () => {
-    const result = await getBuildPipelineStatus({ status: 'none', result: 'canceled' } as any);
+    const result = await getBuildPipelineStatus({ status: 'none', result: 'canceled' } as any, true);
     expect(result).toBe('interrupted');
   });
 });
@@ -34,7 +34,7 @@ describe('getBuildPipelineStatus - interrupted', () => {
 // If the build status is "failed" then return "bad"
 describe('getBuildPipelineStatus - failed', () => {
   it('should return "bad" if build result is failed', async () => {
-    const result = await getBuildPipelineStatus({ status: 'none', result: 'failed' } as any);
+    const result = await getBuildPipelineStatus({ status: 'none', result: 'failed' } as any, true);
     expect(result).toBe('bad');
   });
 });
@@ -90,12 +90,12 @@ describe('getBuildPipelineStatus - Additional Edge Cases', () => {
   });
 
   it('should return "interrupted" for cancelling status', async () => {
-    const result = await getBuildPipelineStatus({ status: 'cancelling' } as any);
+    const result = await getBuildPipelineStatus({ status: 'cancelling' } as any, true);
     expect(result).toBe('interrupted');
   });
 
   it('should return "interrupted" for postponed status', async () => {
-    const result = await getBuildPipelineStatus({ status: 'postponed' } as any);
+    const result = await getBuildPipelineStatus({ status: 'postponed' } as any, true);
     expect(result).toBe('interrupted');
   });
 
@@ -216,7 +216,7 @@ describe('getBuildPipelineStatus - Additional Edge Cases', () => {
       result: 'failed', 
       passedTestCount: 100, 
       failedTestCount: 0 
-    } as any);
+    } as any, true);
     expect(result).toBe('bad');
   });
 
@@ -227,7 +227,7 @@ describe('getBuildPipelineStatus - Additional Edge Cases', () => {
       result: 'canceled', 
       passedTestCount: 100, 
       failedTestCount: 0 
-    } as any);
+    } as any, true);
     expect(result).toBe('interrupted');
   });
 
@@ -238,7 +238,7 @@ describe('getBuildPipelineStatus - Additional Edge Cases', () => {
       result: 'failed', 
       passedTestCount: 0, 
       failedTestCount: 100 
-    } as any);
+    } as any, true);
     expect(result).toBe('inProgress');
   });
 
@@ -248,7 +248,7 @@ describe('getBuildPipelineStatus - Additional Edge Cases', () => {
       result: 'succeeded', 
       passedTestCount: 10000, 
       failedTestCount: 0 
-    } as any);
+    } as any, true);
     expect(result).toBe('good');
   });
 
@@ -259,7 +259,7 @@ describe('getBuildPipelineStatus - Additional Edge Cases', () => {
       result: 'succeeded', 
       passedTestCount: 7, 
       failedTestCount: 3 
-    } as any);
+    } as any, true);
     expect(result).toBe('ok');
   });
 
@@ -270,7 +270,7 @@ describe('getBuildPipelineStatus - Additional Edge Cases', () => {
       result: 'succeeded', 
       passedTestCount: 2, 
       failedTestCount: 1 
-    } as any);
+    } as any, true);
     expect(result).toBe('bad');
   });
 });
@@ -281,13 +281,13 @@ describe('getBuildPipelineStatus - Status Priority Tests', () => {
     expect(await getBuildPipelineStatus({ status: 'inProgress' } as any)).toBe('inProgress');
     
     // Priority 2: interrupted (canceled result)
-    expect(await getBuildPipelineStatus({ status: 'completed', result: 'canceled' } as any)).toBe('interrupted');
+    expect(await getBuildPipelineStatus({ status: 'completed', result: 'canceled' } as any, true)).toBe('interrupted');
     
     // Priority 3: bad (failed result)
-    expect(await getBuildPipelineStatus({ status: 'completed', result: 'failed' } as any)).toBe('bad');
-    
+    expect(await getBuildPipelineStatus({ status: 'completed', result: 'failed' } as any, true)).toBe('bad');
+
     // Priority 4: unknown (no test counts)
-    expect(await getBuildPipelineStatus({ status: 'completed', result: 'succeeded' } as any)).toBe('unknown');
+    expect(await getBuildPipelineStatus({ status: 'completed', result: 'succeeded' } as any, true)).toBe('unknown');
   });
 });
 
@@ -298,7 +298,7 @@ describe('getBuildPipelineStatus - Real-world Scenarios', () => {
       result: 'succeeded', 
       passedTestCount: 150, 
       failedTestCount: 0 
-    } as any);
+    } as any, true);
     expect(result).toBe('good');
   });
 
@@ -308,7 +308,7 @@ describe('getBuildPipelineStatus - Real-world Scenarios', () => {
       result: 'succeeded', 
       passedTestCount: 142, 
       failedTestCount: 8 // 94.67% pass rate
-    } as any);
+    } as any, true);
     expect(result).toBe('ok');
   });
 
@@ -318,7 +318,7 @@ describe('getBuildPipelineStatus - Real-world Scenarios', () => {
       result: 'succeeded', 
       passedTestCount: 50, 
       failedTestCount: 100 // 33.33% pass rate
-    } as any);
+    } as any, true);
     expect(result).toBe('bad');
   });
 
@@ -328,7 +328,7 @@ describe('getBuildPipelineStatus - Real-world Scenarios', () => {
       result: 'canceled',
       passedTestCount: 10, 
       failedTestCount: 0 
-    } as any);
+    } as any, true);
     expect(result).toBe('interrupted');
   });
 
@@ -336,7 +336,7 @@ describe('getBuildPipelineStatus - Real-world Scenarios', () => {
     const result = await getBuildPipelineStatus({ 
       status: 'inProgress',
       // No result or test counts when inProgress
-    } as any);
+    } as any, true);
     expect(result).toBe('inProgress');
   });
 });

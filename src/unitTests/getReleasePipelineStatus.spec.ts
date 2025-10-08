@@ -60,7 +60,7 @@ describe('getReleasePipelineStatus - interrupted', () => {
         { id: 2, name: 'Env 2', status: 'canceled' }
       ]
     };
-    const status = await getReleasePipelineStatus(release);
+    const status = await getReleasePipelineStatus(release, true);
     expect(status).toBe('interrupted');
   });
 });
@@ -80,7 +80,7 @@ describe('getReleasePipelineStatus - failed', () => {
         { id: 2, name: 'Env 2', status: 'failed' }
       ]
     };
-    const status = await getReleasePipelineStatus(release);
+    const status = await getReleasePipelineStatus(release, true);
     expect(status).toBe('failed');
   });
 });
@@ -238,7 +238,7 @@ describe('getReleasePipelineStatus - Additional Edge Cases', () => {
         { id: 2, name: 'Env 2', status: 'aborted' }
       ]
     };
-    const status = await getReleasePipelineStatus(release);
+    const status = await getReleasePipelineStatus(release, true);
     expect(status).toBe('interrupted');
   });
 
@@ -292,7 +292,7 @@ describe('getReleasePipelineStatus - Additional Edge Cases', () => {
         { id: 3, name: 'Prod', status: 'canceled' }
       ]
     };
-    const status = await getReleasePipelineStatus(release);
+    const status = await getReleasePipelineStatus(release, true);
     expect(status).toBe('interrupted');
   });
 
@@ -436,7 +436,7 @@ describe('getReleasePipelineStatus - Additional Edge Cases', () => {
       passedTestCount: 100,
       failedTestCount: 0
     };
-    const status = await getReleasePipelineStatus(release);
+    const status = await getReleasePipelineStatus(release, true);
     expect(status).toBe('failed');
   });
 
@@ -514,7 +514,7 @@ describe('getReleasePipelineStatus - Environment Status Priority Tests', () => {
         { id: 2, name: 'Env 2', status: 'inProgress' }
       ]
     };
-    expect(await getReleasePipelineStatus(inProgressRelease)).toBe('inProgress');
+    expect(await getReleasePipelineStatus(inProgressRelease, true)).toBe('inProgress');
     
     // Priority 2: interrupted (canceled)
     const interruptedRelease = {
@@ -529,7 +529,7 @@ describe('getReleasePipelineStatus - Environment Status Priority Tests', () => {
         { id: 2, name: 'Env 2', status: 'canceled' }
       ]
     };
-    expect(await getReleasePipelineStatus(interruptedRelease)).toBe('interrupted');
+    expect(await getReleasePipelineStatus(interruptedRelease, true)).toBe('interrupted');
     
     // Priority 3: failed
     const failedRelease = {
@@ -544,7 +544,7 @@ describe('getReleasePipelineStatus - Environment Status Priority Tests', () => {
         { id: 2, name: 'Env 2', status: 'failed' }
       ]
     };
-    expect(await getReleasePipelineStatus(failedRelease)).toBe('failed');
+    expect(await getReleasePipelineStatus(failedRelease, true)).toBe('failed');
   });
 
   it('should handle all environment statuses in one release (inProgress wins)', async () => {
@@ -625,7 +625,7 @@ describe('getReleasePipelineStatus - Real-world Scenarios', () => {
       passedTestCount: 2500,
       failedTestCount: 0
     };
-    const status = await getReleasePipelineStatus(release);
+    const status = await getReleasePipelineStatus(release, true);
     expect(status).toBe('failed');
   });
 
@@ -661,7 +661,7 @@ describe('getReleasePipelineStatus - Real-world Scenarios', () => {
         { id: 2, name: 'Testing', status: 'canceled' }
       ]
     };
-    const status = await getReleasePipelineStatus(release);
+    const status = await getReleasePipelineStatus(release, true);
     expect(status).toBe('interrupted');
   });
 });
