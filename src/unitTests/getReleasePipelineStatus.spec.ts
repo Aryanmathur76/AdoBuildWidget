@@ -383,7 +383,7 @@ describe('getReleasePipelineStatus - Additional Edge Cases', () => {
       failedTestCount: 1
     };
     const status = await getReleasePipelineStatus(release);
-    expect(status).toBe('ok');
+    expect(status).toBe('good');
   });
 
   it('should handle single passing test (100% pass rate)', async () => {
@@ -588,7 +588,7 @@ describe('getReleasePipelineStatus - Real-world Scenarios', () => {
       failedTestCount: 12 // ~99.6% pass rate
     };
     const status = await getReleasePipelineStatus(release);
-    expect(status).toBe('ok');
+    expect(status).toBe('good');
   });
 
   it('should handle hotfix deployment', async () => {

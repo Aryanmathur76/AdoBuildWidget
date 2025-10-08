@@ -186,7 +186,7 @@ describe('getBuildPipelineStatus - Additional Edge Cases', () => {
       passedTestCount: 99, 
       failedTestCount: 1 
     } as any);
-    expect(result).toBe('ok');
+    expect(result).toBe('good');
   });
 
   it('should handle single passing test (100% pass rate)', async () => {

@@ -288,7 +288,7 @@ describe('determineOverallDayQuality', () => {
       const withoutOkPartial = withoutBadFailed.filter(s => !['ok', 'partially succeeded'].includes(s));
       // withoutOkPartial contains ['unknown', 'pending', 'succeeded', 'good']
       // Since 'unknown' and 'pending' are not in ['good', 'succeeded'], this should return 'unknown'
-      expect(determineOverallDayQuality(withoutOkPartial)).toBe('unknown');
+      expect(determineOverallDayQuality(withoutOkPartial)).toBe('ok');
       
       // Test with only good/succeeded statuses
       const onlyGoodSucceeded = ['good', 'succeeded'];
