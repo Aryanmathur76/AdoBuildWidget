@@ -30,10 +30,21 @@
     let currentMonthPage = $state(today.getMonth() + 1);
     let currentMonth = $derived(currentMonthPage - 1);
 
-    // Track current tab for animations
-    let currentTab = $state("Monthly");
+    // Track current tab for animations - persist to localStorage
+    let currentTab = $state(
+        typeof window !== 'undefined' 
+            ? localStorage.getItem('buildHealthCurrentTab') || "Monthly"
+            : "Monthly"
+    );
     let tabAnimationKey = $state(0);
     let sidebarOpen = $state(false);
+
+    // Save tab selection to localStorage when it changes
+    $effect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('buildHealthCurrentTab', currentTab);
+        }
+    });
 
     // Trigger animation when switching back to Monthly tab
     $effect(() => {
