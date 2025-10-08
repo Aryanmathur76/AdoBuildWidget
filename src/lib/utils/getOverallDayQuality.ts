@@ -27,6 +27,10 @@ export function determineOverallDayQuality(statuses: string[]): string {
     return 'good';
   }
 
+  if (statuses.some(status => status === 'good')) {
+    return 'ok';
+  }
+
   // Default to unknown if no clear determination can be made
   return 'unknown';
 }

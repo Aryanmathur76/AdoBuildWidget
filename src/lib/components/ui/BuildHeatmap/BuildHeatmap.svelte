@@ -150,7 +150,7 @@
                             style="font-size: 1.75em; line-height: 1;"
                             >health_metrics</span
                         >
-                        DELTAV BUILD HEALTH - BETA
+                        DELTAV BUILD HEALTH
                     </span>
                 </CardTitle>
 

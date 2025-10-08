@@ -5,7 +5,7 @@ export const BUILD_STATUS_COLORS = {
   good: "bg-lime-600 text-white",
   ok: "bg-yellow-300 text-black", 
   bad: "bg-red-600 text-white",
-  "inProgress": "bg-sky-500 text-white",
+  inProgress: "bg-sky-500 text-white",
   interrupted: "bg-red-900 text-white",
   unknown: "bg-zinc-700 text-white",
   default: "bg-zinc-700 text-white"

@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as Popover from "$lib/components/ui/popover/index.js";
+  // import * as HoverCard from "$lib/components/ui/hover-card/index.js";
   import { getPipelineBadgeColor, getTestPassColor, getTestFailColor, getTestNoDataColor } from "$lib/constants/colors.js";
   import { Skeleton } from "$lib/components/ui/skeleton/index.js";
   import { goto } from "$app/navigation";

@@ -1,9 +1,10 @@
 import type { Release } from '$lib/types/release';
+import { getTestQuality } from '$lib/constants/thresholds';
 
 // Function to get the status of a release pipeline
 // Returns 'good', 'ok', 'bad', 'interrupeted', or 'unknown'
 // Takes Release object as input, retrieved from Azure DevOps REST API
-export async function getReleasePipelineStatus(releaseDetails: Release) {
+export async function getReleasePipelineStatus(releaseDetails: Release, considerAutomationStatus = false) {
   
     if (!releaseDetails) {
       throw new Error('Provided release is null or undefined');
@@ -21,12 +22,14 @@ export async function getReleasePipelineStatus(releaseDetails: Release) {
       return 'inProgress';
     }
 
-    if (releaseDetails.envs.some(env => env.status === 'canceled' || env.status === 'aborted')) {
-      return 'interrupted';
-    }
+    if (considerAutomationStatus){
+      if (releaseDetails.envs.some(env => env.status === 'canceled' || env.status === 'aborted')) {
+        return 'interrupted';
+      }
 
-    if (releaseDetails.envs.some(env => env.status === 'failed' || env.status === 'rejected')) {
-      return 'failed';
+      if (releaseDetails.envs.some(env => env.status === 'failed' || env.status === 'rejected')) {
+        return 'failed';
+      }
     }
 
     if (releaseDetails.passedTestCount === undefined || releaseDetails.failedTestCount === undefined) {
@@ -39,13 +42,7 @@ export async function getReleasePipelineStatus(releaseDetails: Release) {
     if (totalTests > 0) {
       const passRate = (releaseDetails.passedTestCount / totalTests) * 100;
 
-      if (passRate === 100) {
-        return 'good';
-      } else if (passRate >= 70) {
-        return 'ok';
-      } else {
-        return 'bad';
-      }
+      return getTestQuality(passRate);
     }
 
     return 'unknown';
