@@ -4,7 +4,7 @@ import { getTestQuality } from '$lib/constants/thresholds';
 // Function to get the status of a build pipeline
 // Returns 'good', 'ok', 'bad', 'interrupted', or 'unknown'
 // Takes Build object as input, retrieved from Azure DevOps REST API
-export async function getBuildPipelineStatus(buildDetails: Build, considerAutomationStatus = true) {
+export async function getBuildPipelineStatus(buildDetails: Build, considerAutomationStatus = false) {
   
     if (!buildDetails) {
       throw new Error('Provided build is null or undefined');

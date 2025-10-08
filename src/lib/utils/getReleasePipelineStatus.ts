@@ -4,7 +4,7 @@ import { getTestQuality } from '$lib/constants/thresholds';
 // Function to get the status of a release pipeline
 // Returns 'good', 'ok', 'bad', 'interrupeted', or 'unknown'
 // Takes Release object as input, retrieved from Azure DevOps REST API
-export async function getReleasePipelineStatus(releaseDetails: Release, considerAutomationStatus = true) {
+export async function getReleasePipelineStatus(releaseDetails: Release, considerAutomationStatus = false) {
   
     if (!releaseDetails) {
       throw new Error('Provided release is null or undefined');
