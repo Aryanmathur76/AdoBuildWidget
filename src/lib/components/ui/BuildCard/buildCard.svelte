@@ -68,12 +68,13 @@
         
         fetchPromise
             .then(async (pipelineData) => {
-                if (!pipelineData) {
-                    throw new Error('No pipeline data found');
+                if (!pipelineData && pipelineType === 'build') {
+                    // For builds, we require pipeline data
+                    throw new Error(`No ${pipelineType} data found for ${cleanDate}`);
                 }
                 
                 // Extract releaseId or use the API endpoint that accepts pipelineId
-                const releaseId = pipelineData.id || pipelineData.releaseId;
+                const releaseId = pipelineData?.id || pipelineData?.releaseId;
                 
                 if (releaseId && pipelineType === 'release') {
                     // Use cached fetchTestCases method
@@ -91,10 +92,9 @@
                 isLoading = false;
             })
             .catch((error) => {
-                console.error('Error loading test cases:', error);
                 testCases = null;
                 isLoading = false;
-                testCasesError = "Failed to load test cases";
+                testCasesError = `Failed to load test cases: ${error.message}`;
             });
     }
 
