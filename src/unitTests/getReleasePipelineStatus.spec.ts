@@ -45,6 +45,142 @@ describe('getReleasePipelineStatus - inProgress', () => {
   });
 });
 
+// If any of the envs are "queued" then return "inProgress"
+describe('getReleasePipelineStatus - queued', () => {
+  it('should return "inProgress" when any environment is queued', async () => {
+    const release = {
+      id: 100,
+      description: 'Test release with queued env',
+      name: 'Release 100',
+      status: 'unknown',
+      createdOn: '2023-01-02T00:00:00Z',
+      modifiedOn: '2023-01-02T00:00:00Z',
+      envs: [
+        { id: 1, name: 'Dev', status: 'succeeded' },
+        { id: 2, name: 'QA', status: 'queued' }
+      ],
+      passedTestCount: 10,
+      failedTestCount: 0
+    };
+    const status = await getReleasePipelineStatus(release);
+    expect(status).toBe('inProgress');
+  });
+
+  it('should return "inProgress" when multiple environments are queued', async () => {
+    const release = {
+      id: 101,
+      description: 'Test release with multiple queued envs',
+      name: 'Release 101',
+      status: 'unknown',
+      createdOn: '2023-01-02T00:00:00Z',
+      modifiedOn: '2023-01-02T00:00:00Z',
+      envs: [
+        { id: 1, name: 'Dev', status: 'queued' },
+        { id: 2, name: 'QA', status: 'queued' },
+        { id: 3, name: 'Prod', status: 'notStarted' }
+      ],
+      passedTestCount: 10,
+      failedTestCount: 0
+    };
+    const status = await getReleasePipelineStatus(release);
+    expect(status).toBe('inProgress');
+  });
+
+  it('should return "inProgress" when both queued and inProgress environments exist', async () => {
+    const release = {
+      id: 102,
+      description: 'Test release with queued and inProgress envs',
+      name: 'Release 102',
+      status: 'unknown',
+      createdOn: '2023-01-02T00:00:00Z',
+      modifiedOn: '2023-01-02T00:00:00Z',
+      envs: [
+        { id: 1, name: 'Dev', status: 'inProgress' },
+        { id: 2, name: 'QA', status: 'queued' }
+      ],
+      passedTestCount: 10,
+      failedTestCount: 0
+    };
+    const status = await getReleasePipelineStatus(release);
+    expect(status).toBe('inProgress');
+  });
+
+  it('should filter out PTA environment even if it is queued', async () => {
+    const release = {
+      id: 103,
+      description: 'Test release with PTA queued',
+      name: 'Release 103',
+      status: 'unknown',
+      createdOn: '2023-01-02T00:00:00Z',
+      modifiedOn: '2023-01-02T00:00:00Z',
+      envs: [
+        { id: 1, name: 'Dev', status: 'succeeded' },
+        { id: 2, name: 'PTA', status: 'queued' }
+      ],
+      passedTestCount: 100,
+      failedTestCount: 0
+    };
+    const status = await getReleasePipelineStatus(release);
+    expect(status).toBe('good'); // Should be 'good' because PTA is filtered out
+  });
+
+  it('should prioritize queued status over test results', async () => {
+    const release = {
+      id: 104,
+      description: 'Test release with queued env and bad tests',
+      name: 'Release 104',
+      status: 'unknown',
+      createdOn: '2023-01-02T00:00:00Z',
+      modifiedOn: '2023-01-02T00:00:00Z',
+      envs: [
+        { id: 1, name: 'Dev', status: 'queued' }
+      ],
+      passedTestCount: 0,
+      failedTestCount: 10
+    };
+    const status = await getReleasePipelineStatus(release);
+    expect(status).toBe('inProgress'); // Should be 'inProgress', not 'bad'
+  });
+
+  it('should prioritize queued status over failed environment status when considerAutomationStatus is false', async () => {
+    const release = {
+      id: 105,
+      description: 'Test release with queued and failed envs',
+      name: 'Release 105',
+      status: 'unknown',
+      createdOn: '2023-01-02T00:00:00Z',
+      modifiedOn: '2023-01-02T00:00:00Z',
+      envs: [
+        { id: 1, name: 'Dev', status: 'queued' },
+        { id: 2, name: 'QA', status: 'failed' }
+      ],
+      passedTestCount: 10,
+      failedTestCount: 0
+    };
+    const status = await getReleasePipelineStatus(release, false);
+    expect(status).toBe('inProgress'); // Queued should take priority
+  });
+
+  it('should return test quality when no environments are queued or inProgress', async () => {
+    const release = {
+      id: 106,
+      description: 'Test release with succeeded envs',
+      name: 'Release 106',
+      status: 'unknown',
+      createdOn: '2023-01-02T00:00:00Z',
+      modifiedOn: '2023-01-02T00:00:00Z',
+      envs: [
+        { id: 1, name: 'Dev', status: 'succeeded' },
+        { id: 2, name: 'QA', status: 'succeeded' }
+      ],
+      passedTestCount: 100,
+      failedTestCount: 0
+    };
+    const status = await getReleasePipelineStatus(release);
+    expect(status).toBe('good');
+  });
+});
+
 // If any of the envs are "canceled" or "aborted" then return "interrupted"
 describe('getReleasePipelineStatus - interrupted', () => {
   it('should return "interrupted" if any environment is canceled or aborted', async () => {

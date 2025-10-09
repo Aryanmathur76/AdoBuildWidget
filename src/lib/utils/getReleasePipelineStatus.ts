@@ -18,7 +18,7 @@ export async function getReleasePipelineStatus(releaseDetails: Release, consider
     const filteredEnvs = releaseDetails.envs.filter(env => env.name !== 'PTA');
     releaseDetails = { ...releaseDetails, envs: filteredEnvs };
 
-    if (releaseDetails.envs.some(env => env.status === 'inProgress')) {
+    if (releaseDetails.envs.some(env => env.status === 'inProgress') || releaseDetails.envs.some(env => env.status === 'queued')) {
       return 'inProgress';
     }
 
