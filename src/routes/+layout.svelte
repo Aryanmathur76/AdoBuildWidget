@@ -12,7 +12,7 @@
 </svelte:head>
 
 
-<div class="aspect-square h-full flex flex-col bg-background overflow-hidden">
+<div class="w-full flex flex-col bg-background overflow-hidden">
   <ModeWatcher />
   <main class="flex-1 flex flex-col">
 	{@render children?.()}
