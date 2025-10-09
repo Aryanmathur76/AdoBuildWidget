@@ -27,8 +27,8 @@ export const dayQualityCache = writable<Record<string, CachedDayQuality>>({});
 export const pipelineDataCache = writable<Record<string, CachedPipelineData>>({});
 export const testCasesCache = writable<Record<string, CachedTestCases>>({});
 
-// Cache TTL (25 minutes like the server-side cache)
-const CACHE_TTL = 25 * 60 * 1000;
+// Cache TTL (5 minutes like the server-side cache)
+const CACHE_TTL = 5 * 60 * 1000;
 
 // Helper functions
 export function isCacheValid(timestamp: number): boolean {
