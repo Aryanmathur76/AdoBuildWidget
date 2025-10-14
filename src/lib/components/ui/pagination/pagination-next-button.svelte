@@ -13,7 +13,6 @@
 </script>
 
 {#snippet Fallback()}
-	<span>Next</span>
 	<ChevronRightIcon class="size-4" />
 {/snippet}
 
