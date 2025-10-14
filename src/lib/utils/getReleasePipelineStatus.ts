@@ -1,6 +1,69 @@
 import type { Release } from '$lib/types/release';
 import { getTestQuality } from '$lib/constants/thresholds';
 
+// Function to calculate the latest completion time from release environments
+// Traverses all environments and finds the latest finishTime or dateEnded from tasks
+export function calculateReleaseCompletionTime(environments: any[]): string | undefined {
+  let latestFinishTime: string | undefined = undefined;
+  
+  if (!environments || !Array.isArray(environments)) {
+    return latestFinishTime;
+  }
+  
+  for (let i = 0; i < environments.length; i++) {
+    const environment = environments[i];
+    
+    // Navigate through deploySteps -> releaseDeployPhases -> deploymentJobs -> tasks
+    if (environment.deploySteps && Array.isArray(environment.deploySteps)) {
+      
+      for (let j = 0; j < environment.deploySteps.length; j++) {
+        const deployStep = environment.deploySteps[j];
+        
+        // Check releaseDeployPhases
+        if (deployStep.releaseDeployPhases && Array.isArray(deployStep.releaseDeployPhases)) {
+          
+          for (let k = 0; k < deployStep.releaseDeployPhases.length; k++) {
+            const phase = deployStep.releaseDeployPhases[k];
+            
+            // Check deploymentJobs
+            if (phase.deploymentJobs && Array.isArray(phase.deploymentJobs)) {
+              
+              for (let l = 0; l < phase.deploymentJobs.length; l++) {
+                const job = phase.deploymentJobs[l];
+                
+                // Check job-level finishTime/dateEnded
+                const jobFinishTime = job.job?.finishTime || job.job?.dateEnded;
+                if (jobFinishTime) {
+                  if (!latestFinishTime || new Date(jobFinishTime) > new Date(latestFinishTime)) {
+                    latestFinishTime = jobFinishTime;
+                  }
+                }
+                
+                // Check tasks within the job
+                if (job.tasks && Array.isArray(job.tasks)) {
+                  
+                  for (let m = 0; m < job.tasks.length; m++) {
+                    const task = job.tasks[m];
+                    const taskFinishTime = task.finishTime || task.dateEnded;
+                    
+                    if (taskFinishTime) {
+                      if (!latestFinishTime || new Date(taskFinishTime) > new Date(latestFinishTime)) {
+                        latestFinishTime = taskFinishTime;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  return latestFinishTime;
+}
+
 // Function to get the status of a release pipeline
 // Returns 'good', 'ok', 'bad', 'interrupeted', or 'unknown'
 // Takes Release object as input, retrieved from Azure DevOps REST API
@@ -62,3 +125,4 @@ export function getLatestRelease(releases: Release[]): Release | null {
       return currentDate > latestDate ? current : latest;
     }, releases[0]);
 }
+

@@ -8,7 +8,7 @@ import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { getAzureDevOpsEnvVars } from '$lib/utils';
 import type { Release } from '$lib/types/release';
-import {getLatestRelease, getReleasePipelineStatus} from '$lib/utils/getReleasePipelineStatus';
+import {getLatestRelease, getReleasePipelineStatus, calculateReleaseCompletionTime} from '$lib/utils/getReleasePipelineStatus';
 
 export async function GET({ url }: { url: URL }) {
 
@@ -94,12 +94,16 @@ export async function GET({ url }: { url: URL }) {
 
     const releaseDetails = await releaseDetailsResponse.json();
 
+    //Compute the time the release pipeline was completed (take the latest finishTime)
+    const latestFinishTime = calculateReleaseCompletionTime(releaseDetails.environments);
+    console.log('Calculated latest finish time:', latestFinishTime);
     // Construct release object
     const release: Release = {
         id: releaseDetails.id,
         name: releaseDetails.name,
         createdOn: releaseDetails.createdOn,
         modifiedOn: releaseDetails.modifiedOn,
+        completedTime: latestFinishTime, // Use the calculated latest finish time
         status: releaseDetails.status, // Use actual Azure DevOps status instead of hardcoding 'unknown'
         envs: releaseDetails.environments
     };

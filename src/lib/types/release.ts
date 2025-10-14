@@ -4,6 +4,7 @@ export interface Release {
   status: string;
   createdOn: string;
   modifiedOn: string;
+  completedTime?: string;
   envs: any[];
   passedTestCount?: number;
   failedTestCount?: number;

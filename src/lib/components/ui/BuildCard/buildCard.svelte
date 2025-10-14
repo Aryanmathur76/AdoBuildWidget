@@ -24,6 +24,7 @@
     export let status: string | null = null;
     export let passCount: number | null = null;
     export let failCount: number | null = null;
+    export let completedDate: string | null = null;
     export let date: string | null = null;
 
     let chartCycleInterval: ReturnType<typeof setInterval> | null = null;
@@ -175,8 +176,15 @@
             style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%;"
         >
             <div class="flex flex-col items-start min-w-0 flex-1">
-                <div class="font-semibold text-[1.1rem] leading-[1.2] truncate pb-1">
-                    {pipelineName}
+                <div class="flex items-center gap-2 pb-1">
+                    <div class="font-semibold text-[1.1rem] leading-[1.2] truncate">
+                        {pipelineName}
+                    </div>
+                    {#if completedDate && status != "unknown" && status != "inProgress"}
+                        <span class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-muted text-muted-foreground border">
+                            Completed on {new Date(completedDate).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })} {new Date(completedDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                        </span>
+                    {/if}
                 </div>
                 <div class="flex items-center gap-1 mt-2 mb-1">
                     <PipelineStatusBadge {status} />

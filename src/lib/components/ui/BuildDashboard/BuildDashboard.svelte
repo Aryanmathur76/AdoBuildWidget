@@ -200,6 +200,7 @@
                                 failCount={pipeline.failedTestCount}
                                 pipelineType="release"
                                 pipelineId={pipeline.id}
+                                completedDate={pipeline.completedTime}
                                 date={selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString() : null}
                             />
                         </div>
@@ -215,6 +216,7 @@
                                 failCount={pipeline.failedTestCount}
                                 pipelineType="build"
                                 pipelineId={pipeline.id}
+                                completedDate={pipeline.completedTime}
                                 date={selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString() : null}
                             />
                         </div>

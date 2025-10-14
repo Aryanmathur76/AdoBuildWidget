@@ -46,7 +46,7 @@ export async function GET({ url }: { url: URL }) {
         const minTime = `${date}T00:00:00Z`;
         const maxTime = `${date}T23:59:59Z`;
         const branchName = 'refs/heads/trunk'; // or your desired branch
-        const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds?definitions=${buildDefinitionId}&minTime=${encodeURIComponent(minTime)}&maxTime=${encodeURIComponent(maxTime)}&queryOrder=queueTimeDescending&$top=10&branchName=${encodeURIComponent(branchName)}&api-version=7.1`;
+        const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds?definitions=${buildDefinitionId}&minTime=${encodeURIComponent(minTime)}&maxTime=${encodeURIComponent(maxTime)}&queryOrder=finishTimeDescending&$top=10&branchName=${encodeURIComponent(branchName)}&api-version=7.1`;
 
         const res = await fetch(apiUrl, {
             headers: {
@@ -74,7 +74,7 @@ export async function GET({ url }: { url: URL }) {
     //#endregion
 
     //#region Second step is to get the build details
-    let buildDetails: Build | null;
+    let buildDetails: any | null;
     try {
         const buildUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds/${buildId}?api-version=7.1`;
         const res = await fetch(buildUrl, {
@@ -103,7 +103,8 @@ export async function GET({ url }: { url: URL }) {
         status: buildDetails.status, // Use actual Azure DevOps status instead of hardcoding 'unknown'
         result: buildDetails.result,
         startTime: buildDetails.startTime,
-        modifiedOn: buildDetails.modifiedOn
+        modifiedOn: buildDetails.modifiedOn,
+        completedTime: buildDetails.finishTime
     };
 
     //#endregion
