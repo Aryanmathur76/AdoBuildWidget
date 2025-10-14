@@ -35,6 +35,7 @@
         pipelineId: string;
         displayName: string;
         type: 'build' | 'release';
+        testRunName?: string; // For build pipelines with multiple test runs
         data: Array<{
             date: string;
             passed: number | null;
@@ -49,6 +50,8 @@
 
     $effect(() => {
         if (pipelineConfig?.pipelines) {
+            // Initialize with loading state for each pipeline
+            // We'll expand build pipelines later when we discover multiple test runs
             pipelineCharts = pipelineConfig.pipelines.map(pipeline => ({
                 pipelineId: pipeline.id,
                 displayName: pipeline.displayName,
@@ -66,49 +69,138 @@
 
     async function fetchAllPipelineData() {
         if (!pipelineConfig?.pipelines) return;
+        
+        const newCharts: PipelineChartData[] = [];
+        
         for (let i = 0; i < pipelineConfig.pipelines.length; i++) {
             const pipeline = pipelineConfig.pipelines[i];
-            await fetchPipelineData(i, pipeline);
+            const charts = await fetchPipelineData(pipeline);
+            newCharts.push(...charts);
         }
+        
+        pipelineCharts = newCharts;
     }
 
-    async function fetchPipelineData(index: number, pipeline: any) {
-        const chartData: Array<{ date: string; passed: number | null; failed: number | null }> = [];
-        for (let dayIndex = 0; dayIndex < last7Days.length; dayIndex++) {
-            const date = last7Days[dayIndex];
-            const dateStr = getDateString(date);
-            const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            try {
-                if (pipeline.type === 'build') {
+    async function fetchPipelineData(pipeline: any): Promise<PipelineChartData[]> {
+        if (pipeline.type === 'build') {
+            // For build pipelines, we need to track test runs separately
+            // Map from testRunName to chart data
+            const testRunCharts = new Map<string, Array<{ date: string; passed: number | null; failed: number | null }>>();
+            
+            for (let dayIndex = 0; dayIndex < last7Days.length; dayIndex++) {
+                const date = last7Days[dayIndex];
+                const dateStr = getDateString(date);
+                const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                
+                try {
                     const data = await pipelineDataService.fetchBuildDataSilent(dateStr, pipeline.id);
+                    
                     if (data && Array.isArray(data)) {
-                        const totalPassed = data.reduce((sum, build) => sum + (build.passedTestCount || 0), 0);
-                        const totalFailed = data.reduce((sum, build) => sum + (build.failedTestCount || 0), 0);
-                        // Use null instead of 0 when there's no data to prevent rendering tiny bars
-                        const hasData = totalPassed > 0 || totalFailed > 0;
-                        chartData.push({ date: formattedDate, passed: hasData ? totalPassed : null, failed: hasData ? totalFailed : null });
+                        // Multiple test runs for this build
+                        for (const build of data) {
+                            // Only track builds that have a testRunName (ignore the base build without test runs)
+                            if (!build.testRunName) continue;
+                            
+                            const testRunName = build.testRunName;
+                            if (!testRunCharts.has(testRunName)) {
+                                // Initialize this test run's data array with nulls for previous days
+                                testRunCharts.set(testRunName, last7Days.slice(0, dayIndex).map(d => ({
+                                    date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                                    passed: null,
+                                    failed: null
+                                })));
+                            }
+                            
+                            const hasData = (build.passedTestCount || 0) > 0 || (build.failedTestCount || 0) > 0;
+                            testRunCharts.get(testRunName)!.push({
+                                date: formattedDate,
+                                passed: hasData ? (build.passedTestCount || 0) : null,
+                                failed: hasData ? (build.failedTestCount || 0) : null
+                            });
+                        }
                     } else if (data) {
-                        const hasData = (data.passedTestCount || 0) > 0 || (data.failedTestCount || 0) > 0;
-                        chartData.push({ date: formattedDate, passed: hasData ? (data.passedTestCount || 0) : null, failed: hasData ? (data.failedTestCount || 0) : null });
-                    } else {
-                        chartData.push({ date: formattedDate, passed: null, failed: null });
+                        // Single test run - only add if it has a testRunName
+                        if (data.testRunName) {
+                            const testRunName = data.testRunName;
+                            if (!testRunCharts.has(testRunName)) {
+                                testRunCharts.set(testRunName, last7Days.slice(0, dayIndex).map(d => ({
+                                    date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                                    passed: null,
+                                    failed: null
+                                })));
+                            }
+                            
+                            const hasData = (data.passedTestCount || 0) > 0 || (data.failedTestCount || 0) > 0;
+                            testRunCharts.get(testRunName)!.push({
+                                date: formattedDate,
+                                passed: hasData ? (data.passedTestCount || 0) : null,
+                                failed: hasData ? (data.failedTestCount || 0) : null
+                            });
+                        }
                     }
-                } else if (pipeline.type === 'release') {
-                    const data = await pipelineDataService.fetchReleaseDataSilent(dateStr, pipeline.id);
-                    if (data) {
-                        const hasData = (data.passedTestCount || 0) > 0 || (data.failedTestCount || 0) > 0;
-                        chartData.push({ date: formattedDate, passed: hasData ? (data.passedTestCount || 0) : null, failed: hasData ? (data.failedTestCount || 0) : null });
-                    } else {
+                } catch (error) {
+                    console.error(`Error fetching data for ${pipeline.displayName} on ${dateStr}:`, error);
+                }
+                
+                // Fill nulls for test runs that didn't have data this day
+                for (const [testRunName, chartData] of testRunCharts.entries()) {
+                    if (chartData.length <= dayIndex) {
                         chartData.push({ date: formattedDate, passed: null, failed: null });
                     }
                 }
-            } catch (error) {
-                console.error(`Error fetching data for ${pipeline.displayName} on ${dateStr}:`, error);
-                chartData.push({ date: formattedDate, passed: null, failed: null });
             }
+            
+            // Convert map to array of charts
+            const charts: PipelineChartData[] = [];
+            for (const [testRunName, chartData] of testRunCharts.entries()) {
+                charts.push({
+                    pipelineId: pipeline.id,
+                    displayName: pipeline.displayName,
+                    testRunName: testRunName,
+                    type: 'build',
+                    data: chartData,
+                    loading: false
+                });
+            }
+            
+            // Return empty array if no test runs found (don't show the base pipeline)
+            return charts;
+            
+        } else {
+            // Release pipelines - simple aggregation
+            const chartData: Array<{ date: string; passed: number | null; failed: number | null }> = [];
+            
+            for (let dayIndex = 0; dayIndex < last7Days.length; dayIndex++) {
+                const date = last7Days[dayIndex];
+                const dateStr = getDateString(date);
+                const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                
+                try {
+                    const data = await pipelineDataService.fetchReleaseDataSilent(dateStr, pipeline.id);
+                    if (data) {
+                        const hasData = (data.passedTestCount || 0) > 0 || (data.failedTestCount || 0) > 0;
+                        chartData.push({ 
+                            date: formattedDate, 
+                            passed: hasData ? (data.passedTestCount || 0) : null, 
+                            failed: hasData ? (data.failedTestCount || 0) : null 
+                        });
+                    } else {
+                        chartData.push({ date: formattedDate, passed: null, failed: null });
+                    }
+                } catch (error) {
+                    console.error(`Error fetching data for ${pipeline.displayName} on ${dateStr}:`, error);
+                    chartData.push({ date: formattedDate, passed: null, failed: null });
+                }
+            }
+            
+            return [{
+                pipelineId: pipeline.id,
+                displayName: pipeline.displayName,
+                type: 'release',
+                data: chartData,
+                loading: false
+            }];
         }
-        pipelineCharts[index].data = chartData;
-        pipelineCharts[index].loading = false;
     }
 
     function calculateTotals(data: Array<{ passed: number | null; failed: number | null }>) {
@@ -129,10 +221,17 @@
                     <p class="text-muted-foreground">No pipeline configuration found</p>
                 </div>
             {:else}
-                {#each pipelineCharts as pipelineChart (pipelineChart.pipelineId)}
+                {#each pipelineCharts as pipelineChart (pipelineChart.pipelineId + '-' + (pipelineChart.testRunName || 'default'))}
                     <Card.Root class="overflow-hidden py-0">
                         <div class="p-4 pb-0">
-                            <h3 class="text-lg font-semibold">{pipelineChart.displayName}</h3>
+                            <h3 class="text-lg font-semibold">
+                                {pipelineChart.testRunName || pipelineChart.displayName}
+                            </h3>
+                            {#if pipelineChart.testRunName}
+                                <p class="text-sm text-muted-foreground">
+                                    {pipelineChart.displayName} - {pipelineChart.type === 'build' ? 'Build' : 'Release'} Pipeline
+                                </p>
+                            {/if}
                         </div>
                         <div class="p-2 w-full">
                             {#if pipelineChart.loading}
