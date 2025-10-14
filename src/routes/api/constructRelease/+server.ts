@@ -96,7 +96,6 @@ export async function GET({ url }: { url: URL }) {
 
     //Compute the time the release pipeline was completed (take the latest finishTime)
     const latestFinishTime = calculateReleaseCompletionTime(releaseDetails.environments);
-    console.log('Calculated latest finish time:', latestFinishTime);
     // Construct release object
     const release: Release = {
         id: releaseDetails.id,
