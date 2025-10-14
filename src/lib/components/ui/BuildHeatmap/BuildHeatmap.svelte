@@ -6,6 +6,7 @@
     import { Card, CardContent } from "$lib/components/ui/card/index.js";
     import HeatmapButton from "./HeatmapButton.svelte";
     import WeeklyView from "../WeeklyView/WeeklyView.svelte";
+    import { PipelineAnalytics } from "../PipelineAnalytics/index.js";
     import * as Pagination from "$lib/components/ui/pagination/index.js";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import CardTitle from "../card/card-title.svelte";
@@ -189,8 +190,8 @@
                         </Sidebar.Trigger>
                     </div>
 
-                    <div class="flex-1 overflow-hidden">
-                        <Tabs.Content value="Monthly" class="h-full">
+                    <div class="flex-1 min-h-0">
+                        <Tabs.Content value="Monthly" class="h-full overflow-hidden">
                             <CardContent class="h-full px-4 pb-2 flex flex-col">
                                 <!-- Dynamic day of week labels with animation -->
                                 <div
@@ -281,8 +282,11 @@
                                 </div>
                             </CardContent>
                         </Tabs.Content>
-                        <Tabs.Content value="Weekly" class="h-full">
+                        <Tabs.Content value="Weekly" class="h-full overflow-hidden">
                             <WeeklyView />
+                        </Tabs.Content>
+                        <Tabs.Content value="Analytics" class="h-full overflow-auto">
+                            <PipelineAnalytics />
                         </Tabs.Content>
                     </div>
                 </Tabs.Root>
@@ -329,6 +333,24 @@
                                         >view_week</span
                                     >
                                     <span>Weekly View</span>
+                                </Sidebar.MenuButton>
+                            </Sidebar.MenuItem>
+                            <Sidebar.MenuItem>
+                                <Sidebar.MenuButton
+                                    onclick={() => {
+                                        currentTab = "Analytics";
+                                        sidebarOpen = false;
+                                    }}
+                                    class={currentTab === "Analytics"
+                                        ? "bg-accent"
+                                        : ""}
+                                >
+                                    <span
+                                        class="material-symbols-outlined"
+                                        style="font-size: 1.5em;"
+                                        >bar_chart</span
+                                    >
+                                    <span>Pipeline Analytics</span>
                                 </Sidebar.MenuButton>
                             </Sidebar.MenuItem>
                         </Sidebar.Menu>
