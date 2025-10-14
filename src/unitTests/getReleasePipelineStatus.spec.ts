@@ -1,5 +1,436 @@
 import { describe, it, expect } from 'vitest'
-import { getReleasePipelineStatus } from '$lib/utils/getReleasePipelineStatus';
+import { getReleasePipelineStatus, calculateReleaseCompletionTime } from '$lib/utils/getReleasePipelineStatus';
+
+// Tests for calculateReleaseCompletionTime function
+describe('calculateReleaseCompletionTime', () => {
+  it('should return undefined for null environments', () => {
+    const result = calculateReleaseCompletionTime(null as any);
+    expect(result).toBeUndefined();
+  });
+
+  it('should return undefined for undefined environments', () => {
+    const result = calculateReleaseCompletionTime(undefined as any);
+    expect(result).toBeUndefined();
+  });
+
+  it('should return undefined for empty environments array', () => {
+    const result = calculateReleaseCompletionTime([]);
+    expect(result).toBeUndefined();
+  });
+
+  it('should return undefined when no deploySteps exist', () => {
+    const environments = [
+      { name: 'Dev', status: 'succeeded' }
+    ];
+    const result = calculateReleaseCompletionTime(environments);
+    expect(result).toBeUndefined();
+  });
+
+  it('should return undefined when deploySteps is empty', () => {
+    const environments = [
+      { name: 'Dev', deploySteps: [] }
+    ];
+    const result = calculateReleaseCompletionTime(environments);
+    expect(result).toBeUndefined();
+  });
+
+  it('should extract finishTime from job level', () => {
+    const environments = [
+      {
+        name: 'Dev',
+        deploySteps: [
+          {
+            releaseDeployPhases: [
+              {
+                deploymentJobs: [
+                  {
+                    job: {
+                      finishTime: '2023-10-01T12:30:00Z'
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const result = calculateReleaseCompletionTime(environments);
+    expect(result).toBe('2023-10-01T12:30:00Z');
+  });
+
+  it('should extract dateEnded from job level when finishTime is not available', () => {
+    const environments = [
+      {
+        name: 'Dev',
+        deploySteps: [
+          {
+            releaseDeployPhases: [
+              {
+                deploymentJobs: [
+                  {
+                    job: {
+                      dateEnded: '2023-10-01T12:45:00Z'
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const result = calculateReleaseCompletionTime(environments);
+    expect(result).toBe('2023-10-01T12:45:00Z');
+  });
+
+  it('should extract finishTime from task level', () => {
+    const environments = [
+      {
+        name: 'Dev',
+        deploySteps: [
+          {
+            releaseDeployPhases: [
+              {
+                deploymentJobs: [
+                  {
+                    tasks: [
+                      {
+                        finishTime: '2023-10-01T13:00:00Z'
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const result = calculateReleaseCompletionTime(environments);
+    expect(result).toBe('2023-10-01T13:00:00Z');
+  });
+
+  it('should extract dateEnded from task level when finishTime is not available', () => {
+    const environments = [
+      {
+        name: 'Dev',
+        deploySteps: [
+          {
+            releaseDeployPhases: [
+              {
+                deploymentJobs: [
+                  {
+                    tasks: [
+                      {
+                        dateEnded: '2023-10-01T13:15:00Z'
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const result = calculateReleaseCompletionTime(environments);
+    expect(result).toBe('2023-10-01T13:15:00Z');
+  });
+
+  it('should return the latest time from multiple tasks', () => {
+    const environments = [
+      {
+        name: 'Dev',
+        deploySteps: [
+          {
+            releaseDeployPhases: [
+              {
+                deploymentJobs: [
+                  {
+                    tasks: [
+                      { finishTime: '2023-10-01T12:00:00Z' },
+                      { finishTime: '2023-10-01T14:00:00Z' }, // Latest
+                      { finishTime: '2023-10-01T13:00:00Z' }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const result = calculateReleaseCompletionTime(environments);
+    expect(result).toBe('2023-10-01T14:00:00Z');
+  });
+
+  it('should return the latest time from multiple jobs', () => {
+    const environments = [
+      {
+        name: 'Dev',
+        deploySteps: [
+          {
+            releaseDeployPhases: [
+              {
+                deploymentJobs: [
+                  {
+                    job: { finishTime: '2023-10-01T12:00:00Z' }
+                  },
+                  {
+                    job: { finishTime: '2023-10-01T15:00:00Z' } // Latest
+                  },
+                  {
+                    job: { finishTime: '2023-10-01T13:00:00Z' }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const result = calculateReleaseCompletionTime(environments);
+    expect(result).toBe('2023-10-01T15:00:00Z');
+  });
+
+  it('should return the latest time from multiple environments', () => {
+    const environments = [
+      {
+        name: 'Dev',
+        deploySteps: [
+          {
+            releaseDeployPhases: [
+              {
+                deploymentJobs: [
+                  {
+                    job: { finishTime: '2023-10-01T12:00:00Z' }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        name: 'QA',
+        deploySteps: [
+          {
+            releaseDeployPhases: [
+              {
+                deploymentJobs: [
+                  {
+                    job: { finishTime: '2023-10-01T16:00:00Z' } // Latest
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        name: 'Prod',
+        deploySteps: [
+          {
+            releaseDeployPhases: [
+              {
+                deploymentJobs: [
+                  {
+                    job: { finishTime: '2023-10-01T14:00:00Z' }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const result = calculateReleaseCompletionTime(environments);
+    expect(result).toBe('2023-10-01T16:00:00Z');
+  });
+
+  it('should prefer finishTime over dateEnded at job level', () => {
+    const environments = [
+      {
+        name: 'Dev',
+        deploySteps: [
+          {
+            releaseDeployPhases: [
+              {
+                deploymentJobs: [
+                  {
+                    job: {
+                      finishTime: '2023-10-01T12:00:00Z',
+                      dateEnded: '2023-10-01T11:00:00Z'
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const result = calculateReleaseCompletionTime(environments);
+    expect(result).toBe('2023-10-01T12:00:00Z');
+  });
+
+  it('should prefer finishTime over dateEnded at task level', () => {
+    const environments = [
+      {
+        name: 'Dev',
+        deploySteps: [
+          {
+            releaseDeployPhases: [
+              {
+                deploymentJobs: [
+                  {
+                    tasks: [
+                      {
+                        finishTime: '2023-10-01T12:00:00Z',
+                        dateEnded: '2023-10-01T11:00:00Z'
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const result = calculateReleaseCompletionTime(environments);
+    expect(result).toBe('2023-10-01T12:00:00Z');
+  });
+
+  it('should return the latest time from both job and task levels', () => {
+    const environments = [
+      {
+        name: 'Dev',
+        deploySteps: [
+          {
+            releaseDeployPhases: [
+              {
+                deploymentJobs: [
+                  {
+                    job: { finishTime: '2023-10-01T12:00:00Z' },
+                    tasks: [
+                      { finishTime: '2023-10-01T17:00:00Z' } // Latest - from task
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const result = calculateReleaseCompletionTime(environments);
+    expect(result).toBe('2023-10-01T17:00:00Z');
+  });
+
+  it('should handle complex nested structure with multiple phases and jobs', () => {
+    const environments = [
+      {
+        name: 'Production',
+        deploySteps: [
+          {
+            releaseDeployPhases: [
+              {
+                deploymentJobs: [
+                  {
+                    job: { finishTime: '2023-10-01T10:00:00Z' },
+                    tasks: [
+                      { finishTime: '2023-10-01T10:30:00Z' },
+                      { finishTime: '2023-10-01T11:00:00Z' }
+                    ]
+                  },
+                  {
+                    job: { finishTime: '2023-10-01T12:00:00Z' },
+                    tasks: [
+                      { finishTime: '2023-10-01T12:30:00Z' }
+                    ]
+                  }
+                ]
+              },
+              {
+                deploymentJobs: [
+                  {
+                    job: { finishTime: '2023-10-01T13:00:00Z' },
+                    tasks: [
+                      { finishTime: '2023-10-01T18:00:00Z' } // Latest
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const result = calculateReleaseCompletionTime(environments);
+    expect(result).toBe('2023-10-01T18:00:00Z');
+  });
+
+  it('should handle missing nested properties gracefully', () => {
+    const environments = [
+      {
+        name: 'Dev',
+        deploySteps: [
+          {
+            // No releaseDeployPhases
+          },
+          {
+            releaseDeployPhases: [
+              {
+                // No deploymentJobs
+              },
+              {
+                deploymentJobs: [
+                  {
+                    // No job or tasks
+                  },
+                  {
+                    job: { finishTime: '2023-10-01T12:00:00Z' }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const result = calculateReleaseCompletionTime(environments);
+    expect(result).toBe('2023-10-01T12:00:00Z');
+  });
+
+  it('should skip tasks without finishTime or dateEnded', () => {
+    const environments = [
+      {
+        name: 'Dev',
+        deploySteps: [
+          {
+            releaseDeployPhases: [
+              {
+                deploymentJobs: [
+                  {
+                    tasks: [
+                      { name: 'Task 1' }, // No time properties
+                      { finishTime: '2023-10-01T12:00:00Z' },
+                      { name: 'Task 3' } // No time properties
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+    const result = calculateReleaseCompletionTime(environments);
+    expect(result).toBe('2023-10-01T12:00:00Z');
+  });
+});
 
 
 //If the release is null or undefined, throw an error
