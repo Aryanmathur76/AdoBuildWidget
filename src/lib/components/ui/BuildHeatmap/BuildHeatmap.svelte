@@ -165,15 +165,7 @@
                     >
                         <CardTitle class="flex-shrink-0">
                             <span
-                                class={`inline-flex rounded text-base font-bold px-2 py-1 items-center gap-1 ${getHeaderStatusColor(
-                                    dayBuildQuality[
-                                        getDateString(
-                                            currentYear,
-                                            currentMonth,
-                                            today.getDate(),
-                                        )
-                                    ]?.quality ?? "unknown",
-                                )}`}
+                                class={`inline-flex text-base font-bold py-1 items-center gap-1`}
                             >
                                 <span
                                     class="material-symbols-outlined"
