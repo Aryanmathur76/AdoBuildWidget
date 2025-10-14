@@ -93,7 +93,8 @@ export function getPipelineBadgeText(status: string): string {
 export const TEST_RESULT_COLORS = {
   pass: "bg-lime-600",
   fail: "bg-red-600",
-  noData: "bg-zinc-400"
+  noData: "bg-zinc-400",
+  inProgress: "bg-sky-500"
 } as const;
 
 /**
@@ -115,4 +116,11 @@ export function getTestFailColor(): string {
  */
 export function getTestNoDataColor(): string {
   return TEST_RESULT_COLORS.noData;
+}
+
+/**
+ * Helper function to get test result in-progress color
+ */
+export function getTestInProgressColor(): string {
+  return TEST_RESULT_COLORS.inProgress;
 }

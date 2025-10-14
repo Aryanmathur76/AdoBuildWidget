@@ -6,6 +6,7 @@
     getTestPassColor,
     getTestFailColor,
     getTestNoDataColor,
+    getTestInProgressColor,
   } from "$lib/constants/colors.js";
   import { Skeleton } from "$lib/components/ui/skeleton/index.js";
   import { goto } from "$app/navigation";
@@ -233,9 +234,13 @@
                       </div>
                     {:else}
                       <div
-                        class="h-full {getTestNoDataColor()} w-full flex items-center justify-center"
+                        class="h-full w-full flex items-center justify-center {pipeline.status === 'inProgress' ? getTestInProgressColor() : getTestNoDataColor()}"
                       >
-                        <span class="text-xs text-white">No Tests</span>
+                        {#if pipeline.status === "inProgress"}
+                          <span class="text-xs text-white">In Progress</span>
+                        {:else}
+                          <span class="text-xs text-white">No Tests</span>
+                        {/if}
                       </div>
                     {/if}
                   </div>
