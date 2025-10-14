@@ -60,7 +60,26 @@ export async function GET({ url }: { url: URL }) {
         }
 
         const data = await res.json();
-        const builds = data.value as Build[];
+        var builds = data.value as Build[];
+
+        // If no completed builds found, check for in-progress builds
+        if (!builds || builds.length === 0) {
+            const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds?definitions=${buildDefinitionId}&minTime=${encodeURIComponent(minTime)}&maxTime=${encodeURIComponent(maxTime)}&queryOrder=startTimeDescending&$top=10&branchName=${encodeURIComponent(branchName)}&api-version=7.1`;
+
+            const res = await fetch(apiUrl, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Basic ${Buffer.from(`:${pat}`).toString('base64')}`
+                }
+            });
+
+            if (!res.ok) {
+                throw new Error(`Failed to fetch builds: ${res.status} ${res.statusText}`);
+            }
+
+            const data = await res.json();
+            builds = (data.value as Build[]).filter(build => build.status === 'inProgress');
+        }
 
         // The build with the latest startTime on that day is the one we want
         const latestBuild = builds[0];
