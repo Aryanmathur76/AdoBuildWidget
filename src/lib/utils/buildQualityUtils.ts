@@ -298,7 +298,15 @@ export function calculateWeeklyStats(
     }>,
     dayBuildQuality: Record<string, DayBuildQuality>
 ): WeeklyStats {
-    const completedDays = days.filter(day => !day.disabled && dayBuildQuality[day.dateStr]);
+    const todayStr = getDateString(new Date());
+    
+    const completedDays = days.filter(day => {
+        // Exclude today's data from the calculation
+        if (day.dateStr === todayStr) {
+            return false;
+        }
+        return !day.disabled && dayBuildQuality[day.dateStr];
+    });
     
     if (completedDays.length === 0) {
         return {
