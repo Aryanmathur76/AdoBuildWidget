@@ -169,8 +169,8 @@
 {#if dayObj}
   <Popover.Root bind:open={showPopover}>
     <Popover.Trigger
-      class={`w-full h-full min-w-0 min-h-0 cursor-pointer ${dayObj.colorClass} ${dayObj.animationClass}`}
-      style="aspect-ratio: 1 / 1; transition: transform 0.2s; position: relative; border: none; padding: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 6px;"
+      class={`w-full h-full min-w-0 min-h-0 cursor-pointer ${dayObj.colorClass} ${dayObj.animationClass} hover:scale-110 hover:shadow-xl hover:z-10`}
+      style="aspect-ratio: 1 / 1; transition: all 0.2s ease-in-out; position: relative; border: none; padding: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 6px;"
       aria-label={`Go to build ${dayObj.dateStr}`}
       onclick={() => goto(`/build/${dayObj.dateStr}`)}
       onmouseenter={handlePopoverOpen}
