@@ -43,17 +43,20 @@ export async function GET({ url }: { url: URL }) {
     //#region First step is to get the correct build ID given the date and definition ID
     let buildId: number;
     try {
-        // Convert CST date to UTC range for API query
-        // CST is UTC-6, so we need to adjust the time range
-        const cstDate = new Date(date + 'T00:00:00-06:00'); // Parse as CST
-        const cstDateEnd = new Date(date + 'T23:59:59-06:00'); // End of day in CST
+        // Convert Central Time date to UTC range for API query
+        // Use proper timezone handling to account for CDT/CST automatically
+        const centralDateStart = new Date(date + 'T00:00:00');
+        const centralDateEnd = new Date(date + 'T23:59:59');
+        
+        // Convert Central Time to UTC (this handles DST automatically)
+        // Note: We'll create a broader search range since timezone conversion can be tricky
         
         // Convert to UTC for the API query - expand range to catch builds that might span timezone boundaries
-        const searchStartDate = new Date(cstDate);
+        const searchStartDate = new Date(centralDateStart);
         searchStartDate.setDate(searchStartDate.getDate() - 1); // Look back 1 day to catch any timezone edge cases
         
         const minTime = searchStartDate.toISOString();
-        const maxTime = new Date(cstDateEnd.getTime() + 24 * 60 * 60 * 1000).toISOString(); // Add 1 day forward
+        const maxTime = new Date(centralDateEnd.getTime() + 24 * 60 * 60 * 1000).toISOString(); // Add 1 day forward
         
         const branchName = 'refs/heads/trunk'; // or your desired branch
         const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds?definitions=${buildDefinitionId}&minTime=${encodeURIComponent(minTime)}&maxTime=${encodeURIComponent(maxTime)}&queryOrder=finishTimeDescending&$top=50&branchName=${encodeURIComponent(branchName)}&api-version=7.1`;
@@ -72,32 +75,68 @@ export async function GET({ url }: { url: URL }) {
         const data = await res.json();
         var allBuilds = data.value as any[];
         
-        // Filter builds to only include those that completed on the target CST date
+        // Filter builds to only include those that completed on the target Central Time date
         var builds = allBuilds.filter(build => {
             if (!build.finishTime) return false; // Only completed builds
             
-            // Convert UTC finish time to CST
+            // Convert UTC finish time to Central Time properly
             const finishTimeUTC = new Date(build.finishTime);
-            const finishTimeCST = new Date(finishTimeUTC.getTime() - 6 * 60 * 60 * 1000); // UTC-6 for CST
             
-            // Check if the CST finish date matches the target date
-            const finishDateCST = finishTimeCST.toISOString().split('T')[0];
-            const isMatch = finishDateCST === date;
+            // Use Intl.DateTimeFormat to get the date in Central Time
+            const centralFormatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/Chicago',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            const finishDateCentral = centralFormatter.format(finishTimeUTC);
+            
+            // Also format the time for logging
+            const centralTimeFormatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/Chicago',
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const finishTimeCentralStr = centralTimeFormatter.format(finishTimeUTC);
+            
+            const isMatch = finishDateCentral === date;
+            
+            console.log(`Build ${build.id}: finishTime UTC=${build.finishTime}, Central Date=${finishDateCentral} ${finishTimeCentralStr}, targetDate=${date}, match=${isMatch}`);
                         
             return isMatch;
         }) as Build[];
 
-        // If no completed builds found and the day is today (in CST), check for in-progress builds
-        const todayCST = new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString().split('T')[0];
-        if ((!builds || builds.length === 0) && date === todayCST) {
-            // For in-progress builds, look for builds that started on the target CST day
-            const cstStartDate = new Date(date + 'T00:00:00-06:00');
-            const cstEndDate = new Date(date + 'T23:59:59-06:00');
-            const utcMinTime = cstStartDate.toISOString();
-            const utcMaxTime = cstEndDate.toISOString();
+        // If no completed builds found and the day is today (in Central Time), check for in-progress builds
+        const now = new Date();
+        const todayUTC = now.toISOString();
+        // Convert to Central Time (accounting for CDT/CST automatically)
+        const todayCentralFormatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Chicago',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+        const todayCentralStr = todayCentralFormatter.format(now);
+        
+        console.log("Current UTC: ", todayUTC);
+        console.log("Today Central Time: ", todayCentralStr);
+        console.log("Requested date: ", date);
+        console.log("Filtered builds for date ", date, ": ", builds.map(b => ({id: b.id, finishTime: b.completedTime})));
+        if ((!builds || builds.length === 0) && date === todayCentralStr) {
+            // For in-progress builds, look for builds that started on the target Central Time day
+            // Look for builds that started on the target day or the day before (to catch edge cases)
+            const centralStartDate = new Date(date + 'T00:00:00');
+            const centralEndDate = new Date(date + 'T23:59:59');
+            const centralStartDatePrev = new Date(centralStartDate);
+            centralStartDatePrev.setDate(centralStartDatePrev.getDate() - 1); // Previous day
+
+            const utcMinTime = centralStartDatePrev.toISOString();
+            const utcMaxTime = centralEndDate.toISOString();
             
             const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds?definitions=${buildDefinitionId}&minTime=${encodeURIComponent(utcMinTime)}&maxTime=${encodeURIComponent(utcMaxTime)}&queryOrder=startTimeDescending&$top=10&branchName=${encodeURIComponent(branchName)}&api-version=7.1`;
-
+            console.log("Fetching in-progress builds from URL: ", apiUrl);
             const res = await fetch(apiUrl, {
                 headers: {
                     'Content-Type': 'application/json',
@@ -110,16 +149,7 @@ export async function GET({ url }: { url: URL }) {
             }
 
             const data = await res.json();
-            const inProgressBuilds = (data.value as any[]).filter(build => {
-                if (build.status !== 'inProgress') return false;
-                
-                // Verify the build started on the target CST day
-                const startTimeUTC = new Date(build.startTime);
-                const startTimeCST = new Date(startTimeUTC.getTime() - 6 * 60 * 60 * 1000);
-                const startDateCST = startTimeCST.toISOString().split('T')[0];
-                                
-                return startDateCST === date;
-            });
+            const inProgressBuilds = (data.value as any[]).filter(build => build.status === 'inProgress');
             builds = inProgressBuilds as Build[];
         }
 
