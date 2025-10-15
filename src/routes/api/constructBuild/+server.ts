@@ -43,10 +43,20 @@ export async function GET({ url }: { url: URL }) {
     //#region First step is to get the correct build ID given the date and definition ID
     let buildId: number;
     try {
-        const minTime = `${date}T00:00:00Z`;
-        const maxTime = `${date}T23:59:59Z`;
+        // Convert CST date to UTC range for API query
+        // CST is UTC-6, so we need to adjust the time range
+        const cstDate = new Date(date + 'T00:00:00-06:00'); // Parse as CST
+        const cstDateEnd = new Date(date + 'T23:59:59-06:00'); // End of day in CST
+        
+        // Convert to UTC for the API query - expand range to catch builds that might span timezone boundaries
+        const searchStartDate = new Date(cstDate);
+        searchStartDate.setDate(searchStartDate.getDate() - 1); // Look back 1 day to catch any timezone edge cases
+        
+        const minTime = searchStartDate.toISOString();
+        const maxTime = new Date(cstDateEnd.getTime() + 24 * 60 * 60 * 1000).toISOString(); // Add 1 day forward
+        
         const branchName = 'refs/heads/trunk'; // or your desired branch
-        const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds?definitions=${buildDefinitionId}&minTime=${encodeURIComponent(minTime)}&maxTime=${encodeURIComponent(maxTime)}&queryOrder=finishTimeDescending&$top=10&branchName=${encodeURIComponent(branchName)}&api-version=7.1`;
+        const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds?definitions=${buildDefinitionId}&minTime=${encodeURIComponent(minTime)}&maxTime=${encodeURIComponent(maxTime)}&queryOrder=finishTimeDescending&$top=50&branchName=${encodeURIComponent(branchName)}&api-version=7.1`;
 
         const res = await fetch(apiUrl, {
             headers: {
@@ -60,11 +70,33 @@ export async function GET({ url }: { url: URL }) {
         }
 
         const data = await res.json();
-        var builds = data.value as Build[];
+        var allBuilds = data.value as any[];
+        
+        // Filter builds to only include those that completed on the target CST date
+        var builds = allBuilds.filter(build => {
+            if (!build.finishTime) return false; // Only completed builds
+            
+            // Convert UTC finish time to CST
+            const finishTimeUTC = new Date(build.finishTime);
+            const finishTimeCST = new Date(finishTimeUTC.getTime() - 6 * 60 * 60 * 1000); // UTC-6 for CST
+            
+            // Check if the CST finish date matches the target date
+            const finishDateCST = finishTimeCST.toISOString().split('T')[0];
+            const isMatch = finishDateCST === date;
+                        
+            return isMatch;
+        }) as Build[];
 
-        // If no completed builds found and the day is today, check for in-progress builds
-        if ((!builds || builds.length === 0) && date === new Date().toISOString().split('T')[0]) {
-            const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds?definitions=${buildDefinitionId}&minTime=${encodeURIComponent(minTime)}&maxTime=${encodeURIComponent(maxTime)}&queryOrder=startTimeDescending&$top=10&branchName=${encodeURIComponent(branchName)}&api-version=7.1`;
+        // If no completed builds found and the day is today (in CST), check for in-progress builds
+        const todayCST = new Date(new Date().getTime() - 6 * 60 * 60 * 1000).toISOString().split('T')[0];
+        if ((!builds || builds.length === 0) && date === todayCST) {
+            // For in-progress builds, look for builds that started on the target CST day
+            const cstStartDate = new Date(date + 'T00:00:00-06:00');
+            const cstEndDate = new Date(date + 'T23:59:59-06:00');
+            const utcMinTime = cstStartDate.toISOString();
+            const utcMaxTime = cstEndDate.toISOString();
+            
+            const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds?definitions=${buildDefinitionId}&minTime=${encodeURIComponent(utcMinTime)}&maxTime=${encodeURIComponent(utcMaxTime)}&queryOrder=startTimeDescending&$top=10&branchName=${encodeURIComponent(branchName)}&api-version=7.1`;
 
             const res = await fetch(apiUrl, {
                 headers: {
@@ -78,7 +110,17 @@ export async function GET({ url }: { url: URL }) {
             }
 
             const data = await res.json();
-            builds = (data.value as Build[]).filter(build => build.status === 'inProgress');
+            const inProgressBuilds = (data.value as any[]).filter(build => {
+                if (build.status !== 'inProgress') return false;
+                
+                // Verify the build started on the target CST day
+                const startTimeUTC = new Date(build.startTime);
+                const startTimeCST = new Date(startTimeUTC.getTime() - 6 * 60 * 60 * 1000);
+                const startDateCST = startTimeCST.toISOString().split('T')[0];
+                                
+                return startDateCST === date;
+            });
+            builds = inProgressBuilds as Build[];
         }
 
         // The build with the latest startTime on that day is the one we want
@@ -115,7 +157,14 @@ export async function GET({ url }: { url: URL }) {
         return json({ error: 'Failed to fetch build details' }, { status: 500 });
     }
 
-    //Construct a build object
+    //Construct a build object with CST time logging
+    if (buildDetails.startTime) {
+        const startCST = new Date(new Date(buildDetails.startTime).getTime() - 6 * 60 * 60 * 1000);
+    }
+    if (buildDetails.finishTime) {
+        const finishCST = new Date(new Date(buildDetails.finishTime).getTime() - 6 * 60 * 60 * 1000);
+    }
+    
     const build: Build = {
         id: buildDetails.id,
         name: buildDetails.name,
@@ -131,13 +180,15 @@ export async function GET({ url }: { url: URL }) {
     //#region Third step is to get the test results
     let testResults: any[] = [];
     try {
-        // Fetch test runs for this release - use release creation date as base and add 7 days
-        const buildCreationDate = new Date(buildDetails.startTime);
-        const maxDate = new Date(buildCreationDate);
-        maxDate.setDate(buildCreationDate.getDate() + 7); // Add 7 days
+        // Fetch test runs for this build - use build start date as base and add 7 days
+        const buildCreationDateUTC = new Date(buildDetails.startTime);
+        const buildCreationDateCST = new Date(buildCreationDateUTC.getTime() - 6 * 60 * 60 * 1000);
+        const maxDateCST = new Date(buildCreationDateCST);
+        maxDateCST.setDate(buildCreationDateCST.getDate() + 7); // Add 7 days
 
-        const minLastUpdatedDate = buildCreationDate.toISOString();
-        const maxLastUpdatedDate = maxDate.toISOString();
+        // Convert back to UTC for API query
+        const minLastUpdatedDate = buildCreationDateUTC.toISOString();
+        const maxLastUpdatedDate = new Date(maxDateCST.getTime() + 6 * 60 * 60 * 1000).toISOString();
         const testRunUrl = `https://dev.azure.com/${organization}/${project}/_apis/test/runs?buildIds=${buildId}&minLastUpdatedDate=${encodeURIComponent(minLastUpdatedDate)}&maxLastUpdatedDate=${encodeURIComponent(maxLastUpdatedDate)}&api-version=7.1`;
         const testRunResponse = await fetch(testRunUrl, {
             headers: {
