@@ -62,8 +62,8 @@ export async function GET({ url }: { url: URL }) {
         const data = await res.json();
         var builds = data.value as Build[];
 
-        // If no completed builds found, check for in-progress builds
-        if (!builds || builds.length === 0) {
+        // If no completed builds found and the day is today, check for in-progress builds
+        if ((!builds || builds.length === 0) && date === new Date().toISOString().split('T')[0]) {
             const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds?definitions=${buildDefinitionId}&minTime=${encodeURIComponent(minTime)}&maxTime=${encodeURIComponent(maxTime)}&queryOrder=startTimeDescending&$top=10&branchName=${encodeURIComponent(branchName)}&api-version=7.1`;
 
             const res = await fetch(apiUrl, {
