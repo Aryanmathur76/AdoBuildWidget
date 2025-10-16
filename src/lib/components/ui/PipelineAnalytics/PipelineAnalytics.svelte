@@ -215,7 +215,7 @@
 <div class="w-full h-full min-h-screen">
     <Card.Root class="border-0 shadow-none w-full h-screen min-h-screen rounded-none py-0">
         <ScrollArea class="h-full w-full">
-            <Card.Content class="p-4 pt-0 pb-20 flex flex-col gap-4">
+            <Card.Content class="p-4 lg:p-0 pt-0 flex flex-col gap-4">
             {#if pipelineCharts.length === 0}
                 <div class="flex items-center justify-center h-full">
                     <p class="text-muted-foreground">No pipeline configuration found</p>
