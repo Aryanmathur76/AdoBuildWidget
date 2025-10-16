@@ -118,9 +118,9 @@
             </div>
 
             <!-- Stats Grid -->
-            <div class="grid grid-cols-2 gap-3 auto-rows-min">
+            <div class="flex flex-col gap-3 flex-1">
                 <!-- Combined Test Statistics -->
-                <Card class="p-3 col-span-2">
+                <Card class="p-3">
                     <div class="flex flex-col space-y-2">
                         <div class="grid grid-cols-4 gap-4">
                             <div class="text-center">
@@ -144,7 +144,7 @@
                 </Card>
 
                 <!-- Best & Worst Day Performance -->
-                <div class="col-span-2 flex gap-3">
+                <div class="flex gap-3">
                     <!-- Best Day Performance -->
                     <Card class="p-3 flex-1">
                         <div class="flex flex-col space-y-2">
@@ -249,8 +249,8 @@
                 </div>
 
                 <!-- Work inProgress Placeholder -->
-                <Card class="p-4 col-span-2">
-                    <div class="flex flex-col items-center justify-center space-y-3 h-max">
+                <Card class="p-4 flex-1 flex items-center justify-center">
+                    <div class="flex flex-col items-center justify-center space-y-3">
                         <div class="w-8 h-8 border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center">
                             <svg class="w-4 h-4 text-muted-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
