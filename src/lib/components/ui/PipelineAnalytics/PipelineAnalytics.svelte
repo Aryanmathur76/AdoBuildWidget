@@ -53,9 +53,9 @@
             // Initialize with loading state for each pipeline
             // We'll expand build pipelines later when we discover multiple test runs
             pipelineCharts = pipelineConfig.pipelines.map(pipeline => ({
-                pipelineId: pipeline.id,
-                displayName: pipeline.displayName,
-                type: pipeline.type,
+                pipelineId: String(pipeline.id),
+                displayName: pipeline.displayName ?? "",
+                type: pipeline.type === "build" ? "build" : "release",
                 data: last7Days.map(date => ({
                     date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                     passed: null,
@@ -246,8 +246,8 @@
                                         axis="x"
                                         rule={false}
                                         series={[
-                                            { key: "passed", label: "Passed", color: chartConfig.passed.color, props: { rounded: false } },
-                                            { key: "failed", label: "Failed", color: chartConfig.failed.color, props: { rounded: false } },
+                                            { key: "passed", label: "Passed", color: chartConfig.passed.color, props: { rounded: "none" } },
+                                            { key: "failed", label: "Failed", color: chartConfig.failed.color, props: { rounded: "none" } },
                                         ]}
                                         seriesLayout="stack"
                                         props={{
@@ -256,7 +256,7 @@
                                                 strokeWidth: 0,
                                                 rx: 0,
                                                 ry: 0,
-                                                fillOpacity: (d) => (d.value === null || d.value === 0) ? 0 : 1,
+                                                fillOpacity: 1,
                                                 initialY: pipelineChart.context?.height,
                                                 initialHeight: 0,
                                                 motion: {

@@ -102,9 +102,7 @@ export async function GET({ url }: { url: URL }) {
             const finishTimeCentralStr = centralTimeFormatter.format(finishTimeUTC);
             
             const isMatch = finishDateCentral === date;
-            
-            console.log(`Build ${build.id}: finishTime UTC=${build.finishTime}, Central Date=${finishDateCentral} ${finishTimeCentralStr}, targetDate=${date}, match=${isMatch}`);
-                        
+                                    
             return isMatch;
         }) as Build[];
 
@@ -120,10 +118,7 @@ export async function GET({ url }: { url: URL }) {
         });
         const todayCentralStr = todayCentralFormatter.format(now);
         
-        console.log("Current UTC: ", todayUTC);
-        console.log("Today Central Time: ", todayCentralStr);
-        console.log("Requested date: ", date);
-        console.log("Filtered builds for date ", date, ": ", builds.map(b => ({id: b.id, finishTime: b.completedTime})));
+
         if ((!builds || builds.length === 0) && date === todayCentralStr) {
             // For in-progress builds, look for builds that started on the target Central Time day
             // Look for builds that started on the target day or the day before (to catch edge cases)
@@ -136,7 +131,6 @@ export async function GET({ url }: { url: URL }) {
             const utcMaxTime = centralEndDate.toISOString();
             
             const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds?definitions=${buildDefinitionId}&minTime=${encodeURIComponent(utcMinTime)}&maxTime=${encodeURIComponent(utcMaxTime)}&queryOrder=startTimeDescending&$top=10&branchName=${encodeURIComponent(branchName)}&api-version=7.1`;
-            console.log("Fetching in-progress builds from URL: ", apiUrl);
             const res = await fetch(apiUrl, {
                 headers: {
                     'Content-Type': 'application/json',
