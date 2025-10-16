@@ -118,7 +118,7 @@
             </div>
 
             <!-- Stats Grid -->
-            <div class="grid grid-cols-2 gap-3 flex-1">
+            <div class="grid grid-cols-2 gap-3 auto-rows-min">
                 <!-- Combined Test Statistics -->
                 <Card class="p-3 col-span-2">
                     <div class="flex flex-col space-y-2">
@@ -250,7 +250,7 @@
 
                 <!-- Work inProgress Placeholder -->
                 <Card class="p-4 col-span-2">
-                    <div class="flex flex-col items-center justify-center space-y-3 h-24">
+                    <div class="flex flex-col items-center justify-center space-y-3 h-max">
                         <div class="w-8 h-8 border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center">
                             <svg class="w-4 h-4 text-muted-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
