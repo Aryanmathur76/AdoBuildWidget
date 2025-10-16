@@ -40,6 +40,21 @@
     );
     let tabAnimationKey = $state(0);
 
+    // Track if we're on desktop (lg breakpoint = 1024px)
+    let isDesktop = $state(false);
+    
+    // Update isDesktop on window resize
+    $effect(() => {
+        if (typeof window !== 'undefined') {
+            const checkDesktop = () => {
+                isDesktop = window.innerWidth >= 1024;
+            };
+            checkDesktop();
+            window.addEventListener('resize', checkDesktop);
+            return () => window.removeEventListener('resize', checkDesktop);
+        }
+    });
+
     // Get sidebar context - will be available after Provider is mounted
     let sidebar: ReturnType<typeof useSidebar> | undefined = $state();
     
@@ -170,7 +185,7 @@
             <Card
                 class="py-0 border-0 shadow-none h-full rounded-none overflow-hidden flex flex-col"
             >
-                <Tabs.Root bind:value={currentTab} class="h-full flex flex-col">
+                <Tabs.Root bind:value={currentTab} class="h-full flex flex-col lg:hidden">
                     <div
                         class="flex items-center overflow-hidden justify-between px-4 pt-4 pb-2 flex-shrink-0"
                     >
@@ -299,73 +314,191 @@
                         </Tabs.Content>
                     </div>
                 </Tabs.Root>
+
+                <!-- Desktop Layout: Show all views side-by-side -->
+                <div class="hidden lg:flex flex-col h-full overflow-auto">
+                    <div class="flex items-center px-4 pt-4 pb-2 flex-shrink-0">
+                        <CardTitle class="flex-shrink-0">
+                            <span class="inline-flex text-base font-bold py-1 items-center gap-1">
+                                <span
+                                    class="material-symbols-outlined"
+                                    style="font-size: 1.75em; line-height: 1;"
+                                    >health_metrics</span
+                                >
+                                DELTAV BUILD HEALTH
+                            </span>
+                        </CardTitle>
+                    </div>
+
+                    <div class="flex-1 overflow-auto px-4 pb-4">
+                        <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                            <!-- Monthly View Card -->
+                            <Card class="flex flex-col max-h-[calc(100vh-8rem)]">
+                                <CardContent class="h-full p-4 flex flex-col overflow-auto">
+                                    <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+                                        <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
+                                        Monthly View
+                                    </h3>
+                                    <!-- Dynamic day of week labels -->
+                                    <div class="grid grid-cols-7 gap-0.5 mb-1 h-5 items-center flex-shrink-0">
+                                        {#each dayLabels as label, i}
+                                            <div class="text-center text-xs font-medium text-muted-foreground h-full flex items-center justify-center">
+                                                {label}
+                                            </div>
+                                        {/each}
+                                    </div>
+
+                                    <div class="grid grid-cols-7 gap-0.5 mb-2 flex-1">
+                                        {#each daysInMonth as dayObj, index}
+                                            <div class="w-full aspect-square min-w-0 min-h-0">
+                                                {#if dayBuildQuality[dayObj.dateStr]}
+                                                    <HeatmapButton {dayObj} />
+                                                {:else if dayObj.disabled}
+                                                    <HeatmapButton {dayObj} />
+                                                {:else}
+                                                    <Skeleton
+                                                        class="w-full h-full min-w-0 min-h-0 rounded"
+                                                        style="aspect-ratio: 1 / 1;"
+                                                    />
+                                                {/if}
+                                            </div>
+                                        {/each}
+                                    </div>
+                                    <div class="flex justify-center flex-shrink-0">
+                                        <Pagination.Root
+                                            count={months.length}
+                                            perPage={1}
+                                            siblingCount={1}
+                                            bind:page={currentMonthPage}
+                                        >
+                                            {#snippet children({ pages, currentPage })}
+                                                <Pagination.Content>
+                                                    <Pagination.Item>
+                                                        <Pagination.PrevButton />
+                                                    </Pagination.Item>
+                                                    {#each pages as page (page.key)}
+                                                        {#if page.type === "ellipsis"}
+                                                            <Pagination.Item>
+                                                                <Pagination.Ellipsis />
+                                                            </Pagination.Item>
+                                                        {:else}
+                                                            <Pagination.Item>
+                                                                <Pagination.Link
+                                                                    {page}
+                                                                    isActive={currentPage === page.value}
+                                                                >
+                                                                    {monthNames[page.value - 1].slice(0, 3)}
+                                                                </Pagination.Link>
+                                                            </Pagination.Item>
+                                                        {/if}
+                                                    {/each}
+                                                    <Pagination.Item>
+                                                        <Pagination.NextButton />
+                                                    </Pagination.Item>
+                                                </Pagination.Content>
+                                            {/snippet}
+                                        </Pagination.Root>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <!-- Weekly View Card -->
+                            <Card class="flex flex-col max-h-[calc(100vh-8rem)]">
+                                <CardContent class="h-full p-4 flex flex-col overflow-auto">
+                                    <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+                                        <span class="material-symbols-outlined" style="font-size: 1.5em;">view_week</span>
+                                        Weekly View
+                                    </h3>
+                                    <div class="flex-1 min-h-0 overflow-auto">
+                                        <WeeklyView />
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <!-- Analytics View Card -->
+                            <Card class="flex flex-col max-h-[calc(100vh-8rem)]">
+                                <CardContent class="h-full p-4 flex flex-col overflow-auto">
+                                    <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+                                        <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
+                                        Pipeline Analytics
+                                    </h3>
+                                    <div class="flex-1 min-h-0 overflow-auto">
+                                        <PipelineAnalytics />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                </div>
             </Card>
         </Sidebar.Inset>
 
-        <Sidebar.Root side="right" collapsible="offcanvas">
-            <Sidebar.Content>
-                <Sidebar.Group>
-                    <Sidebar.GroupLabel>Views</Sidebar.GroupLabel>
-                    <Sidebar.GroupContent>
-                        <Sidebar.Menu>
-                            <Sidebar.MenuItem>
-                                <Sidebar.MenuButton
-                                    onclick={() => {
-                                        currentTab = "Monthly";
-                                        sidebar?.toggle();
-                                    }}
-                                    class={currentTab === "Monthly"
-                                        ? "bg-accent"
-                                        : ""}
-                                >
-                                    <span
-                                        class="material-symbols-outlined"
-                                        style="font-size: 1.5em;"
-                                        >view_module</span
+        {#if !isDesktop}
+            <Sidebar.Root side="right" collapsible="offcanvas">
+                <Sidebar.Content>
+                    <Sidebar.Group>
+                        <Sidebar.GroupLabel>Views</Sidebar.GroupLabel>
+                        <Sidebar.GroupContent>
+                            <Sidebar.Menu>
+                                <Sidebar.MenuItem>
+                                    <Sidebar.MenuButton
+                                        onclick={() => {
+                                            currentTab = "Monthly";
+                                            sidebar?.toggle();
+                                        }}
+                                        class={currentTab === "Monthly"
+                                            ? "bg-accent"
+                                            : ""}
                                     >
-                                    <span>Monthly View</span>
-                                </Sidebar.MenuButton>
-                            </Sidebar.MenuItem>
-                            <Sidebar.MenuItem>
-                                <Sidebar.MenuButton
-                                    onclick={() => {
-                                        currentTab = "Weekly";
-                                        sidebar?.toggle();
-                                    }}
-                                    class={currentTab === "Weekly"
-                                        ? "bg-accent"
-                                        : ""}
-                                >
-                                    <span
-                                        class="material-symbols-outlined"
-                                        style="font-size: 1.5em;"
-                                        >view_week</span
+                                        <span
+                                            class="material-symbols-outlined"
+                                            style="font-size: 1.5em;"
+                                            >view_module</span
+                                        >
+                                        <span>Monthly View</span>
+                                    </Sidebar.MenuButton>
+                                </Sidebar.MenuItem>
+                                <Sidebar.MenuItem>
+                                    <Sidebar.MenuButton
+                                        onclick={() => {
+                                            currentTab = "Weekly";
+                                            sidebar?.toggle();
+                                        }}
+                                        class={currentTab === "Weekly"
+                                            ? "bg-accent"
+                                            : ""}
                                     >
-                                    <span>Weekly View</span>
-                                </Sidebar.MenuButton>
-                            </Sidebar.MenuItem>
-                            <Sidebar.MenuItem>
-                                <Sidebar.MenuButton
-                                    onclick={() => {
-                                        currentTab = "Analytics";
-                                        sidebar?.toggle();
-                                    }}
-                                    class={currentTab === "Analytics"
-                                        ? "bg-accent"
-                                        : ""}
-                                >
-                                    <span
-                                        class="material-symbols-outlined"
-                                        style="font-size: 1.5em;"
-                                        >bar_chart</span
+                                        <span
+                                            class="material-symbols-outlined"
+                                            style="font-size: 1.5em;"
+                                            >view_week</span
+                                        >
+                                        <span>Weekly View</span>
+                                    </Sidebar.MenuButton>
+                                </Sidebar.MenuItem>
+                                <Sidebar.MenuItem>
+                                    <Sidebar.MenuButton
+                                        onclick={() => {
+                                            currentTab = "Analytics";
+                                            sidebar?.toggle();
+                                        }}
+                                        class={currentTab === "Analytics"
+                                            ? "bg-accent"
+                                            : ""}
                                     >
-                                    <span>Pipeline Analytics</span>
-                                </Sidebar.MenuButton>
-                            </Sidebar.MenuItem>
-                        </Sidebar.Menu>
-                    </Sidebar.GroupContent>
-                </Sidebar.Group>
-            </Sidebar.Content>
-        </Sidebar.Root>
+                                        <span
+                                            class="material-symbols-outlined"
+                                            style="font-size: 1.5em;"
+                                            >bar_chart</span
+                                        >
+                                        <span>Pipeline Analytics</span>
+                                    </Sidebar.MenuButton>
+                                </Sidebar.MenuItem>
+                            </Sidebar.Menu>
+                        </Sidebar.GroupContent>
+                    </Sidebar.Group>
+                </Sidebar.Content>
+            </Sidebar.Root>
+        {/if}
     </Sidebar.Provider>
 </div>
