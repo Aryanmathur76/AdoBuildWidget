@@ -309,7 +309,7 @@
                         <Tabs.Content value="Weekly" class="h-full overflow-hidden">
                             <WeeklyView />
                         </Tabs.Content>
-                        <Tabs.Content value="Analytics" class="h-full overflow-auto">
+                        <Tabs.Content value="Analytics" class="h-[100dvh] max-h-[100dvh] overflow-auto">
                             <PipelineAnalytics />
                         </Tabs.Content>
                     </div>
@@ -334,7 +334,7 @@
                         <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
                             <!-- Monthly View Card -->
                             <Card class="flex flex-col max-h-[calc(100vh-8rem)]">
-                                <CardContent class="h-full p-4 flex flex-col overflow-auto">
+                                <CardContent class="h-full p-4 pt-0 flex flex-col overflow-auto">
                                     <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
                                         <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
                                         Monthly View
@@ -404,7 +404,7 @@
 
                             <!-- Weekly View Card -->
                             <Card class="flex flex-col max-h-[calc(100vh-8rem)]">
-                                <CardContent class="h-full p-4 flex flex-col overflow-auto">
+                                <CardContent class="h-full p-4 pt-0 flex flex-col overflow-auto">
                                     <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
                                         <span class="material-symbols-outlined" style="font-size: 1.5em;">view_week</span>
                                         Weekly View
@@ -417,7 +417,7 @@
 
                             <!-- Analytics View Card -->
                             <Card class="flex flex-col max-h-[calc(100vh-8rem)]">
-                                <CardContent class="h-full p-4 flex flex-col overflow-auto">
+                                <CardContent class="h-full p-4 pt-0 flex flex-col">
                                     <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
                                         <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
                                         Pipeline Analytics

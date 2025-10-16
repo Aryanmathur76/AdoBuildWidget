@@ -212,17 +212,15 @@
     }
 </script>
 
-<div class="w-full h-full min-h-screen">
-    <Card.Root class="border-0 shadow-none w-full h-screen min-h-screen rounded-none py-0">
-        <ScrollArea class="h-full w-full">
-            <Card.Content class="p-4 lg:p-0 pt-0 flex flex-col gap-4">
-            {#if pipelineCharts.length === 0}
-                <div class="flex items-center justify-center h-full">
-                    <p class="text-muted-foreground">No pipeline configuration found</p>
-                </div>
-            {:else}
-                {#each pipelineCharts as pipelineChart (pipelineChart.pipelineId + '-' + (pipelineChart.testRunName || 'default'))}
-                    <Card.Root class="overflow-hidden py-0">
+<div class="w-full h-full">
+    <div class="p-4 lg:p-0 lg:pb-0 pb-20 flex flex-col gap-4">
+        {#if pipelineCharts.length === 0}
+            <div class="flex items-center justify-center h-full">
+                <p class="text-muted-foreground">No pipeline configuration found</p>
+            </div>
+        {:else}
+            {#each pipelineCharts as pipelineChart (pipelineChart.pipelineId + '-' + (pipelineChart.testRunName || 'default'))}
+                    <Card.Root class="py-0">
                         <div class="p-4 pb-0">
                             <h3 class="text-lg font-semibold">
                                 {pipelineChart.testRunName || pipelineChart.displayName}
@@ -289,7 +287,5 @@
                     </Card.Root>
                 {/each}
             {/if}
-        </Card.Content>
-    </ScrollArea>
-</Card.Root>
+    </div>
 </div>
