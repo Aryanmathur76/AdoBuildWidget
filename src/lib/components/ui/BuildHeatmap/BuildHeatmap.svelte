@@ -3,6 +3,7 @@
     import { fly } from "svelte/transition";
     import * as Tabs from "$lib/components/ui/tabs/index.js";
     import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+    import { useSidebar } from "$lib/components/ui/sidebar/context.svelte.js";
     import { Card, CardContent } from "$lib/components/ui/card/index.js";
     import HeatmapButton from "./HeatmapButton.svelte";
     import WeeklyView from "../WeeklyView/WeeklyView.svelte";
@@ -38,7 +39,16 @@
             : "Monthly"
     );
     let tabAnimationKey = $state(0);
-    let sidebarOpen = $state(false);
+
+    // Get sidebar context - will be available after Provider is mounted
+    let sidebar: ReturnType<typeof useSidebar> | undefined = $state();
+    
+    // Initialize sidebar context after mount
+    $effect(() => {
+        if (typeof window !== 'undefined') {
+            sidebar = useSidebar();
+        }
+    });
 
     // Save tab selection to localStorage when it changes
     $effect(() => {
@@ -155,7 +165,7 @@
 </script>
 
 <div class="w-full h-full overflow-hidden" transition:slide={{ duration: 300 }}>
-    <Sidebar.Provider bind:open={sidebarOpen}>
+    <Sidebar.Provider>
         <Sidebar.Inset>
             <Card
                 class="py-0 border-0 shadow-none h-full rounded-none overflow-hidden flex flex-col"
@@ -178,7 +188,6 @@
                         </CardTitle>
 
                         <Sidebar.Trigger
-                            onclick={() => (sidebarOpen = !sidebarOpen)}
                             class="flex items-center gap-2 flex-shrink-0"
                         >
                             <span
@@ -296,14 +305,14 @@
         <Sidebar.Root side="right" collapsible="offcanvas">
             <Sidebar.Content>
                 <Sidebar.Group>
-                    <Sidebar.GroupLabel>View Settings</Sidebar.GroupLabel>
+                    <Sidebar.GroupLabel>Views</Sidebar.GroupLabel>
                     <Sidebar.GroupContent>
                         <Sidebar.Menu>
                             <Sidebar.MenuItem>
                                 <Sidebar.MenuButton
                                     onclick={() => {
                                         currentTab = "Monthly";
-                                        sidebarOpen = false;
+                                        sidebar?.toggle();
                                     }}
                                     class={currentTab === "Monthly"
                                         ? "bg-accent"
@@ -321,7 +330,7 @@
                                 <Sidebar.MenuButton
                                     onclick={() => {
                                         currentTab = "Weekly";
-                                        sidebarOpen = false;
+                                        sidebar?.toggle();
                                     }}
                                     class={currentTab === "Weekly"
                                         ? "bg-accent"
@@ -339,7 +348,7 @@
                                 <Sidebar.MenuButton
                                     onclick={() => {
                                         currentTab = "Analytics";
-                                        sidebarOpen = false;
+                                        sidebar?.toggle();
                                     }}
                                     class={currentTab === "Analytics"
                                         ? "bg-accent"
