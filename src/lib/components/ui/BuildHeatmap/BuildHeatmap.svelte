@@ -179,9 +179,9 @@
     }
 </script>
 
-<div class="w-full h-full overflow-hidden" transition:slide={{ duration: 300 }}>
+<div class="w-full h-screen max-h-screen overflow-hidden" transition:slide={{ duration: 300 }}>
     <Sidebar.Provider>
-        <Sidebar.Inset>
+        <Sidebar.Inset class="h-full max-h-full">
             <Card
                 class="py-0 border-0 shadow-none h-full rounded-none overflow-hidden flex flex-col"
             >
@@ -316,7 +316,7 @@
                 </Tabs.Root>
 
                 <!-- Desktop Layout: Show all views side-by-side -->
-                <div class="hidden lg:flex flex-col h-full overflow-auto">
+                <div class="hidden lg:flex flex-col h-full overflow-hidden">
                     <div class="flex items-center px-4 pt-4 pb-2 flex-shrink-0">
                         <CardTitle class="flex-shrink-0">
                             <span class="inline-flex text-base font-bold py-1 items-center gap-1">
@@ -330,10 +330,10 @@
                         </CardTitle>
                     </div>
 
-                    <div class="flex-1 overflow-auto px-4 pb-4">
-                        <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                    <div class="flex-1 min-h-0 px-4 pb-4">
+                        <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 h-full">
                             <!-- Monthly View Card -->
-                            <Card class="flex flex-col max-h-[calc(100vh-8rem)]">
+                            <Card class="flex flex-col h-full">
                                 <CardContent class="h-full p-4 pt-0 flex flex-col overflow-auto">
                                     <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
                                         <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
@@ -403,7 +403,7 @@
                             </Card>
 
                             <!-- Weekly View Card -->
-                            <Card class="flex flex-col max-h-[calc(100vh-8rem)]">
+                            <Card class="flex flex-col h-full">
                                 <CardContent class="h-full p-4 pt-0 flex flex-col overflow-auto">
                                     <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
                                         <span class="material-symbols-outlined" style="font-size: 1.5em;">view_week</span>
@@ -416,13 +416,13 @@
                             </Card>
 
                             <!-- Analytics View Card -->
-                            <Card class="flex flex-col max-h-[calc(100vh-8rem)]">
+                            <Card class="flex flex-col h-full">
                                 <CardContent class="h-full p-4 pt-0 flex flex-col">
                                     <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
                                         <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
                                         Pipeline Analytics
                                     </h3>
-                                    <div class="flex-1 min-h-0 overflow-auto">
+                                    <div class="flex-1 h-full overflow-auto">
                                         <PipelineAnalytics />
                                     </div>
                                 </CardContent>

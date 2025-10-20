@@ -212,30 +212,30 @@
     }
 </script>
 
-<div class="w-full h-full">
-    <div class="p-4 lg:p-0 lg:pb-0 pb-20 flex flex-col gap-4">
+<div class="w-full h-full xl:h-[80vh] xl:pb-0 pb-20 overflow-auto">
+    <div class="p-4 lg:p-0 lg:pb-0 flex flex-col gap-4">
         {#if pipelineCharts.length === 0}
             <div class="flex items-center justify-center h-full">
                 <p class="text-muted-foreground">No pipeline configuration found</p>
             </div>
         {:else}
             {#each pipelineCharts as pipelineChart (pipelineChart.pipelineId + '-' + (pipelineChart.testRunName || 'default'))}
-                    <Card.Root class="py-0">
-                        <div class="p-4 pb-0">
-                            <h3 class="text-lg font-semibold">
+                    <Card.Root>
+                        <Card.Header>
+                            <Card.Title>
                                 {pipelineChart.testRunName || pipelineChart.displayName}
-                            </h3>
+                            </Card.Title>
                             {#if pipelineChart.testRunName}
-                                <p class="text-sm text-muted-foreground">
+                                <Card.Description>
                                     {pipelineChart.displayName} - {pipelineChart.type === 'build' ? 'Build' : 'Release'} Pipeline
-                                </p>
+                                </Card.Description>
                             {/if}
-                        </div>
-                        <div class="p-2 w-full">
+                        </Card.Header>
+                        <Card.Content>
                             {#if pipelineChart.loading}
-                                <Skeleton class="w-full h-64" />
+                                <Skeleton class="w-full h-40 mb-5" />
                             {:else}
-                                <Chart.Container config={chartConfig} class="h-48 w-full">
+                                <Chart.Container config={chartConfig} class="h-40 w-full mb-5">
                                     <BarChart
                                         bind:context={pipelineChart.context}
                                         data={pipelineChart.data}
@@ -283,7 +283,7 @@
                                     </BarChart>
                                 </Chart.Container>
                             {/if}
-                        </div>
+                        </Card.Content>
                     </Card.Root>
                 {/each}
             {/if}
