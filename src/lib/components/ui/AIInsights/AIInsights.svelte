@@ -93,11 +93,11 @@
                 <p class="text-xs text-muted-foreground mt-1">Please check your Azure OpenAI configuration</p>
             </div>
         {:else if insights}
-            <div class="text-sm text-foreground leading-relaxed">
+            <div class="text-sm text-foreground leading-relaxed max-h-[130px] md:max-h-full overflow-y-auto">
                 <p>{insights}</p>
             </div>
         {:else}
-            <div class="flex flex-col items-center justify-center text-center space-y-2 w-full py-4">
+            <div class="flex flex-col items-center justify-center text-center w-full p-4 xl:p-10 space-y-4">
                 <div class="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
                     <span class="material-symbols-outlined text-muted-foreground">
                         auto_awesome
