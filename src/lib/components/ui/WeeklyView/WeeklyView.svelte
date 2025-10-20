@@ -1,8 +1,10 @@
 <script lang="ts">
     import { slide } from "svelte/transition";
+    import { browser } from "$app/environment";
     import { Card, CardContent } from "$lib/components/ui/card/index.js";
     import HeatmapButton from "../BuildHeatmap/HeatmapButton.svelte";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+    import { AIInsights } from "$lib/components/ui/AIInsights/index.js";
     import { getPipelineConfig } from "$lib/utils.js";
     import { getBuildStatusColor } from "$lib/constants/colors.js";
     import {
@@ -120,28 +122,30 @@
             <!-- Stats Grid -->
             <div class="flex flex-col gap-3 flex-1">
                 <!-- Combined Test Statistics -->
-                <Card class="p-3">
-                    <div class="flex flex-col space-y-2">
-                        <div class="grid grid-cols-4 gap-4">
-                            <div class="text-center">
-                                <p class="text-xs text-muted-foreground">Total Tests</p>
-                                <p class="text-lg font-bold">{weeklyStats.totalTests.toLocaleString()}</p>
-                            </div>
-                            <div class="text-center">
-                                <p class="text-xs text-muted-foreground">Passed</p>
-                                <p class="text-lg font-bold text-green-600">{weeklyStats.totalPassed.toLocaleString()}</p>
-                            </div>
-                            <div class="text-center">
-                                <p class="text-xs text-muted-foreground">Failed</p>
-                                <p class="text-lg font-bold text-red-600">{weeklyStats.totalFailed.toLocaleString()}</p>
-                            </div>
-                            <div class="text-center">
-                                <p class="text-xs text-muted-foreground">Pass Rate</p>
-                                <p class="text-lg font-bold {weeklyStats.successRate === 100 ? 'text-green-600' : weeklyStats.successRate >= 70 ? 'text-yellow-600' : 'text-red-600'}">{weeklyStats.successRate}%</p>
+                {#if browser}
+                    <Card class="p-3 hidden md:block">
+                        <div class="flex flex-col space-y-2">
+                            <div class="grid grid-cols-4 gap-4">
+                                <div class="text-center">
+                                    <p class="text-xs text-muted-foreground">Total Tests</p>
+                                    <p class="text-lg font-bold">{weeklyStats.totalTests.toLocaleString()}</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-xs text-muted-foreground">Passed</p>
+                                    <p class="text-lg font-bold text-green-600">{weeklyStats.totalPassed.toLocaleString()}</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-xs text-muted-foreground">Failed</p>
+                                    <p class="text-lg font-bold text-red-600">{weeklyStats.totalFailed.toLocaleString()}</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-xs text-muted-foreground">Pass Rate</p>
+                                    <p class="text-lg font-bold {weeklyStats.successRate === 100 ? 'text-green-600' : weeklyStats.successRate >= 70 ? 'text-yellow-600' : 'text-red-600'}">{weeklyStats.successRate}%</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </Card>
+                    </Card>
+                {/if}
 
                 <!-- Best & Worst Day Performance -->
                 <div class="flex gap-3">
@@ -150,7 +154,7 @@
                         <div class="flex flex-col space-y-2">
                             <div class="grid grid-cols-3 gap-4">
                                 <div class="text-center">
-                                    <p class="text-xs text-muted-foreground">Best Day</p>
+                                    <p class="text-xs text-muted-foreground">Best</p>
                                     <p class="text-lg font-bold text-green-600">
                                         {weeklyStats.bestPerformingDay ? weeklyStats.bestPerformingDay.dayName : '-'}
                                     </p>
@@ -201,7 +205,7 @@
                         <div class="flex flex-col space-y-2">
                             <div class="grid grid-cols-3 gap-4">
                                 <div class="text-center">
-                                    <p class="text-xs text-muted-foreground text-center">Worst Day</p>
+                                    <p class="text-xs text-muted-foreground text-center">Worst</p>
                                     <p class="text-lg font-bold text-red-600">
                                         {weeklyStats.worstPerformingDay ? weeklyStats.worstPerformingDay.dayName : '-'}
                                     </p>
@@ -248,20 +252,10 @@
                     </Card>
                 </div>
 
-                <!-- Work inProgress Placeholder -->
-                <Card class="p-4 flex-1 flex items-center justify-center">
-                    <div class="flex flex-col items-center justify-center space-y-3">
-                        <div class="w-8 h-8 border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center">
-                            <svg class="w-4 h-4 text-muted-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                            </svg>
-                        </div>
-                        <div class="text-center">
-                            <p class="text-xs text-muted-foreground/70 font-medium">More insights coming soon</p>
-                            <p class="text-xs text-muted-foreground/50">Additional metrics and analytics</p>
-                        </div>
-                    </div>
-                </Card>
+                <!-- AI Insights -->
+                {#if browser}
+                    <AIInsights weeklyData={dayBuildQuality} {weeklyStats} />
+                {/if}
             </div>
 
         </CardContent>
