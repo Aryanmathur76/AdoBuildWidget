@@ -92,7 +92,7 @@
     });
 </script>
 
-<div class="w-full h-full" transition:slide={{ duration: 300 }}>
+<div class="w-full h-full xl:h-[80vh]" transition:slide={{ duration: 300 }}>
     <Card class="h-full flex flex-col py-2 border-0">
         <CardContent class="p-4 pt-0 flex flex-col h-full">
             <!-- Day labels and buttons row -->
