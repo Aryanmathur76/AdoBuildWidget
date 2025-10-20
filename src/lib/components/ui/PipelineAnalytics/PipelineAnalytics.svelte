@@ -29,6 +29,7 @@
     const chartConfig = {
         passed: { label: "Passed", color: "var(--chart-1)" },
         failed: { label: "Failed", color: "var(--chart-2)" },
+        label: { color: "var(--background)" },
     } satisfies Chart.ChartConfig;
 
     type PipelineChartData = {
@@ -235,7 +236,7 @@
                             {#if pipelineChart.loading}
                                 <Skeleton class="w-full h-40 mb-5" />
                             {:else}
-                                <Chart.Container config={chartConfig} class="h-40 w-full mb-5">
+                                <Chart.Container config={chartConfig} class="h-40 w-full mb-0">
                                     <BarChart
                                         bind:context={pipelineChart.context}
                                         data={pipelineChart.data}
@@ -284,6 +285,25 @@
                                 </Chart.Container>
                             {/if}
                         </Card.Content>
+                        {#if !pipelineChart.loading}
+                            {@const totals = calculateTotals(pipelineChart.data)}
+                            <Card.Footer>
+                                <div class="flex w-full items-start text-sm mb-5">
+                                    <div class="grid gap-2">
+                                        <div class="flex items-center gap-2 font-medium leading-none">
+                                            Pass Rate: {totals.passRate}% ({totals.totalPassed}/{totals.total} tests)
+                                        </div>
+                                        <div class="text-muted-foreground flex items-center gap-2 leading-none">
+                                            {#if totals.totalFailed > 0}
+                                                {totals.totalFailed} failed test{totals.totalFailed !== 1 ? 's' : ''} in the last 7 days
+                                            {:else}
+                                                All tests passed in the last 7 days
+                                            {/if}
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card.Footer>
+                        {/if}
                     </Card.Root>
                 {/each}
             {/if}
