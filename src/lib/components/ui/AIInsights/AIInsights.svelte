@@ -1,9 +1,22 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import type { Release } from "$lib/types/release";
+    import type { Build } from "$lib/types/build";
     import { Card } from "$lib/components/ui/card/index.js";
     import { Button } from "$lib/components/ui/button/index.js";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import type { DayBuildQuality } from "$lib/utils/buildQualityUtils.js";
+    import { env } from "$env/dynamic/public";
+     import {
+        DateFormatter,
+        type DateValue,
+        getLocalTimeZone,
+    } from "@internationalized/date";
+    import { today, parseDate } from "@internationalized/date";
+    import {dateValueToString, createErrorPipeline, type PipelineConfig } from "$lib/utils/buildQualityUtils.js";
+    import { getPipelineConfig } from "$lib/utils.js";
+    import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
+
+
 
     interface Props {
         weeklyData: Record<string, DayBuildQuality>;
@@ -21,23 +34,168 @@
     let loading = $state(false);
     let error = $state<string>("");
 
+    // Get pipeline configuration
+    let pipelineConfig: PipelineConfig | null = null;
+    try {
+        if (env.PUBLIC_AZURE_PIPELINE_CONFIG) {
+            pipelineConfig = getPipelineConfig(env.PUBLIC_AZURE_PIPELINE_CONFIG);
+        } else {
+            throw new Error("Missing PUBLIC_AZURE_PIPELINE_CONFIG environment variable.");
+        }
+    } catch (e) {
+        throw new Error(
+            "Failed to parse pipeline configuration: " +
+                (e instanceof Error ? e.message : String(e)),
+        );
+    }
+
+    if (!pipelineConfig?.pipelines || pipelineConfig.pipelines.length === 0) {
+        throw new Error("Pipeline configuration contains no pipelines.");
+    }
+
+    // Array of release objects to fetch release details for
+    let releasePipelines = $state<Release[]>([]);
+
+    // Array of build objects - don't pre-allocate since we might get multiple builds per config
+    let buildPipelines = $state<Build[]>([]);
+
+
+    async function fetchReleasePipelineDetails(pipelines: any[], date: any) {
+        //releasePipelines = []; // Clear the array
+        
+        const releasePipes = pipelines.filter((p: any) => p.type === 'release');
+        const dateStr = dateValueToString(date);
+
+        for (let i = 0; i < releasePipes.length; i++) {
+            const pipeline = releasePipes[i];
+            try {
+                const releaseDetails = await pipelineDataService.fetchReleaseData(
+                    dateStr, 
+                    pipeline.id
+                );
+                releaseDetails.name = pipeline.displayName;
+                releasePipelines.push(releaseDetails);
+            } catch (error) {
+                console.log(`Error fetching release details for pipeline ID ${pipeline.id}:`, error);
+                // Add error placeholder
+                releasePipelines.push(createErrorPipeline(pipeline.id, pipeline.displayName));
+            }
+        }
+    }
+
+    async function fetchBuildPipelineDetails(pipelines: any[], date: any){
+        //buildPipelines = []; // Clear the array
+        
+        const buildPipes = pipelines.filter((p: any) => p.type === 'build');
+        const dateStr = dateValueToString(date);
+
+        for (let i = 0; i < buildPipes.length; i++) {
+            const pipeline = buildPipes[i];
+            try {
+                const buildDetailsArr = await pipelineDataService.fetchBuildData(
+                    dateStr, 
+                    pipeline.id
+                );
+                
+                // If multiple builds, add all of them
+                if (Array.isArray(buildDetailsArr) && buildDetailsArr.length > 0) {
+                    buildDetailsArr.forEach((buildDetails: any) => {
+                        if (!buildDetails.testRunName) {
+                            buildDetails.name = pipeline.displayName;
+                        } else {
+                            buildDetails.name = buildDetails.testRunName;
+                        }
+                        buildPipelines.push(buildDetails);
+                    });
+                } else {
+                    buildPipelines.push(createErrorPipeline(pipeline.id, pipeline.displayName));
+                }
+            } catch (error) {
+                console.error(`Error fetching build details for pipeline ID ${pipeline.id}:`, error);
+                // Add error placeholder
+                buildPipelines.push(createErrorPipeline(pipeline.id, pipeline.displayName));
+            }
+        }
+    }
+
+    async function fetchAllPipelineDetails(pipelines: any[], date: any) {
+        
+        // Fetch release pipelines first
+        await fetchReleasePipelineDetails(pipelines, date);
+
+        // Then fetch build pipelines
+        await fetchBuildPipelineDetails(pipelines, date);
+    }
+
+
     async function fetchInsights() {
         loading = true;
         error = "";
         insights = "";
 
         try {
+            // Get last 7 days as DateValue objects (YYYY-MM-DD)
+            const last7Days = Array.from({ length: 7 }, (_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const iso = d.toISOString().slice(0, 10);
+                return parseDate(iso);
+            });
+
+            for (const date of last7Days) {
+                if (pipelineConfig && pipelineConfig.pipelines) {
+                    await fetchAllPipelineDetails(pipelineConfig.pipelines, date);
+                } else {
+                    throw new Error("Pipeline configuration is missing or invalid.");
+                }
+            }
+
             // Prepare data for AI analysis
             const buildData = {
-                weeklyStats,
-                dailyBreakdown: Object.entries(weeklyData).map(([date, data]) => ({
-                    date,
-                    totalPassed: data.totalPassCount || 0,
-                    totalFailed: data.totalFailCount || 0,
-                    quality: data.quality,
-                    releasesWithTests: data.releasesWithTestsRan || 0
-                }))
+                days: last7Days.map(dateValue => {
+                    const dateStr = dateValueToString(dateValue);
+                    // Gather all pipelines for this day
+                    const pipelines: any[] = [];
+                    // Add release pipelines for this day
+                    releasePipelines
+                        .filter(p => p.completedTime && dateValueToString(parseDate(p.completedTime.slice(0, 10))) === dateStr)
+                        .forEach(p => {
+                            pipelines.push({
+                                pipelineType: 'release',
+                                pipelineId: p.id,
+                                pipelineName: p.name,
+                                passCount: p.passedTestCount,
+                                failCount: p.failedTestCount,
+                                //failedTestNames: Array.isArray(p.failedTestNames) ? p.failedTestNames : [],
+                                completedDate: p.completedTime,
+                                status: p.status,
+                                link: p.link
+                            });
+                        });
+                    // Add build pipelines for this day
+                    buildPipelines
+                        .filter(p => p.completedTime && dateValueToString(parseDate(p.completedTime.slice(0, 10))) === dateStr)
+                        .forEach(p => {
+                            pipelines.push({
+                                pipelineType: 'build',
+                                pipelineId: p.id,
+                                pipelineName: p.name,
+                                passCount: p.passedTestCount,
+                                failCount: p.failedTestCount,
+                                //failedTestNames: Array.isArray(p.failedTestNames) ? p.failedTestNames : [],
+                                completedDate: p.completedTime,
+                                status: p.status,
+                                link: p.link
+                            });
+                        });
+                    return {
+                        date: dateStr,
+                        pipelines
+                    };
+                })
             };
+
+            console.log('Build Data for AI:', buildData);
 
             const response = await fetch('/api/ai-insights', {
                 method: 'POST',
