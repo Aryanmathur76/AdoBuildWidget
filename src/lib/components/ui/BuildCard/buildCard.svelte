@@ -73,22 +73,12 @@
                     // For builds, we require pipeline data
                     throw new Error(`No ${pipelineType} data found for ${cleanDate}`);
                 }
-                
-                // Extract releaseId or use the API endpoint that accepts pipelineId
-                const releaseId = pipelineData?.id || pipelineData?.releaseId;
-                
-                if (releaseId && pipelineType === 'release') {
-                    // Use cached fetchTestCases method
-                    const cases = await pipelineDataService.fetchTestCases(releaseId.toString());
-                    testCases = cases;
-                } else {
-                    // Fallback to the original API call for builds or if no releaseId
-                    const response = await fetch(
-                        `/api/test-cases?pipelineId=${pipelineId}&pipelineType=${pipelineType}&date=${encodeURIComponent(cleanDate)}`
-                    );
-                    const data = await response.json();
-                    testCases = data.testCases;
-                }
+
+                const response = await fetch(
+                    `/api/test-cases?pipelineId=${pipelineId}&pipelineType=${pipelineType}&date=${encodeURIComponent(cleanDate)}`
+                );
+                const data = await response.json();
+                testCases = data.testCases;
                 
                 isLoading = false;
             })

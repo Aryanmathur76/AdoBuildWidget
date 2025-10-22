@@ -8,5 +8,6 @@ export interface Release {
   envs: any[];
   passedTestCount?: number;
   failedTestCount?: number;
+  failedTestCases?: any[];
   link?: string;
 }

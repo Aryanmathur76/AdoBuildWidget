@@ -6,29 +6,10 @@
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import type { DayBuildQuality } from "$lib/utils/buildQualityUtils.js";
     import { env } from "$env/dynamic/public";
-     import {
-        DateFormatter,
-        type DateValue,
-        getLocalTimeZone,
-    } from "@internationalized/date";
-    import { today, parseDate } from "@internationalized/date";
+    import { parseDate } from "@internationalized/date";
     import {dateValueToString, createErrorPipeline, type PipelineConfig } from "$lib/utils/buildQualityUtils.js";
     import { getPipelineConfig } from "$lib/utils.js";
     import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
-
-
-
-    interface Props {
-        weeklyData: Record<string, DayBuildQuality>;
-        weeklyStats: {
-            totalTests: number;
-            totalPassed: number;
-            totalFailed: number;
-            successRate: number;
-        };
-    }
-
-    let { weeklyData, weeklyStats }: Props = $props();
 
     let insights = $state<string>("");
     let loading = $state(false);
@@ -68,12 +49,28 @@
 
         for (let i = 0; i < releasePipes.length; i++) {
             const pipeline = releasePipes[i];
+
             try {
                 const releaseDetails = await pipelineDataService.fetchReleaseData(
                     dateStr, 
                     pipeline.id
                 );
                 releaseDetails.name = pipeline.displayName;
+
+                const response = await fetch(
+                        `/api/test-cases?pipelineId=${releaseDetails.id}&pipelineType=${pipeline.type}&date=${encodeURIComponent(dateStr)}`
+                    );
+
+                const data = await response.json();
+                let testCases = data.testCases
+                    .filter((tc: any) => tc.outcome !== 'Passed')
+                    .map((tc: { id: string; name: string; outcome: string }) => {
+                        const { id, name, outcome } = tc;
+                        return { id, name, outcome };
+                    });
+
+                releaseDetails.failedTestCases = testCases;
+                console.log('fetched release details: ', releaseDetails);
                 releasePipelines.push(releaseDetails);
             } catch (error) {
                 console.log(`Error fetching release details for pipeline ID ${pipeline.id}:`, error);
@@ -99,14 +96,28 @@
                 
                 // If multiple builds, add all of them
                 if (Array.isArray(buildDetailsArr) && buildDetailsArr.length > 0) {
-                    buildDetailsArr.forEach((buildDetails: any) => {
+                    for (const buildDetails of buildDetailsArr) {
                         if (!buildDetails.testRunName) {
                             buildDetails.name = pipeline.displayName;
                         } else {
                             buildDetails.name = buildDetails.testRunName;
                         }
+                        const response = await fetch(
+                            `/api/test-cases?pipelineId=${buildDetails.id}&pipelineType=${pipeline.type}&date=${encodeURIComponent(dateStr)}`
+                        );
+
+                        const data = await response.json();
+                        let testCases = data.testCases
+                        .filter((tc: any) => tc.outcome !== 'Passed')
+                        .map((tc: { id: string; name: string; outcome: string }) => {
+                            const { id, name, outcome } = tc;
+                            return { id, name, outcome };
+                        });
+
+                        buildDetails.failedTestCases = testCases;
+                        console.log('fetched build details: ', buildDetails);
                         buildPipelines.push(buildDetails);
-                    });
+                    }
                 } else {
                     buildPipelines.push(createErrorPipeline(pipeline.id, pipeline.displayName));
                 }
@@ -162,14 +173,11 @@
                         .forEach(p => {
                             pipelines.push({
                                 pipelineType: 'release',
-                                pipelineId: p.id,
                                 pipelineName: p.name,
                                 passCount: p.passedTestCount,
                                 failCount: p.failedTestCount,
-                                //failedTestNames: Array.isArray(p.failedTestNames) ? p.failedTestNames : [],
+                                failedTestNames: Array.isArray(p.failedTestCases) ? p.failedTestCases : [],
                                 completedDate: p.completedTime,
-                                status: p.status,
-                                link: p.link
                             });
                         });
                     // Add build pipelines for this day
@@ -178,14 +186,11 @@
                         .forEach(p => {
                             pipelines.push({
                                 pipelineType: 'build',
-                                pipelineId: p.id,
                                 pipelineName: p.name,
                                 passCount: p.passedTestCount,
                                 failCount: p.failedTestCount,
-                                //failedTestNames: Array.isArray(p.failedTestNames) ? p.failedTestNames : [],
+                                failedTestNames: Array.isArray(p.failedTestCases) ? p.failedTestCases : [],
                                 completedDate: p.completedTime,
-                                status: p.status,
-                                link: p.link
                             });
                         });
                     return {

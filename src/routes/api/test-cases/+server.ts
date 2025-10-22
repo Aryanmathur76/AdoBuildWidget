@@ -121,24 +121,36 @@ export async function GET({ url }: { url: URL }) {
             // 2. For each test run ID, fetch all test case results
             let allTestCases = [];
             for (const runId of runsData.value.map((r: any) => r.id)) {
-                const endpoint = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/test/Runs/${runId}/results?api-version=7.1`;
-                const res = await fetch(endpoint, {
-                    headers: {
-                        'Authorization': `Basic ${btoa(':' + AZURE_DEVOPS_PAT)}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-                if (!res.ok) {
-                    continue;
-                }
-                const data = await res.json();
-                if (Array.isArray(data.value)) {
-                    allTestCases.push(...data.value.map((tc: any) => ({
-                        id: tc.id,
-                        name: tc.testCase?.name || tc.testCaseTitle || '',
-                        outcome: tc.outcome,
-                        associatedBugs: tc.associatedBugs || [],
-                    })));
+                let skip = 0;
+                const top = 1000;
+                let hasMore = true;
+                while (hasMore) {
+                    const endpoint = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/test/Runs/${runId}/results?$top=${top}&$skip=${skip}&api-version=7.1`;
+                    const res = await fetch(endpoint, {
+                        headers: {
+                            'Authorization': `Basic ${btoa(':' + AZURE_DEVOPS_PAT)}`,
+                            'Content-Type': 'application/json',
+                        },
+                    });
+                    if (!res.ok) {
+                        break;
+                    }
+                    const data = await res.json();
+                    if (Array.isArray(data.value)) {
+                        allTestCases.push(...data.value.map((tc: any) => ({
+                            id: tc.id,
+                            name: tc.testCase?.name || tc.testCaseTitle || '',
+                            outcome: tc.outcome,
+                            associatedBugs: tc.associatedBugs || [],
+                        })));
+                        if (data.value.length < top) {
+                            hasMore = false;
+                        } else {
+                            skip += top;
+                        }
+                    } else {
+                        hasMore = false;
+                    }
                 }
             }
             return json({ testCases: allTestCases });

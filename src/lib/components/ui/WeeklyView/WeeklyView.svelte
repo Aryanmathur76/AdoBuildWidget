@@ -254,7 +254,7 @@
 
                 <!-- AI Insights -->
                 {#if browser}
-                    <AIInsights weeklyData={dayBuildQuality} {weeklyStats} />
+                    <AIInsights/>
                 {/if}
             </div>
 

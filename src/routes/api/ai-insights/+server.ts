@@ -1,6 +1,13 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/private';
+import { dev } from '$app/environment';
+
+// In development, disable SSL certificate validation for corporate proxies
+if (dev) {
+	process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
 
 export const POST: RequestHandler = async ({ request }) => {
 	const { buildData } = await request.json();
@@ -22,18 +29,17 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	// Create a summary prompt with the build data
 	const systemPrompt = `You are an AI assistant that analyzes software build and test data. 
-Provide concise, actionable insights about test failures, trends, and potential issues.
-Focus on what developers need to know to improve their builds.`;
+Provide concise, actionable insights about test failures, trends, and potential issues. Be careful to avoid generic statements. Please space your summary out.
+Focus on what developers need to know to improve their builds. Do not provide any suggested actions. Pay attention to which test cases are failing on which pipeline.`;
 
-	const userPrompt = `Analyze the following build and test data from today and provide a brief summary (2-3 sentences):
+	const userPrompt = `Analyze the following build and test data and provide a brief summary in plaintext (3 sentences MAX):
 
 ${JSON.stringify(buildData, null, 2)}
 
 Focus on:
 - Overall pass rate and test health
 - Any concerning failure patterns
-- Key metrics that stand out
-- Actionable recommendations if failures exist`;
+- Key metrics that stand out`;
 
 	try {
 		const response = await fetch(url, {
@@ -47,11 +53,8 @@ Focus on:
 					{ role: 'system', content: systemPrompt },
 					{ role: 'user', content: userPrompt }
 				],
-				max_tokens: 500,
-				temperature: 0.7,
-				top_p: 0.95,
-				frequency_penalty: 0,
-				presence_penalty: 0
+				max_completion_tokens: 500,
+				temperature: 1,
 			})
 		});
 
