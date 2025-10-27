@@ -223,10 +223,11 @@ export async function GET({ url }: { url: URL }) {
 
         if (!testRunResponse.ok) {
            console.log(`Failed to fetch test results: ${testRunResponse.status} ${testRunResponse.statusText}`);
+           testResults = []; // Set to empty array on failure
+        } else {
+            const data = await testRunResponse.json();
+            testResults = data.value || [];
         }
-
-        const data = await testRunResponse.json();
-        testResults = data.value;
     } catch (error) {
         return json({ error: 'Failed to fetch test results' }, { status: 500 });
     }
