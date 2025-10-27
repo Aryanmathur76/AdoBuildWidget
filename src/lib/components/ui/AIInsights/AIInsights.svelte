@@ -231,7 +231,7 @@
             <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">
                 psychology
             </span>
-            <h3 class="text-sm font-semibold">AI Insights</h3>
+            <h3 class="text-sm font-semibold">Weekly Trend Analysis</h3>
         </div>
         <Button 
             size="sm" 

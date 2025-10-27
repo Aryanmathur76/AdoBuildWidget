@@ -349,7 +349,7 @@
                                     </div>
 
                                     <div class="grid grid-cols-7 gap-0.5 mb-2 flex-1">
-                                        {#each daysInMonth as dayObj, index}
+                                        {#each daysInMonth as dayObj}
                                             <div class="w-full aspect-square min-w-0 min-h-0">
                                                 {#if dayBuildQuality[dayObj.dateStr]}
                                                     <HeatmapButton {dayObj} />
