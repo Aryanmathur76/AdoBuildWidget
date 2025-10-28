@@ -36,7 +36,7 @@ Your task is to identify the single best build day based on comprehensive metric
 Consider factors like: highest pass rates, most pipelines completed successfully, fewest critical failures, and overall build health. 
 Provide a clear, concise answer identifying the specific date and brief reasoning.`;
 
-		userPrompt = `Analyze the following month's build data and identify the BEST build day. Consider:
+		userPrompt = `Analyze the following month's build data and identify the BEST build day. If there is a close second place, explain why you chose it over the second place. Consider:
 
 1. Highest overall test pass rates
 2. Most pipelines completed successfully  
@@ -45,7 +45,7 @@ Provide a clear, concise answer identifying the specific date and brief reasonin
 
 ${JSON.stringify(buildData, null, 2)}
 
-Respond with just the date (e.g., "October 15" or "2025-10-15") and a 1-sentence explanation of why it's the best.`;
+Respond with just the date (e.g., "October 15" or "2025-10-15") and a 1-sentence explanation of why it's the best. Mention the date range analyzed.`;
 	} else {
 		// Original weekly analysis prompt
 		systemPrompt = `You are an AI assistant that analyzes software build and test data. 
