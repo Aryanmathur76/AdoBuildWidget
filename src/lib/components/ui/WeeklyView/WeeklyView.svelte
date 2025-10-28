@@ -108,9 +108,9 @@
                     {#each last7Days as dayObj, index (dayObj.dateStr)}
                         <div class="aspect-square">
                             {#if dayBuildQuality[dayObj.dateStr]}
-                                <HeatmapButton {dayObj} />
+                                <HeatmapButton {dayObj} delay={index * 100} />
                             {:else if dayObj.disabled}
-                                <HeatmapButton {dayObj} />
+                                <HeatmapButton {dayObj} delay={index * 100} />
                             {:else}
                                 <Skeleton class="w-full h-full rounded" />
                             {/if}

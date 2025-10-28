@@ -249,9 +249,9 @@
                                             }}
                                         >
                                             {#if dayBuildQuality[dayObj.dateStr]}
-                                                <HeatmapButton {dayObj} />
+                                                <HeatmapButton {dayObj} delay={index * 50} />
                                             {:else if dayObj.disabled}
-                                                <HeatmapButton {dayObj} />
+                                                <HeatmapButton {dayObj} delay={index * 50} />
                                             {:else}
                                                 <Skeleton
                                                     class="w-full h-full min-w-0 min-h-0 rounded"
@@ -349,12 +349,12 @@
                                     </div>
 
                                     <div class="grid grid-cols-7 gap-0.5 mb-2 flex-1">
-                                        {#each daysInMonth as dayObj}
+                                        {#each daysInMonth as dayObj, index (currentMonth + "-" + dayObj.day)}
                                             <div class="w-full aspect-square min-w-0 min-h-0">
                                                 {#if dayBuildQuality[dayObj.dateStr]}
-                                                    <HeatmapButton {dayObj} />
+                                                    <HeatmapButton {dayObj} delay={index * 50} />
                                                 {:else if dayObj.disabled}
-                                                    <HeatmapButton {dayObj} />
+                                                    <HeatmapButton {dayObj} delay={index * 50} />
                                                 {:else}
                                                     <Skeleton
                                                         class="w-full h-full min-w-0 min-h-0 rounded"

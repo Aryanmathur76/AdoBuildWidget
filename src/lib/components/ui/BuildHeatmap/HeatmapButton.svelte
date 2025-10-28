@@ -13,19 +13,19 @@
   import { env } from "$env/dynamic/public";
   import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
 
-  export let dayObj: any;
+  let { dayObj, delay = 0 }: { dayObj: any; delay?: number } = $props();
 
-  let showPopover = false;
-  let pipelineData: Array<{
+  let showPopover = $state(false);
+  let pipelineData = $state<Array<{
     id: string;
     name: string;
     type: string;
     status: string;
     passCount: number;
     failCount: number;
-  }> = [];
-  let loadingPipelines = false;
-  let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
+  }>>([]);
+  let loadingPipelines = $state(false);
+  let hoverTimeout: ReturnType<typeof setTimeout> | null = $state(null);
 
   // Get pipeline configuration
   let pipelineConfig: any = null;
@@ -37,16 +37,33 @@
     console.warn("Failed to parse pipeline config:", e);
   }
 
-  // Fetch individual pipeline data when popover opens
+  // Fetch individual pipeline data on mount with delay
+  $effect(() => {
+    if (dayObj && !dayObj.disabled && dayObj.quality !== "unknown") {
+      // Stagger loading to prevent overwhelming the API
+      setTimeout(() => {
+        fetchPipelineData();
+      }, delay);
+    }
+  });
+
+  // Fetch individual pipeline data
   async function fetchPipelineData() {
     if (
       !pipelineConfig?.pipelines ||
       loadingPipelines ||
-      pipelineData.length > 0
+      pipelineData.length > 0 // Prevent refetching if we already have data
     )
       return;
 
     loadingPipelines = true;
+    
+    // Add a timeout to prevent hanging
+    const timeoutId = setTimeout(() => {
+      console.warn(`Pipeline data fetch timed out for ${dayObj.dateStr}`);
+      loadingPipelines = false;
+    }, 10000); // 10 second timeout
+
     const results: Array<{
       id: string;
       name: string;
@@ -132,6 +149,8 @@
       }
     } catch (error) {
       console.error("Error fetching pipeline data:", error);
+    } finally {
+      clearTimeout(timeoutId);
     }
 
     pipelineData = results;
@@ -148,13 +167,10 @@
     // Set a timeout to show popover after 300ms
     hoverTimeout = setTimeout(() => {
       showPopover = true;
-      if (dayObj && !dayObj.disabled && dayObj.quality !== "unknown") {
-        fetchPipelineData();
-      }
     }, 300);
   }
 
-  // Reset data when popover closes
+  // Reset popover when closes
   function handlePopoverClose() {
     // Clear the timeout if user moves away before 300ms
     if (hoverTimeout) {
@@ -163,22 +179,44 @@
     }
     
     showPopover = false;
-    pipelineData = [];
   }
 </script>
 
 {#if dayObj}
   <Popover.Root bind:open={showPopover}>
     <Popover.Trigger
-      class={`w-full h-full min-w-0 min-h-0 cursor-pointer ${dayObj.colorClass} ${dayObj.animationClass} hover:scale-110 hover:shadow-xl hover:z-10`}
-      style="aspect-ratio: 1 / 1; transition: all 0.2s ease-in-out; position: relative; border: none; padding: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 6px;"
+      class={`w-full h-full min-w-0 min-h-0 cursor-pointer ${dayObj.animationClass} hover:scale-110 hover:shadow-xl hover:z-10`}
+      style="aspect-ratio: 1 / 1; transition: all 0.2s ease-in-out; position: relative; border: none; padding: 2px; display: flex; align-items: end; justify-content: space-between; font-weight: bold; border-radius: 6px;"
       aria-label={`Go to build ${dayObj.dateStr}`}
       onclick={() => goto(`/build/${dayObj.dateStr}`)}
       onmouseenter={handlePopoverOpen}
       onmouseleave={handlePopoverClose}
       disabled={dayObj.disabled}
     >
-      {dayObj.day}
+      {#if loadingPipelines}
+        <div class="flex items-end justify-between w-full h-full gap-0.5">
+          {#each Array(5) as _, i}
+            <div class="flex-1 bg-gray-300 animate-pulse rounded-sm" style="height: {20 + Math.random() * 60}%"></div>
+          {/each}
+        </div>
+      {:else if pipelineData.length > 0}
+        <div class="flex items-end justify-center w-full h-full gap-0.5 px-1">
+          {#each pipelineData as pipeline (pipeline.id)}
+            {@const totalTests = pipeline.passCount + pipeline.failCount}
+            {@const passRate = totalTests > 0 ? (pipeline.passCount / totalTests) * 100 : 0}
+            {@const barHeight = totalTests > 0 ? Math.max(10, (passRate / 100) * 80) : 10}
+            {@const barColor = passRate >= 98 ? 'bg-green-500' : passRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'}
+            <div 
+              class="flex-1 {barColor} rounded-sm transition-all duration-200 max-w-4" 
+              style="height: {barHeight}%; min-width: 3px;"
+            ></div>
+          {/each}
+        </div>
+      {:else}
+        <div class="flex items-center justify-center w-full h-full">
+          <span class="text-xs font-bold">{dayObj.day}</span>
+        </div>
+      {/if}
     </Popover.Trigger>
 
     <Popover.Content class="w-80 p-2">
