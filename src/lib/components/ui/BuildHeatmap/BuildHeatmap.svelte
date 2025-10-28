@@ -47,6 +47,10 @@
             : "simple"
     );
 
+    // Track the best build day for highlighting
+    let bestBuildDay = $state<string | null>(null);
+    let analyzingBestBuild = $state(false);
+
     // Track if we're on desktop (lg breakpoint = 1024px)
     let isDesktop = $state(false);
     
@@ -158,6 +162,7 @@
     $effect(() => {
         if (currentMonth !== lastFetchedMonth) {
             lastFetchedMonth = currentMonth;
+            bestBuildDay = null; // Clear best build when month changes
             fetchAllBuildQualitiesForMonth();
         }
     });
@@ -189,6 +194,156 @@
                     dayBuildQuality[dateStr] = result[dateStr];
                 }
             });
+        }
+    }
+
+    // Analyze the current month to find the best build day
+    async function analyzeBestBuild() {
+        analyzingBestBuild = true;
+        bestBuildDay = null;
+
+        try {
+            // Get all dates in the current month
+            const monthDates = getDatesInMonth(currentYear, currentMonth).filter(
+                dateStr => !isFutureDay(currentYear, currentMonth, parseInt(dateStr.split('-')[2]))
+            );
+
+            // Collect pipeline data for each day in the month
+            const buildData = {
+                days: await Promise.all(monthDates.map(async (dateStr) => {
+                    // Get detailed pipeline data for this day
+                    const pipelines: any[] = [];
+
+                    if (pipelineConfig?.pipelines) {
+                        for (const pipeline of pipelineConfig.pipelines) {
+                            try {
+                                if (pipeline.type === "build") {
+                                    const buildData = await pipelineDataService.fetchBuildDataSilent(dateStr, String(pipeline.id));
+                                    if (buildData) {
+                                        if (Array.isArray(buildData)) {
+                                            buildData.forEach((build: any) => {
+                                                pipelines.push({
+                                                    pipelineType: 'build',
+                                                    pipelineName: build.name || build.testRunName || pipeline.displayName || `Build ${pipeline.id}`,
+                                                    passCount: build.passedTestCount || 0,
+                                                    failCount: build.failedTestCount || 0,
+                                                    status: build.status || "unknown",
+                                                    completedDate: build.completedTime || null,
+                                                });
+                                            });
+                                        } else {
+                                            pipelines.push({
+                                                pipelineType: 'build',
+                                                pipelineName: pipeline.displayName,
+                                                passCount: buildData.passedTestCount || 0,
+                                                failCount: buildData.failedTestCount || 0,
+                                                status: buildData.status || "unknown",
+                                                completedDate: buildData.completedTime || null,
+                                            });
+                                        }
+                                    }
+                                } else if (pipeline.type === "release") {
+                                    const releaseData = await pipelineDataService.fetchReleaseDataSilent(dateStr, String(pipeline.id));
+                                    if (releaseData) {
+                                        pipelines.push({
+                                            pipelineType: 'release',
+                                            pipelineName: pipeline.displayName,
+                                            passCount: releaseData.passedTestCount || 0,
+                                            failCount: releaseData.failedTestCount || 0,
+                                            status: releaseData.status || "unknown",
+                                            completedDate: releaseData.completedTime || null,
+                                        });
+                                    }
+                                }
+                            } catch (error) {
+                                console.warn(`Error fetching pipeline data for ${dateStr}:`, error);
+                            }
+                        }
+                    }
+
+                    return {
+                        date: dateStr,
+                        pipelines,
+                        dayQuality: dayBuildQuality[dateStr]
+                    };
+                }))
+            };
+
+            // Send to AI for analysis
+            const response = await fetch('/api/ai-insights', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    buildData,
+                    analysisType: 'best-build-month'
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to analyze best build');
+            }
+
+            const result = await response.json();
+            const insights = result.insights;
+
+            // Extract the best build date from the AI response
+            // Look for patterns like "October 15", "15th", "2025-10-15", etc.
+            const datePatterns = [
+                /\b(\d{4}-\d{2}-\d{2})\b/g,  // YYYY-MM-DD
+                /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})(?:st|nd|rd|th)?\b/gi,  // Month DD
+                /\b(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(January|February|March|April|May|June|July|August|September|October|November|December)\b/gi,  // DD Month
+                /\b(\d{1,2})(?:st|nd|rd|th)?\b/g  // Just DD (assume current month)
+            ];
+
+            let bestDate = null;
+            for (const pattern of datePatterns) {
+                const matches = insights.match(pattern);
+                if (matches) {
+                    for (const match of matches) {
+                        // Convert to YYYY-MM-DD format
+                        if (match.includes('-')) {
+                            // Already YYYY-MM-DD
+                            bestDate = match;
+                        } else if (match.match(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})/i)) {
+                            // Month DD format
+                            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                            const monthMatch = match.match(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})/i);
+                            if (monthMatch) {
+                                const monthIndex = monthNames.findIndex(m => m.toLowerCase() === monthMatch[1].toLowerCase());
+                                const day = parseInt(monthMatch[2]);
+                                if (monthIndex === currentMonth) {
+                                    bestDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                }
+                            }
+                        } else if (match.match(/^\d{1,2}$/)) {
+                            // Just a day number, assume current month
+                            const day = parseInt(match);
+                            if (day >= 1 && day <= 31) {
+                                bestDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                            }
+                        }
+                        
+                        if (bestDate && monthDates.includes(bestDate)) {
+                            break;
+                        }
+                    }
+                    if (bestDate) break;
+                }
+            }
+
+            if (bestDate && monthDates.includes(bestDate)) {
+                bestBuildDay = bestDate;
+                console.log(`Best build identified: ${bestDate}`, insights);
+            } else {
+                console.warn('Could not identify best build date from AI response:', insights);
+            }
+
+        } catch (error) {
+            console.error('Error analyzing best build:', error);
+        } finally {
+            analyzingBestBuild = false;
         }
     }
 </script>
@@ -249,6 +404,25 @@
                     <div class="flex-1 min-h-0">
                         <Tabs.Content value="Monthly" class="h-full overflow-hidden">
                             <CardContent class="h-full px-4 pb-2 flex flex-col">
+                                <!-- Header with title and best build button -->
+                                <div class="flex items-center justify-between mb-3 flex-shrink-0">
+                                    <h3 class="text-lg font-semibold">Monthly View</h3>
+                                    <button
+                                        onclick={analyzeBestBuild}
+                                        disabled={analyzingBestBuild}
+                                        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50"
+                                        title="Find the best build day this month"
+                                    >
+                                        <span class="material-symbols-outlined" style="font-size: 1.25em;">
+                                            {#if analyzingBestBuild}
+                                                refresh
+                                            {:else}
+                                                star
+                                            {/if}
+                                        </span>
+                                        <span>{analyzingBestBuild ? 'Analyzing...' : 'Best Build'}</span>
+                                    </button>
+                                </div>
                                 <!-- Dynamic day of week labels with animation -->
                                 <div
                                     class="grid grid-cols-7 gap-0.5 mb-1 h-5 items-center flex-shrink-0"
@@ -273,13 +447,21 @@
                                 >
                                     {#each daysInMonth as dayObj, index (currentMonth + "-" + dayObj.day + "-" + tabAnimationKey)}
                                         <div
-                                            class="w-full aspect-square min-w-0 min-h-0"
+                                            class="w-full aspect-square min-w-0 min-h-0 relative"
                                             in:fly={{
                                                 y: 10,
                                                 duration: 200,
                                                 delay: index * 15,
                                             }}
                                         >
+                                            {#if bestBuildDay === dayObj.dateStr}
+                                                <!-- Best build indicator -->
+                                                <div class="absolute -top-1 -right-1 z-10">
+                                                    <span class="material-symbols-outlined text-green-400 drop-shadow-lg" style="font-size: 1em;">
+                                                        star
+                                                    </span>
+                                                </div>
+                                            {/if}
                                             {#if dayBuildQuality[dayObj.dateStr]}
                                                 <HeatmapButton {dayObj} delay={index * 50} viewMode={heatmapViewMode} />
                                             {:else if dayObj.disabled}
@@ -385,10 +567,27 @@
                             <!-- Monthly View Card -->
                             <Card class="flex flex-col h-full">
                                 <CardContent class="h-full p-4 pt-0 flex flex-col overflow-auto">
-                                    <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
-                                        <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
-                                        Monthly View
-                                    </h3>
+                                    <div class="flex items-center justify-between mb-3">
+                                        <h3 class="text-lg font-semibold flex items-center gap-2">
+                                            <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
+                                            Monthly View
+                                        </h3>
+                                        <button
+                                            onclick={analyzeBestBuild}
+                                            disabled={analyzingBestBuild}
+                                            class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50"
+                                            title="Find the best build day this month"
+                                        >
+                                            <span class="material-symbols-outlined" style="font-size: 1.25em;">
+                                                {#if analyzingBestBuild}
+                                                    refresh
+                                                {:else}
+                                                    star
+                                                {/if}
+                                            </span>
+                                            <span>{analyzingBestBuild ? 'Analyzing...' : 'Best Build'}</span>
+                                        </button>
+                                    </div>
                                     <!-- Dynamic day of week labels -->
                                     <div class="grid grid-cols-7 gap-0.5 mb-1 h-5 items-center flex-shrink-0">
                                         {#each dayLabels as label, i}
@@ -400,7 +599,15 @@
 
                                     <div class="grid grid-cols-7 gap-0.5 mb-2 flex-1">
                                         {#each daysInMonth as dayObj, index (currentMonth + "-" + dayObj.day)}
-                                            <div class="w-full aspect-square min-w-0 min-h-0">
+                                            <div class="w-full aspect-square min-w-0 min-h-0 relative">
+                                                {#if bestBuildDay === dayObj.dateStr}
+                                                    <!-- Best build indicator -->
+                                                    <div class="absolute -top-1 -right-1 z-10">
+                                                        <span class="material-symbols-outlined text-green-400 drop-shadow-lg" style="font-size: 1em;">
+                                                            star
+                                                        </span>
+                                                    </div>
+                                                {/if}
                                                 {#if dayBuildQuality[dayObj.dateStr]}
                                                     <HeatmapButton {dayObj} delay={index * 50} viewMode={heatmapViewMode} />
                                                 {:else if dayObj.disabled}

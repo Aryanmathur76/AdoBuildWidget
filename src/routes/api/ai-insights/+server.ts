@@ -10,7 +10,7 @@ if (dev) {
 
 
 export const POST: RequestHandler = async ({ request }) => {
-	const { buildData } = await request.json();
+	const { buildData, analysisType } = await request.json();
 
 	const endpoint = env.AZURE_OPENAI_ENDPOINT || '';
 	const apiKey = env.AZURE_OPENAI_API_KEY || '';
@@ -27,12 +27,32 @@ export const POST: RequestHandler = async ({ request }) => {
 	// Build the full URL
 	const url = `${endpoint}openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`;
 
-	// Create a summary prompt with the build data
-	const systemPrompt = `You are an AI assistant that analyzes software build and test data. 
+	let systemPrompt: string;
+	let userPrompt: string;
+
+	if (analysisType === 'best-build-month') {
+		systemPrompt = `You are an AI assistant that analyzes software build and test data for an entire month. 
+Your task is to identify the single best build day based on comprehensive metrics including test pass rates, pipeline success, and overall stability. 
+Consider factors like: highest pass rates, most pipelines completed successfully, fewest critical failures, and overall build health. 
+Provide a clear, concise answer identifying the specific date and brief reasoning.`;
+
+		userPrompt = `Analyze the following month's build data and identify the BEST build day. Consider:
+
+1. Highest overall test pass rates
+2. Most pipelines completed successfully  
+3. Fewest critical failures
+4. Best overall build stability and health
+
+${JSON.stringify(buildData, null, 2)}
+
+Respond with just the date (e.g., "October 15" or "2025-10-15") and a 1-sentence explanation of why it's the best.`;
+	} else {
+		// Original weekly analysis prompt
+		systemPrompt = `You are an AI assistant that analyzes software build and test data. 
 Provide concise, actionable insights about test failures, trends, and potential issues. Be careful to avoid generic statements. Please space your summary out.
 Focus on what developers need to know to improve their builds. Do not provide any suggested actions. Pay attention to which test cases are failing on which pipeline.`;
 
-	const userPrompt = `Analyze the following build and test data and provide a brief summary in plaintext (3 sentences MAX):
+		userPrompt = `Analyze the following build and test data and provide a brief summary in plaintext (3 sentences MAX):
 
 ${JSON.stringify(buildData, null, 2)}
 
@@ -40,6 +60,7 @@ Focus on:
 - Overall pass rate and test health
 - Any concerning failure patterns
 - Key metrics that stand out`;
+	}
 
 	try {
 		const response = await fetch(url, {
