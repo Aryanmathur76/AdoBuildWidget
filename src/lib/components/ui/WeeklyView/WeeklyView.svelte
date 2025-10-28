@@ -18,6 +18,8 @@
     } from "$lib/utils/buildQualityUtils.js";
     import { env } from "$env/dynamic/public";
 
+    let { viewMode = "graph" }: { viewMode?: "simple" | "graph" } = $props();
+
     const today = new Date();
 
     // Store build quality for each day (YYYY-MM-DD => quality)
@@ -108,9 +110,9 @@
                     {#each last7Days as dayObj, index (dayObj.dateStr)}
                         <div class="aspect-square">
                             {#if dayBuildQuality[dayObj.dateStr]}
-                                <HeatmapButton {dayObj} delay={index * 100} />
+                                <HeatmapButton {dayObj} delay={index * 100} viewMode={viewMode} />
                             {:else if dayObj.disabled}
-                                <HeatmapButton {dayObj} delay={index * 100} />
+                                <HeatmapButton {dayObj} delay={index * 100} viewMode={viewMode} />
                             {:else}
                                 <Skeleton class="w-full h-full rounded" />
                             {/if}

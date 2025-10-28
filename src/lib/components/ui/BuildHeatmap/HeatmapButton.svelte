@@ -29,7 +29,7 @@
     }
   }
 
-  let { dayObj, delay = 0 }: { dayObj: any; delay?: number } = $props();
+  let { dayObj, delay = 0, viewMode = "graph" }: { dayObj: any; delay?: number; viewMode?: "simple" | "graph" } = $props();
 
   let showPopover = $state(false);
   let pipelineData = $state<Array<{
@@ -209,7 +209,11 @@
       onmouseleave={handlePopoverClose}
       disabled={dayObj.disabled}
     >
-      {#if loadingPipelines}
+      {#if viewMode === "simple"}
+        <div class="flex items-center justify-center w-full h-full {dayObj.colorClass}">
+          <span class="text-xs font-bold">{dayObj.day}</span>
+        </div>
+      {:else if loadingPipelines}
         <div class="flex items-end justify-between w-full h-full gap-0.5">
           {#each Array(5) as _, i}
             <div class="flex-1 bg-gray-300 animate-pulse rounded-sm" style="height: {20 + Math.random() * 60}%"></div>

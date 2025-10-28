@@ -40,6 +40,13 @@
     );
     let tabAnimationKey = $state(0);
 
+    // Track heatmap view mode - persist to localStorage
+    let heatmapViewMode = $state<"simple" | "graph">(
+        typeof window !== 'undefined'
+            ? (localStorage.getItem('buildHealthViewMode') as "simple" | "graph") || "graph"
+            : "graph"
+    );
+
     // Track if we're on desktop (lg breakpoint = 1024px)
     let isDesktop = $state(false);
     
@@ -69,6 +76,13 @@
     $effect(() => {
         if (typeof window !== 'undefined') {
             localStorage.setItem('buildHealthCurrentTab', currentTab);
+        }
+    });
+
+    // Save view mode to localStorage when it changes
+    $effect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('buildHealthViewMode', heatmapViewMode);
         }
     });
 
@@ -202,16 +216,34 @@
                             </span>
                         </CardTitle>
 
-                        <Sidebar.Trigger
-                            class="flex items-center gap-2 flex-shrink-0"
-                        >
-                            <span
-                                class="material-symbols-outlined"
-                                style="font-size: 1.75em; line-height: 1;"
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <!-- View Mode Toggle -->
+                            <button
+                                onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"}
+                                class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+                                aria-label="Toggle view mode"
                             >
-                                settings
-                            </span>
-                        </Sidebar.Trigger>
+                                <span class="material-symbols-outlined" style="font-size: 1.25em;">
+                                    {#if heatmapViewMode === "graph"}
+                                        view_module
+                                    {:else}
+                                        view_day
+                                    {/if}
+                                </span>
+                                <span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>
+                            </button>
+
+                            <Sidebar.Trigger
+                                class="flex items-center gap-2 flex-shrink-0"
+                            >
+                                <span
+                                    class="material-symbols-outlined"
+                                    style="font-size: 1.75em; line-height: 1;"
+                                >
+                                    settings
+                                </span>
+                            </Sidebar.Trigger>
+                        </div>
                     </div>
 
                     <div class="flex-1 min-h-0">
@@ -307,7 +339,7 @@
                             </CardContent>
                         </Tabs.Content>
                         <Tabs.Content value="Weekly" class="h-full overflow-hidden">
-                            <WeeklyView />
+                            <WeeklyView viewMode={heatmapViewMode} />
                         </Tabs.Content>
                         <Tabs.Content value="Analytics" class="h-[100dvh] max-h-[100dvh] overflow-auto">
                             <PipelineAnalytics />
@@ -328,6 +360,24 @@
                                 DELTAV BUILD HEALTH
                             </span>
                         </CardTitle>
+
+                        <div class="ml-auto flex items-center gap-2">
+                            <!-- View Mode Toggle -->
+                            <button
+                                onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"}
+                                class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+                                aria-label="Toggle view mode"
+                            >
+                                <span class="material-symbols-outlined" style="font-size: 1.25em;">
+                                    {#if heatmapViewMode === "graph"}
+                                        view_module
+                                    {:else}
+                                        view_day
+                                    {/if}
+                                </span>
+                                <span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="flex-1 min-h-0 px-4 pb-4">
@@ -352,9 +402,9 @@
                                         {#each daysInMonth as dayObj, index (currentMonth + "-" + dayObj.day)}
                                             <div class="w-full aspect-square min-w-0 min-h-0">
                                                 {#if dayBuildQuality[dayObj.dateStr]}
-                                                    <HeatmapButton {dayObj} delay={index * 50} />
+                                                    <HeatmapButton {dayObj} delay={index * 50} viewMode={heatmapViewMode} />
                                                 {:else if dayObj.disabled}
-                                                    <HeatmapButton {dayObj} delay={index * 50} />
+                                                    <HeatmapButton {dayObj} delay={index * 50} viewMode={heatmapViewMode} />
                                                 {:else}
                                                     <Skeleton
                                                         class="w-full h-full min-w-0 min-h-0 rounded"
@@ -410,7 +460,7 @@
                                         Weekly View
                                     </h3>
                                     <div class="flex-1 min-h-0 overflow-auto">
-                                        <WeeklyView />
+                                        <WeeklyView viewMode={heatmapViewMode} />
                                     </div>
                                 </CardContent>
                             </Card>
