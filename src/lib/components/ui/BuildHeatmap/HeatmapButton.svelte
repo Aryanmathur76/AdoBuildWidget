@@ -29,7 +29,7 @@
     }
   }
 
-  let { dayObj, delay = 0, viewMode = "graph" }: { dayObj: any; delay?: number; viewMode?: "simple" | "graph" } = $props();
+  let { dayObj, delay = 0, viewMode = "simple" }: { dayObj: any; delay?: number; viewMode?: "simple" | "graph" } = $props();
 
   let showPopover = $state(false);
   let pipelineData = $state<Array<{

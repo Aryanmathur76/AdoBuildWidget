@@ -43,8 +43,8 @@
     // Track heatmap view mode - persist to localStorage
     let heatmapViewMode = $state<"simple" | "graph">(
         typeof window !== 'undefined'
-            ? (localStorage.getItem('buildHealthViewMode') as "simple" | "graph") || "graph"
-            : "graph"
+            ? (localStorage.getItem('buildHealthViewMode') as "simple" | "graph") || "simple"
+            : "simple"
     );
 
     // Track if we're on desktop (lg breakpoint = 1024px)

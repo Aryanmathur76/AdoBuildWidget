@@ -18,7 +18,7 @@
     } from "$lib/utils/buildQualityUtils.js";
     import { env } from "$env/dynamic/public";
 
-    let { viewMode = "graph" }: { viewMode?: "simple" | "graph" } = $props();
+    let { viewMode = "simple" }: { viewMode?: "simple" | "graph" } = $props();
 
     const today = new Date();
 
