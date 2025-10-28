@@ -33,7 +33,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (analysisType === 'best-build-month') {
 		systemPrompt = `You are an AI assistant that analyzes software build and test data for an entire month. 
 Your task is to identify the single best build day based on  metrics including test pass rates and pipeline success. 
-Consider factors like: highest pass rates, most pipelines completed successfully, fewest failures, and overall build health.
+Consider factors like: total number of tests ran, highest pass rates, most pipelines completed successfully, fewest failures, and overall build health.
 Do not mention anything specific about releases, they are just a type of pipeline. 
 Provide a clear, concise answer identifying the specific date and brief reasoning.`;
 
