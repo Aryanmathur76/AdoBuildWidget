@@ -204,11 +204,11 @@ export async function GET({ url }: { url: URL }) {
     //#region Third step is to get the test results
     let testResults: any[] = [];
     try {
-        // Fetch test runs for this build - use build start date as base and add 7 days
+        // Fetch test runs for this build - use build start date as base and add 5 days
         const buildCreationDateUTC = new Date(buildDetails.startTime);
         const buildCreationDateCST = new Date(buildCreationDateUTC.getTime() - 6 * 60 * 60 * 1000);
         const maxDateCST = new Date(buildCreationDateCST);
-        maxDateCST.setDate(buildCreationDateCST.getDate() + 7); // Add 7 days
+        maxDateCST.setDate(buildCreationDateCST.getDate() + 5); // Add 5 days
 
         // Convert back to UTC for API query
         const minLastUpdatedDate = buildCreationDateUTC.toISOString();
