@@ -14,8 +14,16 @@
   import { env } from "$env/dynamic/public";
   import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
 
-  // Helper function to get bar color based on pass rate
-  function getBarColor(passRate: number): string {
+  // Helper function to get bar color based on pass rate and status
+  function getBarColor(passRate: number, status: string): string {
+    if (status === "inProgress") {
+      return getTestInProgressColor(); // Blue for in-progress
+    } else if (status === "future") {
+      return "bg-gray-400";
+    } else if (status === "no-data") {
+      return getTestNoDataColor();
+    }
+    
     const quality = getTestQuality(passRate);
     switch (quality) {
       case 'good':
@@ -218,9 +226,9 @@
           {/if}
         </div>
       {:else if loadingPipelines}
-        <div class="flex flex-col h-full w-full bg-neutral-900 rounded-sm">
-          <!-- Banner with date and quality color (top 20%) -->
-          <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm border-b border-white/20">
+        <div class="flex flex-col h-full w-full bg-transparent rounded-sm">
+          <!-- Banner with date and quality color (top 25%) -->
+          <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm">
             <span class="text-xs font-bold drop-shadow-sm">
               {#if dayObj.disabled}
                 <span class="material-symbols-outlined" style="font-size: 0.75em;">schedule</span>
@@ -237,9 +245,9 @@
           </div>
         </div>
       {:else if pipelineData.length > 0}
-        <div class="flex flex-col h-full w-full bg-neutral-900 rounded-sm">
-          <!-- Banner with date and quality color (top 20%) -->
-          <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm border-b border-white/20">
+        <div class="flex flex-col h-full w-full bg-transparent rounded-sm">
+          <!-- Banner with date and quality color (top 25%) -->
+          <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm">
             <span class="text-xs font-bold drop-shadow-sm">
               {#if dayObj.disabled}
                 <span class="material-symbols-outlined" style="font-size: 0.75em;">schedule</span>
@@ -254,17 +262,17 @@
               {@const totalTests = pipeline.passCount + pipeline.failCount}
               {@const passRate = totalTests > 0 ? (pipeline.passCount / totalTests) * 100 : 0}
               {@const barHeight = totalTests > 0 ? Math.max(10, (passRate / 100) * 80) : 10}
-              {@const barColor = getBarColor(passRate)}
+              {@const barColor = getBarColor(passRate, pipeline.status)}
               <div 
-                class="flex-1 {barColor} rounded-sm transition-all duration-200 max-w-4" 
+                class="flex-1 {barColor} rounded-xs transition-all duration-200 max-w-4" 
                 style="height: {barHeight}%; min-width: 3px;"
               ></div>
             {/each}
           </div>
         </div>
       {:else}
-        <div class="flex flex-col h-full w-full bg-neutral-900 rounded-sm">
-          <!-- Banner with date and quality color (top 20%) -->
+        <div class="flex flex-col h-full w-full bg-transparent rounded-sm">
+          <!-- Banner with date and quality color (top 25%) -->
           <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm">
             <span class="text-xs font-bold drop-shadow-sm">
               {dayObj.day}
