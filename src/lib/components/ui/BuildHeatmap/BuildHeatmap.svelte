@@ -281,9 +281,9 @@
                                             }}
                                         >
                                             {#if dayBuildQuality[dayObj.dateStr]}
-                                                <HeatmapButton {dayObj} delay={index * 50} />
+                                                <HeatmapButton {dayObj} delay={index * 50} viewMode={heatmapViewMode} />
                                             {:else if dayObj.disabled}
-                                                <HeatmapButton {dayObj} delay={index * 50} />
+                                                <HeatmapButton {dayObj} delay={index * 50} viewMode={heatmapViewMode} />
                                             {:else}
                                                 <Skeleton
                                                     class="w-full h-full min-w-0 min-h-0 rounded"
