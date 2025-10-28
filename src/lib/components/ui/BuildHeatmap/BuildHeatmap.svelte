@@ -451,25 +451,13 @@
                                 >
                                     {#each daysInMonth as dayObj, index (currentMonth + "-" + dayObj.day + "-" + tabAnimationKey)}
                                         <div
-                                            class="w-full aspect-square min-w-0 min-h-0 relative"
+                                            class="w-full aspect-square min-w-0 min-h-0 relative {bestBuildDay === dayObj.dateStr ? 'border-2 border-green-400 rounded-lg shadow-lg shadow-green-400/50' : ''}"
                                             in:fly={{
                                                 y: 10,
                                                 duration: 200,
                                                 delay: index * 15,
                                             }}
                                         >
-                                                {#if bestBuildDay === dayObj.dateStr}
-                                                <!-- Best build indicator -->
-                                                <div class="absolute -top-1 -right-1 z-10">
-                                                    <span 
-                                                        class="material-symbols-outlined text-green-400 drop-shadow-lg animate-pulse" 
-                                                        style="font-size: 1.5em; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.8));"
-                                                        title={bestBuildRationale || "Best build day"}
-                                                    >
-                                                        star
-                                                    </span>
-                                                </div>
-                                            {/if}
                                             {#if dayBuildQuality[dayObj.dateStr]}
                                                 <HeatmapButton {dayObj} delay={index * 50} viewMode={heatmapViewMode} />
                                             {:else if dayObj.disabled}
@@ -616,19 +604,7 @@
 
                                     <div class="grid grid-cols-7 gap-0.5 mb-2 flex-1">
                                         {#each daysInMonth as dayObj, index (currentMonth + "-" + dayObj.day)}
-                                            <div class="w-full aspect-square min-w-0 min-h-0 relative">
-                                                {#if bestBuildDay === dayObj.dateStr}
-                                                    <!-- Best build indicator -->
-                                                    <div class="absolute -top-1 -right-1 z-10">
-                                                        <span 
-                                                            class="material-symbols-outlined text-green-400 drop-shadow-lg animate-pulse" 
-                                                            style="font-size: 1.5em; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.8));"
-                                                            title={bestBuildRationale || "Best build day"}
-                                                        >
-                                                            star
-                                                        </span>
-                                                    </div>
-                                                {/if}
+                                            <div class="w-full aspect-square min-w-0 min-h-0 relative {bestBuildDay === dayObj.dateStr ? 'border-2 border-green-400 rounded-lg shadow-lg shadow-green-400/50' : ''}">
                                                 {#if dayBuildQuality[dayObj.dateStr]}
                                                     <HeatmapButton {dayObj} delay={index * 50} viewMode={heatmapViewMode} />
                                                 {:else if dayObj.disabled}

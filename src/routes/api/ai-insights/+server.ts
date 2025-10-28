@@ -40,7 +40,7 @@ Provide a clear, concise answer identifying the specific date and brief reasonin
 
 1. Highest overall test pass rates
 2. Most pipelines completed successfully  
-3. Fewest critical failures
+3. Fewest failures
 4. Best overall build stability and health
 
 ${JSON.stringify(buildData, null, 2)}
