@@ -221,7 +221,7 @@
         <div class="flex flex-col h-full w-full bg-zinc-900 rounded-sm">
           <!-- Banner with date and quality color (top 20%) -->
           <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm border-b border-white/20">
-            <span class="text-xs font-bold text-white drop-shadow-sm">
+            <span class="text-xs font-bold drop-shadow-sm">
               {#if dayObj.disabled}
                 <span class="material-symbols-outlined" style="font-size: 0.75em;">schedule</span>
               {:else}
@@ -240,7 +240,7 @@
         <div class="flex flex-col h-full w-full bg-zinc-900 rounded-sm">
           <!-- Banner with date and quality color (top 20%) -->
           <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm border-b border-white/20">
-            <span class="text-xs font-bold text-white drop-shadow-sm">
+            <span class="text-xs font-bold drop-shadow-sm">
               {#if dayObj.disabled}
                 <span class="material-symbols-outlined" style="font-size: 0.75em;">schedule</span>
               {:else}
@@ -265,13 +265,13 @@
       {:else}
         <div class="flex flex-col h-full w-full bg-zinc-900 rounded-sm">
           <!-- Banner with date and quality color (top 20%) -->
-          <div class="h-1/5 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm border-b border-white/20">
-            <span class="text-xs font-bold text-white drop-shadow-sm">
+          <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm">
+            <span class="text-xs font-bold drop-shadow-sm">
               {dayObj.day}
             </span>
           </div>
           <!-- Simple content (bottom 80%) -->
-          <div class="h-4/5 flex items-center justify-center w-full">
+          <div class="h-3/4 flex items-center justify-center w-full">
             <span class="text-xs font-bold">
               {#if dayObj.disabled}
                 <span class="material-symbols-outlined" style="font-size: 1em;">schedule</span>
