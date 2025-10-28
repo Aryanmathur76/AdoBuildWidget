@@ -8,10 +8,26 @@
     getTestNoDataColor,
     getTestInProgressColor,
   } from "$lib/constants/colors.js";
+  import { getTestQuality, PIPELINE_TEST_THRESHOLDS } from "$lib/constants/thresholds.js";
   import { Skeleton } from "$lib/components/ui/skeleton/index.js";
   import { goto } from "$app/navigation";
   import { env } from "$env/dynamic/public";
   import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
+
+  // Helper function to get bar color based on pass rate
+  function getBarColor(passRate: number): string {
+    const quality = getTestQuality(passRate);
+    switch (quality) {
+      case 'good':
+        return getTestPassColor();
+      case 'ok':
+        return 'bg-yellow-500'; // Use yellow for ok quality
+      case 'bad':
+        return getTestFailColor();
+      default:
+        return getTestNoDataColor();
+    }
+  }
 
   let { dayObj, delay = 0 }: { dayObj: any; delay?: number } = $props();
 
@@ -205,7 +221,7 @@
             {@const totalTests = pipeline.passCount + pipeline.failCount}
             {@const passRate = totalTests > 0 ? (pipeline.passCount / totalTests) * 100 : 0}
             {@const barHeight = totalTests > 0 ? Math.max(10, (passRate / 100) * 80) : 10}
-            {@const barColor = passRate >= 98 ? 'bg-green-500' : passRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'}
+            {@const barColor = getBarColor(passRate)}
             <div 
               class="flex-1 {barColor} rounded-sm transition-all duration-200 max-w-4" 
               style="height: {barHeight}%; min-width: 3px;"
