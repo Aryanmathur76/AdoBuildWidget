@@ -50,6 +50,10 @@
     // Track the best build day for highlighting
     let bestBuildDay = $state<string | null>(null);
     let analyzingBestBuild = $state(false);
+    let bestBuildRationale = $state<string>("");
+
+    // Fetch all build qualities for the current month only when the month changes
+    let lastFetchedMonth = $state(-1);
 
     // Track if we're on desktop (lg breakpoint = 1024px)
     let isDesktop = $state(false);
@@ -157,12 +161,11 @@
         }),
     );
 
-    // Fetch all build qualities for the current month only when the month changes
-    let lastFetchedMonth = $state(-1);
     $effect(() => {
         if (currentMonth !== lastFetchedMonth) {
             lastFetchedMonth = currentMonth;
             bestBuildDay = null; // Clear best build when month changes
+            bestBuildRationale = ""; // Clear rationale when month changes
             fetchAllBuildQualitiesForMonth();
         }
     });
@@ -335,6 +338,7 @@
 
             if (bestDate && monthDates.includes(bestDate)) {
                 bestBuildDay = bestDate;
+                bestBuildRationale = insights;
                 console.log(`Best build identified: ${bestDate}`, insights);
             } else {
                 console.warn('Could not identify best build date from AI response:', insights);
@@ -388,6 +392,25 @@
                                 <span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>
                             </button>
 
+                            <!-- Best Build Button - only show in compact mode when Monthly tab is selected -->
+                            {#if currentTab === "Monthly"}
+                                <button
+                                    onclick={analyzeBestBuild}
+                                    disabled={analyzingBestBuild}
+                                    class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50"
+                                    title="Find the best build day this month"
+                                >
+                                    <span class="material-symbols-outlined" style="font-size: 1.25em;">
+                                        {#if analyzingBestBuild}
+                                            refresh
+                                        {:else}
+                                            star
+                                        {/if}
+                                    </span>
+                                    <span>{analyzingBestBuild ? 'Analyzing...' : 'Best Build'}</span>
+                                </button>
+                            {/if}
+
                             <Sidebar.Trigger
                                 class="flex items-center gap-2 flex-shrink-0"
                             >
@@ -403,26 +426,7 @@
 
                     <div class="flex-1 min-h-0">
                         <Tabs.Content value="Monthly" class="h-full overflow-hidden">
-                            <CardContent class="h-full px-4 pb-2 flex flex-col">
-                                <!-- Header with title and best build button -->
-                                <div class="flex items-center justify-between mb-3 flex-shrink-0">
-                                    <h3 class="text-lg font-semibold">Monthly View</h3>
-                                    <button
-                                        onclick={analyzeBestBuild}
-                                        disabled={analyzingBestBuild}
-                                        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50"
-                                        title="Find the best build day this month"
-                                    >
-                                        <span class="material-symbols-outlined" style="font-size: 1.25em;">
-                                            {#if analyzingBestBuild}
-                                                refresh
-                                            {:else}
-                                                star
-                                            {/if}
-                                        </span>
-                                        <span>{analyzingBestBuild ? 'Analyzing...' : 'Best Build'}</span>
-                                    </button>
-                                </div>
+                            <CardContent class="h-full px-4 pb-2 flex flex-col overflow-auto">
                                 <!-- Dynamic day of week labels with animation -->
                                 <div
                                     class="grid grid-cols-7 gap-0.5 mb-1 h-5 items-center flex-shrink-0"
@@ -454,10 +458,14 @@
                                                 delay: index * 15,
                                             }}
                                         >
-                                            {#if bestBuildDay === dayObj.dateStr}
+                                                {#if bestBuildDay === dayObj.dateStr}
                                                 <!-- Best build indicator -->
                                                 <div class="absolute -top-1 -right-1 z-10">
-                                                    <span class="material-symbols-outlined text-green-400 drop-shadow-lg" style="font-size: 1em;">
+                                                    <span 
+                                                        class="material-symbols-outlined text-green-400 drop-shadow-lg animate-pulse" 
+                                                        style="font-size: 1.5em; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.8));"
+                                                        title={bestBuildRationale || "Best build day"}
+                                                    >
                                                         star
                                                     </span>
                                                 </div>
@@ -518,6 +526,15 @@
                                         {/snippet}
                                     </Pagination.Root>
                                 </div>
+                                {#if bestBuildRationale}
+                                    <div class="mt-3 p-3 bg-muted/50 rounded-md border">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <span class="material-symbols-outlined text-primary" style="font-size: 1.25em;">psychology</span>
+                                            <h4 class="text-sm font-medium">AI Analysis</h4>
+                                        </div>
+                                        <p class="text-sm text-muted-foreground leading-relaxed">{bestBuildRationale}</p>
+                                    </div>
+                                {/if}
                             </CardContent>
                         </Tabs.Content>
                         <Tabs.Content value="Weekly" class="h-full overflow-hidden">
@@ -603,7 +620,11 @@
                                                 {#if bestBuildDay === dayObj.dateStr}
                                                     <!-- Best build indicator -->
                                                     <div class="absolute -top-1 -right-1 z-10">
-                                                        <span class="material-symbols-outlined text-green-400 drop-shadow-lg" style="font-size: 1em;">
+                                                        <span 
+                                                            class="material-symbols-outlined text-green-400 drop-shadow-lg animate-pulse" 
+                                                            style="font-size: 1.5em; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.8));"
+                                                            title={bestBuildRationale || "Best build day"}
+                                                        >
                                                             star
                                                         </span>
                                                     </div>
@@ -656,6 +677,15 @@
                                             {/snippet}
                                         </Pagination.Root>
                                     </div>
+                                    {#if bestBuildRationale}
+                                        <div class="mt-3 p-3 bg-muted/50 rounded-md border">
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <span class="material-symbols-outlined text-primary" style="font-size: 1.25em;">psychology</span>
+                                                <h4 class="text-sm font-medium">AI Analysis</h4>
+                                            </div>
+                                            <p class="text-sm text-muted-foreground leading-relaxed">{bestBuildRationale}</p>
+                                        </div>
+                                    {/if}
                                 </CardContent>
                             </Card>
 
