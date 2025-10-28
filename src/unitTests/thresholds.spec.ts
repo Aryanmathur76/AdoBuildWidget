@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { getTestQuality, PIPELINE_TEST_THRESHOLDS } from '$lib/constants/thresholds';
 
 describe('PIPELINE_TEST_THRESHOLDS', () => {
-  it('should have good threshold at 98%', () => {
-    expect(PIPELINE_TEST_THRESHOLDS.good).toBe(98);
+  it('should have good threshold at 95%', () => {
+    expect(PIPELINE_TEST_THRESHOLDS.good).toBe(95);
   });
 
   it('should have ok threshold at 70%', () => {
@@ -12,35 +12,35 @@ describe('PIPELINE_TEST_THRESHOLDS', () => {
 });
 
 describe('getTestQuality', () => {
-  describe('good quality (98% and above)', () => {
+  describe('good quality (95% and above)', () => {
     it('should return "good" for 100% pass rate', () => {
       expect(getTestQuality(100)).toBe('good');
     });
 
-    it('should return "good" for exactly 98% pass rate', () => {
-      expect(getTestQuality(98)).toBe('good');
+    it('should return "good" for exactly 95% pass rate', () => {
+      expect(getTestQuality(95)).toBe('good');
     });
 
     it('should return "good" for 99% pass rate', () => {
       expect(getTestQuality(99)).toBe('good');
     });
 
-    it('should return "good" for 98.5% pass rate', () => {
-      expect(getTestQuality(98.5)).toBe('good');
+    it('should return "good" for 97% pass rate', () => {
+      expect(getTestQuality(97)).toBe('good');
     });
   });
 
-  describe('ok quality (70% to 97.99%)', () => {
+  describe('ok quality (70% to 94.99%)', () => {
     it('should return "ok" for exactly 70% pass rate', () => {
       expect(getTestQuality(70)).toBe('ok');
     });
 
-    it('should return "ok" for 97% pass rate', () => {
-      expect(getTestQuality(97)).toBe('ok');
+    it('should return "ok" for 94% pass rate', () => {
+      expect(getTestQuality(94)).toBe('ok');
     });
 
-    it('should return "ok" for 97.99% pass rate (just below good threshold)', () => {
-      expect(getTestQuality(97.99)).toBe('ok');
+    it('should return "ok" for 94.99% pass rate (just below good threshold)', () => {
+      expect(getTestQuality(94.99)).toBe('ok');
     });
 
     it('should return "ok" for 85% pass rate', () => {
@@ -76,8 +76,8 @@ describe('getTestQuality', () => {
 
   describe('edge cases', () => {
     it('should handle decimal precision near good threshold', () => {
-      expect(getTestQuality(97.999999)).toBe('ok');
-      expect(getTestQuality(98.000001)).toBe('good');
+      expect(getTestQuality(94.999999)).toBe('ok');
+      expect(getTestQuality(95.000001)).toBe('good');
     });
 
     it('should handle decimal precision near ok threshold', () => {
@@ -103,11 +103,11 @@ describe('getTestQuality', () => {
   describe('boundary testing', () => {
     it('should correctly categorize values at exact boundaries', () => {
       // Just below good threshold
-      expect(getTestQuality(97.9)).toBe('ok');
+      expect(getTestQuality(94.9)).toBe('ok');
       // At good threshold
-      expect(getTestQuality(98.0)).toBe('good');
+      expect(getTestQuality(95.0)).toBe('good');
       // Just above good threshold
-      expect(getTestQuality(98.1)).toBe('good');
+      expect(getTestQuality(95.1)).toBe('good');
 
       // Just below ok threshold
       expect(getTestQuality(69.9)).toBe('bad');
@@ -129,8 +129,13 @@ describe('getTestQuality', () => {
       expect(getTestQuality(passRate)).toBe('good');
     });
 
-    it('should return "ok" for 97 passed, 3 failed (97%)', () => {
+    it('should return "good" for 97 passed, 3 failed (97%)', () => {
       const passRate = (97 / (97 + 3)) * 100;
+      expect(getTestQuality(passRate)).toBe('good');
+    });
+
+    it('should return "ok" for 94 passed, 6 failed (94%)', () => {
+      const passRate = (94 / (94 + 6)) * 100;
       expect(getTestQuality(passRate)).toBe('ok');
     });
 
