@@ -110,11 +110,11 @@ export async function GET({ url }: { url: URL }) {
 
     //#region Fetch and aggregate test results
     try {
-        // Fetch test runs for this release - use release creation date as base and add 7 days
+        // Fetch test runs for this release - use release creation date as base and add 5 days
         const releaseCreationDate = new Date(releaseDetails.createdOn);
         const maxDate = new Date(releaseCreationDate);
-        maxDate.setDate(releaseCreationDate.getDate() + 7); // Add 7 days
-        
+        maxDate.setDate(releaseCreationDate.getDate() + 5); // Add 5 days
+
         const minLastUpdatedDate = releaseCreationDate.toISOString();
         const maxLastUpdatedDate = maxDate.toISOString();
         const testRunUrl = `https://dev.azure.com/${organization}/${project}/_apis/test/runs?releaseIds=${releaseId}&minLastUpdatedDate=${encodeURIComponent(minLastUpdatedDate)}&maxLastUpdatedDate=${encodeURIComponent(maxLastUpdatedDate)}&api-version=7.1`;
