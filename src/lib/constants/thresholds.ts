@@ -1,5 +1,5 @@
 export const PIPELINE_TEST_THRESHOLDS = {
-    good: 98,  // 98% and above is considered good - green
+    good: 95,  // 98% and above is considered good - green
     ok: 70,    // 70% to 99% is considered ok - yellow
 }
 
