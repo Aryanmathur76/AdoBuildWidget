@@ -218,7 +218,7 @@
           {/if}
         </div>
       {:else if loadingPipelines}
-        <div class="flex flex-col h-full w-full bg-zinc-900 rounded-sm">
+        <div class="flex flex-col h-full w-full bg-neutral-900 rounded-sm">
           <!-- Banner with date and quality color (top 20%) -->
           <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm border-b border-white/20">
             <span class="text-xs font-bold drop-shadow-sm">
@@ -237,7 +237,7 @@
           </div>
         </div>
       {:else if pipelineData.length > 0}
-        <div class="flex flex-col h-full w-full bg-zinc-900 rounded-sm">
+        <div class="flex flex-col h-full w-full bg-neutral-900 rounded-sm">
           <!-- Banner with date and quality color (top 20%) -->
           <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm border-b border-white/20">
             <span class="text-xs font-bold drop-shadow-sm">
@@ -263,7 +263,7 @@
           </div>
         </div>
       {:else}
-        <div class="flex flex-col h-full w-full bg-zinc-900 rounded-sm">
+        <div class="flex flex-col h-full w-full bg-neutral-900 rounded-sm">
           <!-- Banner with date and quality color (top 20%) -->
           <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm">
             <span class="text-xs font-bold drop-shadow-sm">
