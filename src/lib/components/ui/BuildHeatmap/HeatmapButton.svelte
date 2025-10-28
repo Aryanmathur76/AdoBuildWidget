@@ -202,7 +202,7 @@
   <Popover.Root bind:open={showPopover}>
     <Popover.Trigger
       class={`w-full h-full min-w-0 min-h-0 cursor-pointer ${dayObj.animationClass} hover:scale-110 hover:shadow-xl hover:z-10`}
-      style="aspect-ratio: 1 / 1; transition: all 0.2s ease-in-out; position: relative; border: none; padding: 2px; display: flex; align-items: end; justify-content: space-between; font-weight: bold; border-radius: 12px;"
+      style="aspect-ratio: 1 / 1; transition: all 0.2s ease-in-out; position: relative; border: none; padding: 1px; display: flex; align-items: end; justify-content: space-between; font-weight: bold; border-radius: 12px;"
       aria-label={`Go to build ${dayObj.dateStr}`}
       onclick={() => goto(`/build/${dayObj.dateStr}`)}
       onmouseenter={handlePopoverOpen}
@@ -210,7 +210,7 @@
       disabled={dayObj.disabled}
     >
       {#if viewMode === "simple"}
-        <div class="flex items-center justify-center w-full h-full {dayObj.colorClass} rounded-lg">
+        <div class="flex items-center justify-center w-full h-full {dayObj.colorClass} rounded-sm">
           <span class="text-xs font-bold">{dayObj.day}</span>
         </div>
       {:else if loadingPipelines}
