@@ -204,6 +204,16 @@
     
     showPopover = false;
   }
+
+  // Format date as YYMMDD
+  function formatBuildId(dateStr: string): string {
+    // Parse YYYY-MM-DD directly to avoid timezone issues
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const yy = year.toString().slice(-2);
+    const mm = month.toString().padStart(2, '0');
+    const dd = day.toString().padStart(2, '0');
+    return `${yy}${mm}${dd}`;
+  }
 </script>
 
 {#if dayObj}
@@ -360,12 +370,21 @@
             {/each}
           </div>
           {#if dayObj.totalPassCount !== undefined || dayObj.totalFailCount !== undefined}
-            <div class="border-t pt-1">
+            <div class="border-t pt-2 flex justify-between items-center">
+              <p class="text-xs font-medium text-muted-foreground">
+                Build ID: {formatBuildId(dayObj.dateStr)}
+              </p>
               <p class="text-xs text-muted-foreground">
-                Total Tests: {(dayObj.totalPassCount || 0) +
+                Total: {(dayObj.totalPassCount || 0) +
                   (dayObj.totalFailCount || 0)}
                 (Pass: {dayObj.totalPassCount || 0}, Fail: {dayObj.totalFailCount ||
                   0})
+              </p>
+            </div>
+          {:else}
+            <div class="border-t pt-2">
+              <p class="text-xs font-medium text-muted-foreground">
+                Build ID: {formatBuildId(dayObj.dateStr)}
               </p>
             </div>
           {/if}
