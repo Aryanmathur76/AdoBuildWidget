@@ -211,30 +211,75 @@
     >
       {#if viewMode === "simple"}
         <div class="flex items-center justify-center w-full h-full {dayObj.colorClass} rounded-sm">
-          <span class="text-xs font-bold">{dayObj.day}</span>
+          {#if dayObj.disabled}
+            <span class="material-symbols-outlined text-white" style="font-size: 1.25em;">schedule</span>
+          {:else}
+            <span class="text-xs font-bold">{dayObj.day}</span>
+          {/if}
         </div>
       {:else if loadingPipelines}
-        <div class="flex items-end justify-between w-full h-full gap-0.5">
-          {#each Array(5) as _, i}
-            <div class="flex-1 bg-gray-300 animate-pulse rounded-sm" style="height: {20 + Math.random() * 60}%"></div>
-          {/each}
+        <div class="flex flex-col h-full w-full bg-zinc-900 rounded-sm">
+          <!-- Banner with date and quality color (top 20%) -->
+          <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm border-b border-white/20">
+            <span class="text-xs font-bold text-white drop-shadow-sm">
+              {#if dayObj.disabled}
+                <span class="material-symbols-outlined" style="font-size: 0.75em;">schedule</span>
+              {:else}
+                {dayObj.day}
+              {/if}
+            </span>
+          </div>
+          <!-- Graph content (bottom 80%) -->
+          <div class="h-3/4 flex items-end justify-between w-full gap-0.5 px-1 pt-1">
+            {#each Array(5) as _, i}
+              <div class="flex-1 bg-gray-300 animate-pulse rounded-sm" style="height: {20 + Math.random() * 60}%"></div>
+            {/each}
+          </div>
         </div>
       {:else if pipelineData.length > 0}
-        <div class="flex items-end justify-center w-full h-full gap-0.5 px-1">
-          {#each pipelineData as pipeline (pipeline.id)}
-            {@const totalTests = pipeline.passCount + pipeline.failCount}
-            {@const passRate = totalTests > 0 ? (pipeline.passCount / totalTests) * 100 : 0}
-            {@const barHeight = totalTests > 0 ? Math.max(10, (passRate / 100) * 80) : 10}
-            {@const barColor = getBarColor(passRate)}
-            <div 
-              class="flex-1 {barColor} rounded-sm transition-all duration-200 max-w-4" 
-              style="height: {barHeight}%; min-width: 3px;"
-            ></div>
-          {/each}
+        <div class="flex flex-col h-full w-full bg-zinc-900 rounded-sm">
+          <!-- Banner with date and quality color (top 20%) -->
+          <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm border-b border-white/20">
+            <span class="text-xs font-bold text-white drop-shadow-sm">
+              {#if dayObj.disabled}
+                <span class="material-symbols-outlined" style="font-size: 0.75em;">schedule</span>
+              {:else}
+                {dayObj.day}
+              {/if}
+            </span>
+          </div>
+          <!-- Graph content (bottom 80%) -->
+          <div class="h-3/4 flex items-end justify-center w-full h-full gap-0.5 px-1 pt-1">
+            {#each pipelineData as pipeline (pipeline.id)}
+              {@const totalTests = pipeline.passCount + pipeline.failCount}
+              {@const passRate = totalTests > 0 ? (pipeline.passCount / totalTests) * 100 : 0}
+              {@const barHeight = totalTests > 0 ? Math.max(10, (passRate / 100) * 80) : 10}
+              {@const barColor = getBarColor(passRate)}
+              <div 
+                class="flex-1 {barColor} rounded-sm transition-all duration-200 max-w-4" 
+                style="height: {barHeight}%; min-width: 3px;"
+              ></div>
+            {/each}
+          </div>
         </div>
       {:else}
-        <div class="flex items-center justify-center w-full h-full">
-          <span class="text-xs font-bold">{dayObj.day}</span>
+        <div class="flex flex-col h-full w-full bg-zinc-900 rounded-sm">
+          <!-- Banner with date and quality color (top 20%) -->
+          <div class="h-1/5 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm border-b border-white/20">
+            <span class="text-xs font-bold text-white drop-shadow-sm">
+              {dayObj.day}
+            </span>
+          </div>
+          <!-- Simple content (bottom 80%) -->
+          <div class="h-4/5 flex items-center justify-center w-full">
+            <span class="text-xs font-bold">
+              {#if dayObj.disabled}
+                <span class="material-symbols-outlined" style="font-size: 1em;">schedule</span>
+              {:else}
+                {dayObj.day}
+              {/if}
+            </span>
+          </div>
         </div>
       {/if}
     </Popover.Trigger>
