@@ -149,9 +149,6 @@
                     </Card>
                 {/if}
 
-                <!-- Best & Worst Day Performance -->
- 
-
                 <!-- AI Insights -->
                 {#if browser}
                     <AIInsights/>

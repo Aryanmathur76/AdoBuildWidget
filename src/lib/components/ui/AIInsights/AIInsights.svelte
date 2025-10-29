@@ -12,6 +12,21 @@
     import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
 
     let insights = $state<string>("");
+
+    // Load cached weekly trend analysis on mount
+    $effect(() => {
+        if (typeof window !== "undefined") {
+            const now = new Date();
+            const year = now.getFullYear();
+            // Get ISO week number
+            const week = Math.ceil((now.getDate() + 6 - now.getDay()) / 7);
+            const cacheKey = `buildHeatmap-weeklyTrend-${year}-${week}`;
+            const cachedInsights = localStorage.getItem(cacheKey);
+            if (cachedInsights) {
+                insights = cachedInsights;
+            }
+        }
+    });
     let loading = $state(false);
     let error = $state<string>("");
 
@@ -216,6 +231,14 @@
 
             const result = await response.json();
             insights = result.insights;
+            // Cache weekly trend analysis insights in localStorage
+            if (typeof window !== "undefined") {
+                const now = new Date();
+                const year = now.getFullYear();
+                const week = Math.ceil((now.getDate() + 6 - now.getDay()) / 7);
+                const cacheKey = `buildHeatmap-weeklyTrend-${year}-${week}`;
+                localStorage.setItem(cacheKey, insights);
+            }
         } catch (err) {
             error = err instanceof Error ? err.message : 'An error occurred';
             console.error('Error fetching AI insights:', err);

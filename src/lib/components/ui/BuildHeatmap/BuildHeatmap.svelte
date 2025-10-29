@@ -47,10 +47,25 @@
             : "simple"
     );
 
-    // Track the best build day for highlighting
+    // Track the best build day for highlighting, with localStorage cache
     let bestBuildDay = $state<string | null>(null);
     let analyzingBestBuild = $state(false);
     let bestBuildRationale = $state<string>("");
+
+    // Load cached best build and weekly trend on mount
+    $effect(() => {
+        if (typeof window !== "undefined") {
+            const cacheKey = `buildHeatmap-bestBuild-${currentYear}-${currentMonth}`;
+            const cachedBestBuild = localStorage.getItem(cacheKey);
+            if (cachedBestBuild) {
+                try {
+                    const parsed = JSON.parse(cachedBestBuild);
+                    bestBuildDay = parsed.bestBuildDay;
+                    bestBuildRationale = parsed.bestBuildRationale;
+                } catch {}
+            }
+        }
+    });
 
     // Fetch all build qualities for the current month only when the month changes
     let lastFetchedMonth = $state(-1);
@@ -166,8 +181,27 @@
     $effect(() => {
         if (currentMonth !== lastFetchedMonth) {
             lastFetchedMonth = currentMonth;
-            bestBuildDay = null; // Clear best build when month changes
-            bestBuildRationale = ""; // Clear rationale when month changes
+            // Load cached best build for the new month
+            if (typeof window !== "undefined") {
+                const cacheKey = `buildHeatmap-bestBuild-${currentYear}-${currentMonth}`;
+                const cachedBestBuild = localStorage.getItem(cacheKey);
+                if (cachedBestBuild) {
+                    try {
+                        const parsed = JSON.parse(cachedBestBuild);
+                        bestBuildDay = parsed.bestBuildDay;
+                        bestBuildRationale = parsed.bestBuildRationale;
+                    } catch {
+                        bestBuildDay = null;
+                        bestBuildRationale = "";
+                    }
+                } else {
+                    bestBuildDay = null;
+                    bestBuildRationale = "";
+                }
+            } else {
+                bestBuildDay = null;
+                bestBuildRationale = "";
+            }
             fetchAllBuildQualitiesForMonth();
         }
     });
@@ -341,6 +375,11 @@
             if (bestDate && monthDates.includes(bestDate)) {
                 bestBuildDay = bestDate;
                 bestBuildRationale = insights;
+                // Cache best build result
+                if (typeof window !== "undefined") {
+                    const cacheKey = `buildHeatmap-bestBuild-${currentYear}-${currentMonth}`;
+                    localStorage.setItem(cacheKey, JSON.stringify({ bestBuildDay, bestBuildRationale }));
+                }
                 console.log(`Best build identified: ${bestDate}`, insights);
             } else {
                 console.warn('Could not identify best build date from AI response:', insights);

@@ -8,7 +8,7 @@
     getTestNoDataColor,
     getTestInProgressColor,
   } from "$lib/constants/colors.js";
-  import { getTestQuality, PIPELINE_TEST_THRESHOLDS } from "$lib/constants/thresholds.js";
+  import { getTestQuality } from "$lib/constants/thresholds.js";
   import { Skeleton } from "$lib/components/ui/skeleton/index.js";
   import { goto } from "$app/navigation";
   import { env } from "$env/dynamic/public";
