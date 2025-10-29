@@ -396,165 +396,67 @@
 <div class="w-full h-screen max-h-screen overflow-hidden" transition:slide={{ duration: 300 }}>
     <Sidebar.Provider>
         <Sidebar.Inset class="h-full max-h-full">
-            <Card
-                class="py-0 border-0 shadow-none h-full rounded-none overflow-hidden flex flex-col"
-            >
+            <Card class="py-0 border-0 shadow-none h-full rounded-none overflow-hidden flex flex-col">
                 <Tabs.Root bind:value={currentTab} class="h-full flex flex-col lg:hidden">
-                    <div
-                        class="flex items-center overflow-hidden justify-between px-4 pt-4 pb-2 flex-shrink-0"
-                    >
-                        <CardTitle class="flex-shrink-0">
-                            <span
-                                class={`inline-flex text-base font-bold py-1 items-center gap-1`}
-                            >
-                                <span
-                                    class="material-symbols-outlined"
-                                    style="font-size: 1.75em; line-height: 1;"
-                                    >health_metrics</span
-                                >
+                    <div class="flex items-center justify-between px-4 pt-4 pb-2">
+                        <CardTitle>
+                            <span class="inline-flex text-base font-bold py-1 items-center gap-1">
+                                <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
                                 DELTAV BUILD HEALTH
                             </span>
                         </CardTitle>
-
-                        <div class="flex items-center gap-2 flex-shrink-0">
-                            <!-- View Mode Toggle -->
-                            <button
-                                onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"}
-                                class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
-                                aria-label="Toggle view mode"
-                            >
+                        <div class="flex items-center gap-2">
+                            <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
                                 <span class="material-symbols-outlined" style="font-size: 1.25em;">
-                                    {#if heatmapViewMode === "graph"}
-                                        bar_chart
-                                    {:else}
-                                        view_day
-                                    {/if}
+                                    {#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}
                                 </span>
-                                {#if !isMobile}
-                                    <span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>
-                                {/if}
+                                {#if !isMobile}<span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>{/if}
                             </button>
-
-                            <!-- Best Build Button - only show in compact mode when Monthly tab is selected -->
                             {#if currentTab === "Monthly"}
-                                <button
-                                    onclick={analyzeBestBuild}
-                                    disabled={analyzingBestBuild}
-                                    class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50"
-                                    title="Find the best build day this month"
-                                >
-                                    <span class="material-symbols-outlined" style="font-size: 1.25em;">
-                                        {#if analyzingBestBuild}
-                                            refresh
-                                        {:else}
-                                            star
-                                        {/if}
-                                    </span>
-                                    {#if !isMobile}
-                                        <span>{analyzingBestBuild ? 'Analyzing...' : 'Best Build'}</span>
-                                    {/if}
+                                <button onclick={analyzeBestBuild} disabled={analyzingBestBuild} class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50" title="Find the best build day this month">
+                                    <span class="material-symbols-outlined" style="font-size: 1.25em;">{#if analyzingBestBuild}refresh{:else}star{/if}</span>
+                                    {#if !isMobile}<span>{analyzingBestBuild ? 'Analyzing...' : 'Best Build'}</span>{/if}
                                 </button>
                             {/if}
-
-                            <Sidebar.Trigger
-                                class="flex items-center gap-2 flex-shrink-0"
-                            >
-                                <span
-                                    class="material-symbols-outlined"
-                                    style="font-size: 1.75em; line-height: 1;"
-                                >
-                                    settings
-                                </span>
+                            <Sidebar.Trigger class="flex items-center gap-2">
+                                <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">settings</span>
                             </Sidebar.Trigger>
                         </div>
                     </div>
-
                     <div class="flex-1 min-h-0">
                         <Tabs.Content value="Monthly" class="h-full overflow-hidden">
                             <CardContent class="h-full px-4 pb-2 flex flex-col overflow-auto">
-                                <!-- Dynamic day of week labels with animation -->
-                                <div
-                                    class="grid grid-cols-7 gap-0.5 mb-1 h-5 items-center flex-shrink-0"
-                                >
+                                <div class="grid grid-cols-7 gap-0.5 mb-1 h-5 items-center">
                                     {#each dayLabels as label, i (currentMonth + "-" + i + "-" + tabAnimationKey)}
-                                        <div
-                                            class="text-center text-xs font-medium text-muted-foreground h-full flex items-center justify-center"
-                                            in:fly={{
-                                                y: -15,
-                                                duration: 250,
-                                                delay: i * 30,
-                                            }}
-                                            out:fly={{ y: 15, duration: 150 }}
-                                        >
-                                            {label}
-                                        </div>
+                                        <div class="text-center text-xs font-medium text-muted-foreground h-full flex items-center justify-center" in:fly={{ y: -15, duration: 250, delay: i * 30 }} out:fly={{ y: 15, duration: 150 }}>{label}</div>
                                     {/each}
                                 </div>
-
-                                <div
-                                    class="grid grid-cols-7 gap-0.5 mb-2 flex-1"
-                                >
+                                <div class="grid grid-cols-7 gap-0.5 mb-2 flex-1">
                                     {#each daysInMonth as dayObj, index (currentMonth + "-" + dayObj.day + "-" + tabAnimationKey)}
-                                        <div
-                                            class="w-full aspect-square min-w-0 min-h-0 relative {bestBuildDay === dayObj.dateStr ? 'border-2 border-green-400 rounded-lg shadow-lg shadow-green-400/50' : ''}"
-                                            in:fly={{
-                                                y: 10,
-                                                duration: 200,
-                                                delay: index * 15,
-                                            }}
-                                        >
+                                        <div class="w-full aspect-square min-w-0 min-h-0 relative {bestBuildDay === dayObj.dateStr ? 'border-2 border-green-400 rounded-lg shadow-lg shadow-green-400/50' : ''}" in:fly={{ y: 10, duration: 200, delay: index * 15 }}>
                                             {#if dayBuildQuality[dayObj.dateStr]}
                                                 <HeatmapButton {dayObj} delay={index * 50} viewMode={heatmapViewMode} />
                                             {:else if dayObj.disabled}
                                                 <HeatmapButton {dayObj} delay={index * 50} viewMode={heatmapViewMode} />
                                             {:else}
-                                                <Skeleton
-                                                    class="w-full h-full min-w-0 min-h-0 rounded"
-                                                    style="aspect-ratio: 1 / 1;"
-                                                />
+                                                <Skeleton class="w-full h-full min-w-0 min-h-0 rounded" style="aspect-ratio: 1 / 1;" />
                                             {/if}
                                         </div>
                                     {/each}
                                 </div>
-                                <div class="flex justify-center flex-shrink-0">
-                                    <Pagination.Root
-                                        count={months.length}
-                                        perPage={1}
-                                        siblingCount={1}
-                                        bind:page={currentMonthPage}
-                                    >
-                                        {#snippet children({
-                                            pages,
-                                            currentPage,
-                                        })}
+                                <div class="flex justify-center">
+                                    <Pagination.Root count={months.length} perPage={1} siblingCount={1} bind:page={currentMonthPage}>
+                                        {#snippet children({ pages, currentPage })}
                                             <Pagination.Content>
-                                                <Pagination.Item>
-                                                    <Pagination.PrevButton />
-                                                </Pagination.Item>
+                                                <Pagination.Item><Pagination.PrevButton /></Pagination.Item>
                                                 {#each pages as page (page.key)}
                                                     {#if page.type === "ellipsis"}
-                                                        <Pagination.Item>
-                                                            <Pagination.Ellipsis
-                                                            />
-                                                        </Pagination.Item>
+                                                        <Pagination.Item><Pagination.Ellipsis /></Pagination.Item>
                                                     {:else}
-                                                        <Pagination.Item>
-                                                            <Pagination.Link
-                                                                {page}
-                                                                isActive={currentPage ===
-                                                                    page.value}
-                                                            >
-                                                                {monthNames[
-                                                                    page.value -
-                                                                        1
-                                                                ].slice(0, 3)}
-                                                            </Pagination.Link>
-                                                        </Pagination.Item>
+                                                        <Pagination.Item><Pagination.Link {page} isActive={currentPage === page.value}>{monthNames[page.value - 1].slice(0, 3)}</Pagination.Link></Pagination.Item>
                                                     {/if}
                                                 {/each}
-                                                <Pagination.Item>
-                                                    <Pagination.NextButton />
-                                                </Pagination.Item>
+                                                <Pagination.Item><Pagination.NextButton /></Pagination.Item>
                                             </Pagination.Content>
                                         {/snippet}
                                     </Pagination.Root>
@@ -578,43 +480,23 @@
                         </Tabs.Content>
                     </div>
                 </Tabs.Root>
-
-                <!-- Desktop Layout: Show all views side-by-side -->
                 <div class="hidden lg:flex flex-col h-full overflow-hidden">
-                    <div class="flex items-center px-4 pt-4 pb-2 flex-shrink-0">
-                        <CardTitle class="flex-shrink-0">
+                    <div class="flex items-center px-4 pt-4 pb-2">
+                        <CardTitle>
                             <span class="inline-flex text-base font-bold py-1 items-center gap-1">
-                                <span
-                                    class="material-symbols-outlined"
-                                    style="font-size: 1.75em; line-height: 1;"
-                                    >health_metrics</span
-                                >
+                                <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
                                 DELTAV BUILD HEALTH
                             </span>
                         </CardTitle>
-
                         <div class="ml-auto flex items-center gap-2">
-                            <!-- View Mode Toggle -->
-                            <button
-                                onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"}
-                                class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
-                                aria-label="Toggle view mode"
-                            >
-                                <span class="material-symbols-outlined" style="font-size: 1.25em;">
-                                    {#if heatmapViewMode === "graph"}
-                                        bar_chart
-                                    {:else}
-                                        view_day
-                                    {/if}
-                                </span>
+                            <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
+                                <span class="material-symbols-outlined" style="font-size: 1.25em;">{#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}</span>
                                 <span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>
                             </button>
                         </div>
                     </div>
-
                     <div class="flex-1 min-h-0 px-4 pb-4">
                         <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 h-full">
-                            <!-- Monthly View Card -->
                             <Card class="flex flex-col h-full">
                                 <CardContent class="h-full p-4 pt-0 flex flex-col overflow-auto">
                                     <div class="flex items-center justify-between mb-3">
@@ -622,31 +504,16 @@
                                             <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
                                             Monthly View
                                         </h3>
-                                        <button
-                                            onclick={analyzeBestBuild}
-                                            disabled={analyzingBestBuild}
-                                            class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50"
-                                            title="Find the best build day this month"
-                                        >
-                                            <span class="material-symbols-outlined" style="font-size: 1.25em;">
-                                                {#if analyzingBestBuild}
-                                                    refresh
-                                                {:else}
-                                                    star
-                                                {/if}
-                                            </span>
+                                        <button onclick={analyzeBestBuild} disabled={analyzingBestBuild} class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50" title="Find the best build day this month">
+                                            <span class="material-symbols-outlined" style="font-size: 1.25em;">{#if analyzingBestBuild}refresh{:else}star{/if}</span>
                                             <span>{analyzingBestBuild ? 'Analyzing...' : 'Best Build'}</span>
                                         </button>
                                     </div>
-                                    <!-- Dynamic day of week labels -->
-                                    <div class="grid grid-cols-7 gap-0.5 mb-1 h-5 items-center flex-shrink-0">
+                                    <div class="grid grid-cols-7 gap-0.5 mb-1 h-5 items-center">
                                         {#each dayLabels as label, i}
-                                            <div class="text-center text-xs font-medium text-muted-foreground h-full flex items-center justify-center">
-                                                {label}
-                                            </div>
+                                            <div class="text-center text-xs font-medium text-muted-foreground h-full flex items-center justify-center">{label}</div>
                                         {/each}
                                     </div>
-
                                     <div class="grid grid-cols-7 gap-0.5 mb-2 flex-1">
                                         {#each daysInMonth as dayObj, index (currentMonth + "-" + dayObj.day)}
                                             <div class="w-full aspect-square min-w-0 min-h-0 relative {bestBuildDay === dayObj.dateStr ? 'border-2 border-green-400 rounded-lg shadow-lg shadow-green-400/50' : ''}">
@@ -655,45 +522,24 @@
                                                 {:else if dayObj.disabled}
                                                     <HeatmapButton {dayObj} delay={index * 50} viewMode={heatmapViewMode} />
                                                 {:else}
-                                                    <Skeleton
-                                                        class="w-full h-full min-w-0 min-h-0 rounded"
-                                                        style="aspect-ratio: 1 / 1;"
-                                                    />
+                                                    <Skeleton class="w-full h-full min-w-0 min-h-0 rounded" style="aspect-ratio: 1 / 1;" />
                                                 {/if}
                                             </div>
                                         {/each}
                                     </div>
-                                    <div class="flex justify-center flex-shrink-0">
-                                        <Pagination.Root
-                                            count={months.length}
-                                            perPage={1}
-                                            siblingCount={1}
-                                            bind:page={currentMonthPage}
-                                        >
+                                    <div class="flex justify-center">
+                                        <Pagination.Root count={months.length} perPage={1} siblingCount={1} bind:page={currentMonthPage}>
                                             {#snippet children({ pages, currentPage })}
                                                 <Pagination.Content>
-                                                    <Pagination.Item>
-                                                        <Pagination.PrevButton />
-                                                    </Pagination.Item>
+                                                    <Pagination.Item><Pagination.PrevButton /></Pagination.Item>
                                                     {#each pages as page (page.key)}
                                                         {#if page.type === "ellipsis"}
-                                                            <Pagination.Item>
-                                                                <Pagination.Ellipsis />
-                                                            </Pagination.Item>
+                                                            <Pagination.Item><Pagination.Ellipsis /></Pagination.Item>
                                                         {:else}
-                                                            <Pagination.Item>
-                                                                <Pagination.Link
-                                                                    {page}
-                                                                    isActive={currentPage === page.value}
-                                                                >
-                                                                    {monthNames[page.value - 1].slice(0, 3)}
-                                                                </Pagination.Link>
-                                                            </Pagination.Item>
+                                                            <Pagination.Item><Pagination.Link {page} isActive={currentPage === page.value}>{monthNames[page.value - 1].slice(0, 3)}</Pagination.Link></Pagination.Item>
                                                         {/if}
                                                     {/each}
-                                                    <Pagination.Item>
-                                                        <Pagination.NextButton />
-                                                    </Pagination.Item>
+                                                    <Pagination.Item><Pagination.NextButton /></Pagination.Item>
                                                 </Pagination.Content>
                                             {/snippet}
                                         </Pagination.Root>
@@ -709,8 +555,6 @@
                                     {/if}
                                 </CardContent>
                             </Card>
-
-                            <!-- Weekly View Card -->
                             <Card class="flex flex-col h-full">
                                 <CardContent class="h-full p-4 pt-0 flex flex-col overflow-auto">
                                     <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
@@ -722,8 +566,6 @@
                                     </div>
                                 </CardContent>
                             </Card>
-
-                            <!-- Analytics View Card -->
                             <Card class="flex flex-col h-full">
                                 <CardContent class="h-full p-4 pt-0 flex flex-col">
                                     <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
@@ -740,7 +582,6 @@
                 </div>
             </Card>
         </Sidebar.Inset>
-
         {#if !isDesktop}
             <Sidebar.Root side="right" collapsible="offcanvas">
                 <Sidebar.Content>
@@ -749,56 +590,20 @@
                         <Sidebar.GroupContent>
                             <Sidebar.Menu>
                                 <Sidebar.MenuItem>
-                                    <Sidebar.MenuButton
-                                        onclick={() => {
-                                            currentTab = "Monthly";
-                                            sidebar?.toggle();
-                                        }}
-                                        class={currentTab === "Monthly"
-                                            ? "bg-accent"
-                                            : ""}
-                                    >
-                                        <span
-                                            class="material-symbols-outlined"
-                                            style="font-size: 1.5em;"
-                                            >view_module</span
-                                        >
+                                    <Sidebar.MenuButton onclick={() => { currentTab = "Monthly"; sidebar?.toggle(); }} class={currentTab === "Monthly" ? "bg-accent" : ""}>
+                                        <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
                                         <span>Monthly View</span>
                                     </Sidebar.MenuButton>
                                 </Sidebar.MenuItem>
                                 <Sidebar.MenuItem>
-                                    <Sidebar.MenuButton
-                                        onclick={() => {
-                                            currentTab = "Weekly";
-                                            sidebar?.toggle();
-                                        }}
-                                        class={currentTab === "Weekly"
-                                            ? "bg-accent"
-                                            : ""}
-                                    >
-                                        <span
-                                            class="material-symbols-outlined"
-                                            style="font-size: 1.5em;"
-                                            >view_week</span
-                                        >
+                                    <Sidebar.MenuButton onclick={() => { currentTab = "Weekly"; sidebar?.toggle(); }} class={currentTab === "Weekly" ? "bg-accent" : ""}>
+                                        <span class="material-symbols-outlined" style="font-size: 1.5em;">view_week</span>
                                         <span>Weekly View</span>
                                     </Sidebar.MenuButton>
                                 </Sidebar.MenuItem>
                                 <Sidebar.MenuItem>
-                                    <Sidebar.MenuButton
-                                        onclick={() => {
-                                            currentTab = "Analytics";
-                                            sidebar?.toggle();
-                                        }}
-                                        class={currentTab === "Analytics"
-                                            ? "bg-accent"
-                                            : ""}
-                                    >
-                                        <span
-                                            class="material-symbols-outlined"
-                                            style="font-size: 1.5em;"
-                                            >bar_chart</span
-                                        >
+                                    <Sidebar.MenuButton onclick={() => { currentTab = "Analytics"; sidebar?.toggle(); }} class={currentTab === "Analytics" ? "bg-accent" : ""}>
+                                        <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
                                         <span>Pipeline Analytics</span>
                                     </Sidebar.MenuButton>
                                 </Sidebar.MenuItem>

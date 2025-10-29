@@ -144,18 +144,12 @@
     });
 </script>
 
-<div class="w-full h-full min-h-screen"
-    transition:slide={{ duration: 300 }}>
-    <Card.Root class="border-0 shadow-nonew-full h-screen min-h-screen rounded-none">
+<div class="w-full h-full min-h-screen" transition:slide={{ duration: 300 }}>
+    <Card.Root class="border-0 shadow-none w-full h-screen min-h-screen rounded-none">
         <ScrollArea class="h-full w-full">
             <Card.Header class="flex items-center justify-between">
                 <a href="/"
-                    class={cn(
-                        buttonVariants({
-                            variant: "ghost",
-                            class: "whitespace-nowrap text-lg font-semibold px-2 py-1 hover:bg-accent hover:text-accent-foreground transition-colors"
-                        })
-                    )}
+                    class={cn(buttonVariants({ variant: "ghost", class: "whitespace-nowrap text-lg font-semibold px-2 py-1 hover:bg-accent hover:text-accent-foreground transition-colors" }))}
                     aria-label="Back to Heatmap"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -164,16 +158,10 @@
                 </a>
                 <Popover.Root bind:open={popoverOpen}>
                     <Popover.Trigger
-                        class={cn(
-                            buttonVariants({
-                                variant: "outline",
-                                class: "w-48 justify-between font-normal",
-                            }),
-                            !selectedDate && "text-muted-foreground",
-                        )}
+                        class={cn(buttonVariants({ variant: "outline", class: "w-48 justify-between font-normal" }), !selectedDate && "text-muted-foreground")}
                     >
-                    <CalendarIcon />
-                    {selectedDate ? df.format(selectedDate.toDate(getLocalTimeZone())) : "Pick a date"}
+                        <CalendarIcon />
+                        {selectedDate ? df.format(selectedDate.toDate(getLocalTimeZone())) : "Pick a date"}
                     </Popover.Trigger>
                     <Popover.Content bind:ref={contentRef} class="w-auto p-0">
                         <Calendar
@@ -205,7 +193,6 @@
                             />
                         </div>
                     {/each}
-
                     {#each buildPipelines as pipeline, index}
                         <div in:fade={{ delay: (releasePipelines.length * 100) + (index * 100), duration: 300 }}>
                             <BuildCard

@@ -237,7 +237,6 @@
         </div>
       {:else if loadingPipelines}
         <div class="flex flex-col h-full w-full bg-transparent rounded-sm">
-          <!-- Banner with date and quality color (top 25%) -->
           <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm">
             <span class="text-xs font-bold drop-shadow-sm">
               {#if dayObj.disabled}
@@ -247,7 +246,6 @@
               {/if}
             </span>
           </div>
-          <!-- Graph content (bottom 80%) -->
           <div class="h-3/4 flex items-end justify-between w-full gap-0.5 px-1 pt-1">
             {#each Array(5) as _, i}
               <div class="flex-1 bg-gray-300 animate-pulse rounded-sm" style="height: {20 + Math.random() * 60}%"></div>
@@ -256,7 +254,6 @@
         </div>
       {:else if pipelineData.length > 0}
         <div class="flex flex-col h-full w-full bg-transparent rounded-sm">
-          <!-- Banner with date and quality color (top 25%) -->
           <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm">
             <span class="text-xs font-bold drop-shadow-sm">
               {#if dayObj.disabled}
@@ -266,29 +263,21 @@
               {/if}
             </span>
           </div>
-          <!-- Graph content (bottom 80%) -->
-          <div class="h-3/4 flex items-end justify-center w-full h-full gap-0.5 px-1 pt-1">
+          <div class="h-3/4 flex items-end justify-center w-full gap-0.5 px-1 pt-1">
             {#each pipelineData as pipeline (pipeline.id)}
               {@const totalTests = pipeline.passCount + pipeline.failCount}
               {@const passRate = totalTests > 0 ? (pipeline.passCount / totalTests) * 100 : 0}
               {@const barHeight = totalTests > 0 ? Math.max(10, (passRate / 100) * 80) : 10}
               {@const barColor = getBarColor(passRate, pipeline.status, totalTests)}
-              <div 
-                class="flex-1 {barColor} rounded-xs transition-all duration-200 max-w-4" 
-                style="height: {barHeight}%; min-width: 3px;"
-              ></div>
+              <div class="flex-1 {barColor} rounded-xs transition-all duration-200 max-w-4" style="height: {barHeight}%; min-width: 3px;"></div>
             {/each}
           </div>
         </div>
       {:else}
         <div class="flex flex-col h-full w-full bg-transparent rounded-sm">
-          <!-- Banner with date and quality color (top 25%) -->
           <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm">
-            <span class="text-xs font-bold drop-shadow-sm">
-              {dayObj.day}
-            </span>
+            <span class="text-xs font-bold drop-shadow-sm">{dayObj.day}</span>
           </div>
-          <!-- Simple content (bottom 80%) -->
           <div class="h-3/4 flex items-center justify-center w-full">
             <span class="text-xs font-bold">
               {#if dayObj.disabled}
@@ -301,7 +290,6 @@
         </div>
       {/if}
     </Popover.Trigger>
-
     <Popover.Content class="w-80 p-2">
       <div class="space-y-3">
         {#if loadingPipelines}
@@ -311,52 +299,26 @@
             <Skeleton class="h-6 w-full" />
           </div>
         {:else if pipelineData.length > 0}
-          <link
-            href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined"
-            rel="stylesheet"
-          />
           <div class="space-y-1">
             {#each pipelineData as pipeline (pipeline.id)}
               <div class="flex items-center justify-between gap-2 py-1">
                 <div class="flex-shrink-0">
-                  <span
-                    class="inline-block text-xs px-2 py-0.5 rounded {getPipelineBadgeColor(
-                      pipeline.status,
-                    )}"
-                  >
-                    {pipeline.name}
-                  </span>
+                  <span class="inline-block text-xs px-2 py-0.5 rounded {getPipelineBadgeColor(pipeline.status)}">{pipeline.name}</span>
                 </div>
                 <div class="flex items-center gap-1.5 flex-shrink-0">
-                  <div
-                    class="w-40 h-4 bg-zinc-200 rounded overflow-hidden relative"
-                  >
+                  <div class="w-40 h-4 bg-zinc-200 rounded overflow-hidden relative">
                     {#if pipeline.passCount + pipeline.failCount > 0}
-                      {@const totalTests =
-                        pipeline.passCount + pipeline.failCount}
-                      {@const passPercentage =
-                        (pipeline.passCount / totalTests) * 100}
+                      {@const totalTests = pipeline.passCount + pipeline.failCount}
+                      {@const passPercentage = (pipeline.passCount / totalTests) * 100}
                       <div class="h-full flex">
-                        <div
-                          class={getTestPassColor()}
-                          style="width: {passPercentage}%"
-                        ></div>
-                        <div
-                          class={getTestFailColor()}
-                          style="width: {100 - passPercentage}%"
-                        ></div>
+                        <div class={getTestPassColor()} style="width: {passPercentage}%"></div>
+                        <div class={getTestFailColor()} style="width: {100 - passPercentage}%"></div>
                       </div>
-                      <div
-                        class="absolute inset-0 flex items-center justify-center"
-                      >
-                        <span class="text-xs text-white drop-shadow-md">
-                          Pass: {pipeline.passCount} Fail: {pipeline.failCount}
-                        </span>
+                      <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="text-xs text-white drop-shadow-md">Pass: {pipeline.passCount} Fail: {pipeline.failCount}</span>
                       </div>
                     {:else}
-                      <div
-                        class="h-full w-full flex items-center justify-center {pipeline.status === 'inProgress' ? getTestInProgressColor() : getTestNoDataColor()}"
-                      >
+                      <div class="h-full w-full flex items-center justify-center {pipeline.status === 'inProgress' ? getTestInProgressColor() : getTestNoDataColor()}">
                         {#if pipeline.status === "inProgress"}
                           <span class="text-xs text-white">In Progress</span>
                         {:else}
@@ -371,35 +333,20 @@
           </div>
           {#if dayObj.totalPassCount !== undefined || dayObj.totalFailCount !== undefined}
             <div class="border-t pt-2 flex justify-between items-center">
-              <p class="text-xs font-medium text-muted-foreground">
-                Build ID: {formatBuildId(dayObj.dateStr)}
-              </p>
-              <p class="text-xs text-muted-foreground">
-                Total: {(dayObj.totalPassCount || 0) +
-                  (dayObj.totalFailCount || 0)}
-                (Pass: {dayObj.totalPassCount || 0}, Fail: {dayObj.totalFailCount ||
-                  0})
-              </p>
+              <p class="text-xs font-medium text-muted-foreground">Build ID: {formatBuildId(dayObj.dateStr)}</p>
+              <p class="text-xs text-muted-foreground">Total: {(dayObj.totalPassCount || 0) + (dayObj.totalFailCount || 0)} (Pass: {dayObj.totalPassCount || 0}, Fail: {dayObj.totalFailCount || 0})</p>
             </div>
           {:else}
             <div class="border-t pt-2">
-              <p class="text-xs font-medium text-muted-foreground">
-                Build ID: {formatBuildId(dayObj.dateStr)}
-              </p>
+              <p class="text-xs font-medium text-muted-foreground">Build ID: {formatBuildId(dayObj.dateStr)}</p>
             </div>
           {/if}
         {:else if dayObj.disabled}
-          <p class="text-sm text-muted-foreground">
-            Future date - no data available
-          </p>
+          <p class="text-sm text-muted-foreground">Future date - no data available</p>
         {:else if dayObj.quality === "unknown"}
-          <p class="text-sm text-muted-foreground">
-            No pipeline data available for this date
-          </p>
+          <p class="text-sm text-muted-foreground">No pipeline data available for this date</p>
         {:else}
-          <p class="text-sm text-muted-foreground">
-            No pipeline configuration found
-          </p>
+          <p class="text-sm text-muted-foreground">No pipeline configuration found</p>
         {/if}
       </div>
     </Popover.Content>
