@@ -4,7 +4,6 @@
     import { Card } from "$lib/components/ui/card/index.js";
     import { Button } from "$lib/components/ui/button/index.js";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
-    import type { DayBuildQuality } from "$lib/utils/buildQualityUtils.js";
     import { env } from "$env/dynamic/public";
     import { parseDate } from "@internationalized/date";
     import {dateValueToString, createErrorPipeline, type PipelineConfig } from "$lib/utils/buildQualityUtils.js";

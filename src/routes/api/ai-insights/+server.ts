@@ -53,7 +53,7 @@ Provide concise, actionable insights about test failures, trends, and potential 
 Please pay attention to which test case failures occur on which pipeline, do not confuse failures in one pipeline with another.
 
 Good example response:
-"The release pipelines ("ProdEval EN" and "ProdEval SV25") are consistently passing all tests, indicating stable quality for production evaluations. In contrast, the build pipelines ("CIF Unit Tests" and "DvDb Tests") exhibit persistent failures in key test cases, especially around licensing, document registration, and upgrade scenarios (e.g., "RegLicense_D1_D3_Test", "IERegUpgradeIoTests") across multiple days, with failure counts ranging from 12 to 50 per run. There are also a significant number of "NotExecuted" tests, suggesting possible flaky or skipped tests, which reduces overall test coverage and should be investigated."`;
+"The release pipelines ("ProdEval EN" and "ProdEval SV25") are consistently passing all tests. In contrast, the CIF Unit Tests and DvDb Tests exhibit persistent failures in key test cases, especially around licensing, document registration, and upgrade scenarios (e.g., "RegLicense_D1_D3_Test", "IERegUpgradeIoTests") across multiple days, with failure counts ranging from 12 to 50 per run. There are also a significant number of "NotExecuted" tests, suggesting possible flaky or skipped tests, which reduces overall test coverage and should be investigated."`;
 
 		userPrompt = `Analyze the following build and test data and provide a summary in plaintext in 3 sentences MAX:
 
