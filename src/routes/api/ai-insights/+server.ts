@@ -30,14 +30,14 @@ export const POST: RequestHandler = async ({ request }) => {
 	let systemPrompt: string;
 	let userPrompt: string;
 
-	if (analysisType === 'best-build-month') {
-		systemPrompt = `You are an AI assistant that analyzes software build and test data for an entire month. 
+	if (analysisType === 'best-build-month' || analysisType === 'best-build-30-days') {
+		systemPrompt = `You are an AI assistant that analyzes software build and test data for the last 30 days. 
 Your task is to identify the single best build day based on  metrics including test pass rates and pipeline success. 
 Consider factors like: total number of tests ran, highest pass rates, most pipelines completed successfully, fewest failures, and overall build health.
 Do not mention anything specific about releases, they are just a type of pipeline. 
 Provide a clear, concise answer identifying the specific date and brief reasoning.`;
 
-		userPrompt = `Analyze the following month's build data and identify the BEST build day. Consider in order of importance:
+		userPrompt = `Analyze the following 30 days of build data and identify the BEST build day. Consider in order of importance:
 1. Highest number of tests run
 2. Highest overall test pass rates
 3. Most pipelines completed successfully
@@ -49,14 +49,17 @@ Respond with just the date (e.g., "October 15" or "2025-10-15") and a 1-sentence
 	} else {
 		// Original weekly analysis prompt
 		systemPrompt = `You are an AI assistant that analyzes software build and test data. 
-Provide concise, actionable insights about test failures, trends, and potential issues. Be careful to avoid generic statements. Please space your summary out.
-Focus on what developers need to know to improve their builds. Do not provide any suggested actions. Pay attention to which test cases are failing on which pipeline.`;
+Provide concise, actionable insights about test failures, trends, and potential issues.
+Please pay attention to which test case failures occur on which pipeline, do not confuse failures in one pipeline with another.
 
-		userPrompt = `Analyze the following build and test data and provide a brief summary in plaintext (3 sentences MAX):
+Good example response:
+"The release pipelines ("ProdEval EN" and "ProdEval SV25") are consistently passing all tests, indicating stable quality for production evaluations. In contrast, the build pipelines ("CIF Unit Tests" and "DvDb Tests") exhibit persistent failures in key test cases, especially around licensing, document registration, and upgrade scenarios (e.g., "RegLicense_D1_D3_Test", "IERegUpgradeIoTests") across multiple days, with failure counts ranging from 12 to 50 per run. There are also a significant number of "NotExecuted" tests, suggesting possible flaky or skipped tests, which reduces overall test coverage and should be investigated."`;
+
+		userPrompt = `Analyze the following build and test data and provide a summary in plaintext in 3 sentences MAX:
 
 ${JSON.stringify(buildData, null, 2)}
 
-Focus on:
+Focus on the following in order of importance:
 - Overall pass rate and test health
 - Any concerning failure patterns
 - Key metrics that stand out`;
