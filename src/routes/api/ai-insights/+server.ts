@@ -37,12 +37,11 @@ Consider factors like: total number of tests ran, highest pass rates, most pipel
 Do not mention anything specific about releases, they are just a type of pipeline. 
 Provide a clear, concise answer identifying the specific date and brief reasoning.`;
 
-		userPrompt = `Analyze the following month's build data and identify the BEST build day. Consider:
-
-1. Highest overall test pass rates
-2. Most pipelines completed successfully  
-3. Fewest failures
-4. Best overall build stability and health
+		userPrompt = `Analyze the following month's build data and identify the BEST build day. Consider in order of importance:
+1. Highest number of tests run
+2. Highest overall test pass rates
+3. Most pipelines completed successfully
+4. Fewest failures
 
 ${JSON.stringify(buildData, null, 2)}
 
