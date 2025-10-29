@@ -55,18 +55,20 @@
     // Fetch all build qualities for the current month only when the month changes
     let lastFetchedMonth = $state(-1);
 
-    // Track if we're on desktop (lg breakpoint = 1024px)
+    // Track if we're on desktop (lg breakpoint = 1024px) and mobile (sm breakpoint = 640px)
     let isDesktop = $state(false);
+    let isMobile = $state(false);
     
-    // Update isDesktop on window resize
+    // Update isDesktop and isMobile on window resize
     $effect(() => {
         if (typeof window !== 'undefined') {
-            const checkDesktop = () => {
+            const checkScreen = () => {
                 isDesktop = window.innerWidth >= 1024;
+                isMobile = window.innerWidth < 640;
             };
-            checkDesktop();
-            window.addEventListener('resize', checkDesktop);
-            return () => window.removeEventListener('resize', checkDesktop);
+            checkScreen();
+            window.addEventListener('resize', checkScreen);
+            return () => window.removeEventListener('resize', checkScreen);
         }
     });
 
@@ -389,7 +391,9 @@
                                         view_day
                                     {/if}
                                 </span>
-                                <span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>
+                                {#if !isMobile}
+                                    <span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>
+                                {/if}
                             </button>
 
                             <!-- Best Build Button - only show in compact mode when Monthly tab is selected -->
@@ -407,7 +411,9 @@
                                             star
                                         {/if}
                                     </span>
-                                    <span>{analyzingBestBuild ? 'Analyzing...' : 'Best Build'}</span>
+                                    {#if !isMobile}
+                                        <span>{analyzingBestBuild ? 'Analyzing...' : 'Best Build'}</span>
+                                    {/if}
                                 </button>
                             {/if}
 
