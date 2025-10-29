@@ -250,21 +250,13 @@
 <Card class="pt-2 p-4 flex-1 flex flex-col w-full">
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">
-                psychology
-            </span>
+            <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">psychology</span>
             <h3 class="text-sm font-semibold">Weekly Trend Analysis</h3>
         </div>
-        <Button 
-            size="sm" 
-            variant="outline"
-            onclick={fetchInsights}
-            disabled={loading}
-        >
+        <Button size="sm" variant="outline" onclick={fetchInsights} disabled={loading}>
             {loading ? 'Analyzing...' : 'Get Insights'}
         </Button>
     </div>
-
     <div class="flex-1 flex items-start justify-start">
         {#if loading}
             <div class="w-full space-y-2">
@@ -284,9 +276,7 @@
         {:else}
             <div class="flex flex-col items-center justify-center text-center w-full p-4 xl:p-10 space-y-4">
                 <div class="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                    <span class="material-symbols-outlined text-muted-foreground">
-                        auto_awesome
-                    </span>
+                    <span class="material-symbols-outlined text-muted-foreground">auto_awesome</span>
                 </div>
                 <div>
                     <p class="text-xs text-muted-foreground font-medium">AI-Powered Analysis</p>
