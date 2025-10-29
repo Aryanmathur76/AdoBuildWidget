@@ -386,7 +386,7 @@
                             >
                                 <span class="material-symbols-outlined" style="font-size: 1.25em;">
                                     {#if heatmapViewMode === "graph"}
-                                        view_module
+                                        bar_chart
                                     {:else}
                                         view_day
                                     {/if}
@@ -563,7 +563,7 @@
                             >
                                 <span class="material-symbols-outlined" style="font-size: 1.25em;">
                                     {#if heatmapViewMode === "graph"}
-                                        view_module
+                                        bar_chart
                                     {:else}
                                         view_day
                                     {/if}
