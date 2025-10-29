@@ -15,10 +15,10 @@
   import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
 
   // Helper function to get bar color based on pass rate and status
-  function getBarColor(passRate: number, status: string): string {
+  function getBarColor(passRate: number, status: string, totalTests: number): string {
     if (status === "inProgress") {
       return getTestInProgressColor(); // Blue for in-progress
-    } else if (status === "future") {
+    } else if (status === "future" || totalTests === 0) {
       return "bg-gray-400";
     } else if (status === "no-data") {
       return getTestNoDataColor();
@@ -272,7 +272,7 @@
               {@const totalTests = pipeline.passCount + pipeline.failCount}
               {@const passRate = totalTests > 0 ? (pipeline.passCount / totalTests) * 100 : 0}
               {@const barHeight = totalTests > 0 ? Math.max(10, (passRate / 100) * 80) : 10}
-              {@const barColor = getBarColor(passRate, pipeline.status)}
+              {@const barColor = getBarColor(passRate, pipeline.status, totalTests)}
               <div 
                 class="flex-1 {barColor} rounded-xs transition-all duration-200 max-w-4" 
                 style="height: {barHeight}%; min-width: 3px;"
