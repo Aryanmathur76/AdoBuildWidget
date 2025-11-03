@@ -270,7 +270,7 @@
                 <p class="text-xs text-muted-foreground mt-1">Please check your Azure OpenAI configuration</p>
             </div>
         {:else if insights}
-            <div class="text-sm text-foreground leading-relaxed max-h-[130px] md:max-h-full overflow-y-auto">
+            <div class="text-sm text-foreground leading-relaxed xs:max-h-[200px] max-h-full overflow-y-auto">
                 <p>{insights}</p>
             </div>
         {:else}
