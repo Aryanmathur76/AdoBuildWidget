@@ -67,7 +67,7 @@ export function calculateReleaseCompletionTime(environments: any[]): string | un
 // Function to get the status of a release pipeline
 // Returns 'good', 'ok', 'bad', 'interrupeted', or 'unknown'
 // Takes Release object as input, retrieved from Azure DevOps REST API
-export async function getReleasePipelineStatus(releaseDetails: Release, considerAutomationStatus = false) {
+export async function getReleasePipelineStatus(releaseDetails: Release, considerAutomationStatus = true) {
   
     if (!releaseDetails) {
       throw new Error('Provided release is null or undefined');
@@ -85,16 +85,6 @@ export async function getReleasePipelineStatus(releaseDetails: Release, consider
       return 'inProgress';
     }
 
-    if (considerAutomationStatus){
-      if (releaseDetails.envs.some(env => env.status === 'canceled' || env.status === 'aborted')) {
-        return 'interrupted';
-      }
-
-      if (releaseDetails.envs.some(env => env.status === 'failed' || env.status === 'rejected')) {
-        return 'failed';
-      }
-    }
-
     if (releaseDetails.passedTestCount === undefined || releaseDetails.failedTestCount === undefined) {
       return 'unknown';
     }
@@ -106,6 +96,18 @@ export async function getReleasePipelineStatus(releaseDetails: Release, consider
       const passRate = (releaseDetails.passedTestCount / totalTests) * 100;
 
       return getTestQuality(passRate);
+    }
+    else{
+    //If automation status is considered, check for interrupted or failed statuses ONLY if no tests have been run
+      if (considerAutomationStatus){
+        if (releaseDetails.envs.some(env => env.status === 'canceled' || env.status === 'aborted')) {
+          return 'interrupted';
+        }
+
+        if (releaseDetails.envs.some(env => env.status === 'failed' || env.status === 'rejected')) {
+          return 'interrupted';
+        }
+      }
     }
 
     return 'unknown';

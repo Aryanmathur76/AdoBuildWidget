@@ -318,9 +318,11 @@
                         <span class="text-xs text-white drop-shadow-md">Pass: {pipeline.passCount} Fail: {pipeline.failCount}</span>
                       </div>
                     {:else}
-                      <div class="h-full w-full flex items-center justify-center {pipeline.status === 'inProgress' ? getTestInProgressColor() : getTestNoDataColor()}">
+                      <div class="h-full w-full flex items-center justify-center {pipeline.status === 'interrupted' ? 'bg-red-900' : pipeline.status === 'inProgress' ? getTestInProgressColor() : 'bg-gray-400'}">
                         {#if pipeline.status === "inProgress"}
                           <span class="text-xs text-white">In Progress</span>
+                        {:else if pipeline.status === "interrupted"}
+                          <span class="text-xs text-white">Interrupted</span>
                         {:else}
                           <span class="text-xs text-white">No Tests</span>
                         {/if}
