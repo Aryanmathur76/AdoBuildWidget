@@ -18,11 +18,14 @@
   function getBarColor(passRate: number, status: string, totalTests: number): string {
     if (status === "inProgress") {
       return getTestInProgressColor(); // Blue for in-progress
+    } else if (status === "interrupted") {
+      return 'bg-red-900'; // Dark red for interrupted
     } else if (status === "future" || totalTests === 0) {
       return "bg-gray-400";
     } else if (status === "no-data") {
       return getTestNoDataColor();
     }
+
     
     const quality = getTestQuality(passRate);
     switch (quality) {
