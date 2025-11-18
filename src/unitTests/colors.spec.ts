@@ -14,7 +14,7 @@ describe('Color Constants', () => {
     it('should have all required status colors defined', () => {
       expect(BUILD_STATUS_COLORS.good).toBe('bg-lime-600 text-white');
       expect(BUILD_STATUS_COLORS.ok).toBe('bg-yellow-300 text-black');
-      expect(BUILD_STATUS_COLORS.bad).toBe('bg-red-600 text-white');
+      expect(BUILD_STATUS_COLORS.bad).toBe('bg-red-800 text-white');
       expect(BUILD_STATUS_COLORS.inProgress).toBe('bg-sky-500 text-white');
       expect(BUILD_STATUS_COLORS.interrupted).toBe('bg-orange-600 text-white');
       expect(BUILD_STATUS_COLORS.unknown).toBe('bg-zinc-700 text-white');
@@ -26,7 +26,7 @@ describe('Color Constants', () => {
     it('should have all required header status colors defined', () => {
       expect(HEADER_STATUS_COLORS.good).toBe('bg-lime-600 text-white');
       expect(HEADER_STATUS_COLORS.ok).toBe('bg-yellow-300 text-black');
-      expect(HEADER_STATUS_COLORS.bad).toBe('bg-red-600 text-white');
+      expect(HEADER_STATUS_COLORS.bad).toBe('bg-red-800 text-white');
       expect(HEADER_STATUS_COLORS.inProgress).toBe('bg-sky-500 text-white');
       expect(HEADER_STATUS_COLORS.interrupted).toBe('bg-orange-600 text-white');
       expect(HEADER_STATUS_COLORS.unknown).toBe('bg-zinc-700 text-white');
@@ -38,8 +38,8 @@ describe('Color Constants', () => {
     it('should have all required pipeline badge colors defined', () => {
       expect(PIPELINE_BADGE_COLORS.good).toBe('bg-lime-600 text-white');
       expect(PIPELINE_BADGE_COLORS.succeeded).toBe('bg-lime-600 text-white');
-      expect(PIPELINE_BADGE_COLORS.bad).toBe('bg-red-600 text-white');
-      expect(PIPELINE_BADGE_COLORS.failed).toBe('bg-red-600 text-white');
+      expect(PIPELINE_BADGE_COLORS.bad).toBe('bg-red-800 text-white');
+      expect(PIPELINE_BADGE_COLORS.failed).toBe('bg-red-800 text-white');
       expect(PIPELINE_BADGE_COLORS.ok).toBe('bg-yellow-300 text-black');
       expect(PIPELINE_BADGE_COLORS['partially-succeeded']).toBe('bg-yellow-300 text-black');
       expect(PIPELINE_BADGE_COLORS.inProgress).toBe('bg-sky-500 text-white');
@@ -62,7 +62,7 @@ describe('getBuildStatusColor', () => {
   it('should return correct colors for valid statuses', () => {
     expect(getBuildStatusColor('good')).toBe('bg-lime-600 text-white');
     expect(getBuildStatusColor('ok')).toBe('bg-yellow-300 text-black');
-    expect(getBuildStatusColor('bad')).toBe('bg-red-600 text-white');
+    expect(getBuildStatusColor('bad')).toBe('bg-red-800 text-white');
     expect(getBuildStatusColor('inProgress')).toBe('bg-sky-500 text-white');
     expect(getBuildStatusColor('interrupted')).toBe('bg-orange-600 text-white');
     expect(getBuildStatusColor('unknown')).toBe('bg-zinc-700 text-white');
@@ -85,7 +85,7 @@ describe('getHeaderStatusColor', () => {
   it('should return correct colors for valid statuses', () => {
     expect(getHeaderStatusColor('good')).toBe('bg-lime-600 text-white');
     expect(getHeaderStatusColor('ok')).toBe('bg-yellow-300 text-black');
-    expect(getHeaderStatusColor('bad')).toBe('bg-red-600 text-white');
+    expect(getHeaderStatusColor('bad')).toBe('bg-red-800 text-white');
     expect(getHeaderStatusColor('inProgress')).toBe('bg-sky-500 text-white');
     expect(getHeaderStatusColor('interrupted')).toBe('bg-orange-600 text-white');
     expect(getHeaderStatusColor('unknown')).toBe('bg-zinc-700 text-white');
@@ -108,8 +108,8 @@ describe('getPipelineBadgeColor', () => {
   it('should return correct colors for valid statuses', () => {
     expect(getPipelineBadgeColor('good')).toBe('bg-lime-600 text-white');
     expect(getPipelineBadgeColor('succeeded')).toBe('bg-lime-600 text-white');
-    expect(getPipelineBadgeColor('bad')).toBe('bg-red-600 text-white');
-    expect(getPipelineBadgeColor('failed')).toBe('bg-red-600 text-white');
+    expect(getPipelineBadgeColor('bad')).toBe('bg-red-800 text-white');
+    expect(getPipelineBadgeColor('failed')).toBe('bg-red-800 text-white');
     expect(getPipelineBadgeColor('ok')).toBe('bg-yellow-300 text-black');
     expect(getPipelineBadgeColor('partially-succeeded')).toBe('bg-yellow-300 text-black');
     expect(getPipelineBadgeColor('inProgress')).toBe('bg-sky-500 text-white');
