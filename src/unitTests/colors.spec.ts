@@ -16,7 +16,7 @@ describe('Color Constants', () => {
       expect(BUILD_STATUS_COLORS.ok).toBe('bg-yellow-300 text-black');
       expect(BUILD_STATUS_COLORS.bad).toBe('bg-red-600 text-white');
       expect(BUILD_STATUS_COLORS.inProgress).toBe('bg-sky-500 text-white');
-      expect(BUILD_STATUS_COLORS.interrupted).toBe('bg-red-900 text-white');
+      expect(BUILD_STATUS_COLORS.interrupted).toBe('bg-orange-600 text-white');
       expect(BUILD_STATUS_COLORS.unknown).toBe('bg-zinc-700 text-white');
       expect(BUILD_STATUS_COLORS.default).toBe('bg-zinc-700 text-white');
     });
@@ -28,7 +28,7 @@ describe('Color Constants', () => {
       expect(HEADER_STATUS_COLORS.ok).toBe('bg-yellow-300 text-black');
       expect(HEADER_STATUS_COLORS.bad).toBe('bg-red-600 text-white');
       expect(HEADER_STATUS_COLORS.inProgress).toBe('bg-sky-500 text-white');
-      expect(HEADER_STATUS_COLORS.interrupted).toBe('bg-red-900 text-white');
+      expect(HEADER_STATUS_COLORS.interrupted).toBe('bg-orange-600 text-white');
       expect(HEADER_STATUS_COLORS.unknown).toBe('bg-zinc-700 text-white');
       expect(HEADER_STATUS_COLORS.default).toBe('bg-zinc-700 text-white');
     });
@@ -44,7 +44,7 @@ describe('Color Constants', () => {
       expect(PIPELINE_BADGE_COLORS['partially-succeeded']).toBe('bg-yellow-300 text-black');
       expect(PIPELINE_BADGE_COLORS.inProgress).toBe('bg-sky-500 text-white');
       expect(PIPELINE_BADGE_COLORS['in progress']).toBe('bg-sky-500 text-white');
-      expect(PIPELINE_BADGE_COLORS.interrupted).toBe('bg-red-900 text-white');
+      expect(PIPELINE_BADGE_COLORS.interrupted).toBe('bg-orange-600 text-white');
       expect(PIPELINE_BADGE_COLORS.unknown).toBe('bg-zinc-700 text-white');
       expect(PIPELINE_BADGE_COLORS.default).toBe('bg-zinc-700 text-white');
     });
@@ -64,7 +64,7 @@ describe('getBuildStatusColor', () => {
     expect(getBuildStatusColor('ok')).toBe('bg-yellow-300 text-black');
     expect(getBuildStatusColor('bad')).toBe('bg-red-600 text-white');
     expect(getBuildStatusColor('inProgress')).toBe('bg-sky-500 text-white');
-    expect(getBuildStatusColor('interrupted')).toBe('bg-red-900 text-white');
+    expect(getBuildStatusColor('interrupted')).toBe('bg-orange-600 text-white');
     expect(getBuildStatusColor('unknown')).toBe('bg-zinc-700 text-white');
   });
 
@@ -87,7 +87,7 @@ describe('getHeaderStatusColor', () => {
     expect(getHeaderStatusColor('ok')).toBe('bg-yellow-300 text-black');
     expect(getHeaderStatusColor('bad')).toBe('bg-red-600 text-white');
     expect(getHeaderStatusColor('inProgress')).toBe('bg-sky-500 text-white');
-    expect(getHeaderStatusColor('interrupted')).toBe('bg-red-900 text-white');
+    expect(getHeaderStatusColor('interrupted')).toBe('bg-orange-600 text-white');
     expect(getHeaderStatusColor('unknown')).toBe('bg-zinc-700 text-white');
   });
 
@@ -114,7 +114,7 @@ describe('getPipelineBadgeColor', () => {
     expect(getPipelineBadgeColor('partially-succeeded')).toBe('bg-yellow-300 text-black');
     expect(getPipelineBadgeColor('inProgress')).toBe('bg-sky-500 text-white');
     expect(getPipelineBadgeColor('in progress')).toBe('bg-sky-500 text-white');
-    expect(getPipelineBadgeColor('interrupted')).toBe('bg-red-900 text-white');
+    expect(getPipelineBadgeColor('interrupted')).toBe('bg-orange-600 text-white');
     expect(getPipelineBadgeColor('unknown')).toBe('bg-zinc-700 text-white');
   });
 

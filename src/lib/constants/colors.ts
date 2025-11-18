@@ -6,7 +6,7 @@ export const BUILD_STATUS_COLORS = {
   ok: "bg-yellow-300 text-black", 
   bad: "bg-red-600 text-white",
   inProgress: "bg-sky-500 text-white",
-  interrupted: "bg-red-900 text-white",
+  interrupted: "bg-orange-600 text-white",
   unknown: "bg-zinc-700 text-white",
   default: "bg-zinc-700 text-white"
 } as const;
@@ -26,7 +26,7 @@ export const HEADER_STATUS_COLORS = {
   ok: "bg-yellow-300 text-black", 
   bad: "bg-red-600 text-white",
   "inProgress": "bg-sky-500 text-white",
-  interrupted: "bg-red-900 text-white",
+  interrupted: "bg-orange-600 text-white",
   unknown: "bg-zinc-700 text-white",
   default: "bg-zinc-700 text-white"
 } as const;
@@ -50,7 +50,7 @@ export const PIPELINE_BADGE_COLORS = {
   "partially-succeeded": "bg-yellow-300 text-black",
   inProgress: "bg-sky-500 text-white",
   "in progress": "bg-sky-500 text-white",
-  interrupted: "bg-red-900 text-white",
+  interrupted: "bg-orange-600 text-white",
   unknown: "bg-zinc-700 text-white",
   default: "bg-zinc-700 text-white"
 } as const;
