@@ -6,7 +6,7 @@
 
 <Dialog bind:open>
     <DialogContent class="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogTitle>Build Health Widget Help</DialogTitle>
+        <DialogTitle>DeltaV Build Health Help</DialogTitle>
         <DialogDescription>
             <div class="space-y-6 mt-4 text-sm leading-relaxed">
                 <!-- Overview Section -->
