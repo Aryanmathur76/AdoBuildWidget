@@ -149,6 +149,24 @@
     // Store build quality for each day (YYYY-MM-DD => quality)
     let dayBuildQuality: Record<string, DayBuildQuality> = $state({});
 
+    // Get today's health status for glow effect
+    let todayGlowColor = $derived.by(() => {
+        const todayDate = new Date();
+        const todayStr = getDateString(currentYear, todayDate.getMonth(), todayDate.getDate());
+        const todayQuality = dayBuildQuality[todayStr]?.quality ?? "unknown";
+        
+        const glowColors: Record<string, string> = {
+            good: "rgba(101, 163, 13, 0.3)",      // lime-600
+            ok: "rgba(202, 138, 4, 0.3)",         // yellow-600
+            bad: "rgba(153, 27, 27, 0.3)",        // red-800
+            inProgress: "rgba(14, 165, 233, 0.3)", // sky-500
+            interrupted: "rgba(194, 65, 12, 0.3)", // orange-600
+            unknown: "rgba(63, 63, 70, 0.3)"      // zinc-700
+        };
+        
+        return glowColors[todayQuality] || glowColors.unknown;
+    });
+
     // Get pipeline configuration for optional prefetching
     let pipelineConfig: PipelineConfig | null = $state(null);
 
@@ -403,9 +421,9 @@
 <div class="w-full h-screen max-h-screen overflow-hidden" transition:slide={{ duration: 300 }}>
     <Sidebar.Provider>
         <Sidebar.Inset class="h-full max-h-full">
-            <Card class="py-0 border-0 shadow-none h-full rounded-none overflow-hidden flex flex-col">
+            <Card class="py-0 border-0 shadow-none h-full rounded-none overflow-hidden flex flex-col bg-background" style="background: linear-gradient(180deg, {todayGlowColor} 0%, var(--background) 100%, var(--background) 100%);">
                 <Tabs.Root bind:value={currentTab} class="h-full flex flex-col lg:hidden">
-                    <div class="flex items-center justify-between px-4 pt-4 pb-2 bg-background rounded-lg">
+                    <div class="flex items-center justify-between px-4 pt-4 pb-2 bg-transparent rounded-lg">
                         <CardTitle>
                             <span class="inline-flex text-base font-bold py-1 items-center gap-1">
                                 <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
@@ -413,7 +431,7 @@
                             </span>
                         </CardTitle>
                         <Popover.Root>
-                            <Popover.Trigger class="hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 cursor-help">
+                            <Popover.Trigger class="hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 cursor-help">
                                 <span class="text-sm font-semibold text-primary">{pipelineConfig?.pipelines.length || 0}</span>
                                 <span class="material-symbols-outlined text-primary" style="font-size: 1.1em;">science</span>
                             </Popover.Trigger>
@@ -434,18 +452,18 @@
                             </Popover.Content>
                         </Popover.Root>
                         <div class="flex items-center gap-2">
-                            <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
+                            <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
                                 <span class="material-symbols-outlined" style="font-size: 1.25em;">
                                     {#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}
                                 </span>
                                 {#if !isMobile}<span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>{/if}
                             </button>
-                            <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors" title="Get help about this widget" aria-label="Help">
+                            <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" title="Get help about this widget" aria-label="Help">
                                 <span class="material-symbols-outlined" style="font-size: 1.25em;">help</span>
                                 {#if !isMobile}<span>Help</span>{/if}
                             </button>
                             {#if currentTab === "Monthly"}
-                                <button onclick={analyzeBestBuild} disabled={analyzingBestBuild} class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50" title="Find the best build day this month">
+                                <button onclick={analyzeBestBuild} disabled={analyzingBestBuild} class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors disabled:opacity-50" title="Find the best build day this month">
                                     <span class="material-symbols-outlined" style="font-size: 1.25em;">{#if analyzingBestBuild}refresh{:else}star{/if}</span>
                                     {#if !isMobile}<span>{analyzingBestBuild ? 'Analyzing...' : 'Best Build'}</span>{/if}
                                 </button>
@@ -513,7 +531,7 @@
                     </div>
                 </Tabs.Root>
                 <div class="hidden lg:flex flex-col h-full overflow-hidden">
-                    <div class="flex items-center px-4 pt-4 pb-2 bg-background rounded-lg">
+                    <div class="flex items-center px-4 pt-4 pb-2 bg-transparent rounded-lg">
                         <CardTitle>
                             <span class="inline-flex text-base font-bold py-1 items-center gap-1">
                                 <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
@@ -521,7 +539,7 @@
                             </span>
                         </CardTitle>
                         <Popover.Root>
-                            <Popover.Trigger class="hover:opacity-80 transition-opacity flex items-center gap-1 mx-2 px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 cursor-help">
+                            <Popover.Trigger class="hover:opacity-80 transition-opacity flex items-center gap-1 mx-2 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 cursor-help">
                                 <span class="text-sm font-semibold text-primary">{pipelineConfig?.pipelines.length || 0}</span>
                                 <span class="material-symbols-outlined text-primary" style="font-size: 1.1em;">science</span>
                             </Popover.Trigger>
@@ -542,11 +560,11 @@
                             </Popover.Content>
                         </Popover.Root>
                         <div class="ml-auto flex items-center gap-2">
-                            <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
+                            <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
                                 <span class="material-symbols-outlined" style="font-size: 1.25em;">{#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}</span>
                                 <span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>
                             </button>
-                            <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors" title="Get help about this widget" aria-label="Help">
+                            <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" title="Get help about this widget" aria-label="Help">
                                 <span class="material-symbols-outlined" style="font-size: 1.25em;">help</span>
                                 <span>Help</span>
                             </button>
@@ -561,7 +579,7 @@
                                             <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
                                             Monthly View
                                         </h3>
-                                        <button onclick={analyzeBestBuild} disabled={analyzingBestBuild} class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50" title="Find the best build day this month">
+                                        <button onclick={analyzeBestBuild} disabled={analyzingBestBuild} class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors disabled:opacity-50" title="Find the best build day this month">
                                             <span class="material-symbols-outlined" style="font-size: 1.25em;">{#if analyzingBestBuild}refresh{:else}star{/if}</span>
                                             <span>{analyzingBestBuild ? 'Analyzing...' : 'Best Build'}</span>
                                         </button>
