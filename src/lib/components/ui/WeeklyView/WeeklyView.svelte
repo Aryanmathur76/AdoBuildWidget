@@ -129,7 +129,7 @@
             <div class="flex flex-col gap-3 flex-1">
                 <!-- Combined Test Statistics -->
                 {#if browser}
-                    <Card class="p-3 hidden md:block">
+                    <Card class="p-3 hidden md:block bg-background/60 border border-border/50">
                         <div class="flex flex-col space-y-2">
                             <div class="grid grid-cols-4 gap-4">
                                 <div class="text-center">

@@ -212,17 +212,17 @@
                     </div>
                     <div class="flex-1 min-h-0 px-4 pb-4">
                         <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 h-full">
-                            <Card class="flex flex-col h-full">
+                            <Card class="flex flex-col h-full bg-background/70 backdrop-blur-sm">
                                 <CardContent class="h-full p-4 pt-0 flex flex-col overflow-auto">
                                     <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} />
                                 </CardContent>
                             </Card>
-                            <Card class="flex flex-col h-full">
+                            <Card class="flex flex-col h-full bg-background/70 backdrop-blur-sm">
                                 <CardContent class="h-full p-4 pt-0 flex flex-col overflow-auto">
                                     <WeeklyView viewMode={heatmapViewMode} />
                                 </CardContent>
                             </Card>
-                            <Card class="flex flex-col h-full">
+                            <Card class="flex flex-col h-full bg-background/70 backdrop-blur-sm">
                                 <CardContent class="h-full p-4 pt-0 flex flex-col overflow-auto">
                                     <PipelineAnalytics />
                                 </CardContent>

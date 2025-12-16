@@ -225,7 +225,7 @@
             </div>
         {:else}
             {#each pipelineCharts as pipelineChart (pipelineChart.pipelineId + '-' + (pipelineChart.testRunName || 'default'))}
-                    <Card.Root>
+                    <Card.Root class="bg-background/60 border border-border/50">
                         <Card.Header>
                             <Card.Title>
                                 {pipelineChart.testRunName || pipelineChart.displayName}
