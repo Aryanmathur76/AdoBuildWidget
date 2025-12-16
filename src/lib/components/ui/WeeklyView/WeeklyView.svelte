@@ -94,7 +94,7 @@
     });
 </script>
 
-<div class="w-full h-full xl:h-[80vh]" transition:slide={{ duration: 300 }}>
+<div class="w-full h-full" transition:slide={{ duration: 300 }}>
     <Card class="h-full flex flex-col py-2 border-0 bg-transparent">
         <CardContent class="p-4 xl:pb-0 pt-0 flex flex-col h-full">
             <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
@@ -126,7 +126,7 @@
             </div>
 
             <!-- Stats Grid -->
-            <div class="flex flex-col gap-3 flex-1">
+            <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden">
                 <!-- Combined Test Statistics -->
                 {#if browser}
                     <Card class="p-3 hidden md:block bg-background/60 border border-border/50">

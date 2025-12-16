@@ -247,7 +247,7 @@
     }
 </script>
 
-<Card class="pt-2 p-4 flex-1 flex flex-col w-full bg-background/60 border border-border/50">
+<Card class="pt-2 p-4 flex-1 flex flex-col w-full h-full overflow-hidden bg-background/60 border border-border/50">
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
             <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">psychology</span>
@@ -257,7 +257,7 @@
             {loading ? 'Analyzing...' : 'Get Insights'}
         </Button>
     </div>
-    <div class="flex-1 flex items-start justify-start">
+    <div class="flex-1 flex items-stretch justify-start min-h-0">
         {#if loading}
             <div class="w-full space-y-2">
                 <Skeleton class="h-4 w-full" />
@@ -270,8 +270,8 @@
                 <p class="text-xs text-muted-foreground mt-1">Please check your Azure OpenAI configuration</p>
             </div>
         {:else if insights}
-            <div class="text-sm text-foreground leading-relaxed max-h-[200px] xl:max-h-full overflow-y-auto">
-                <p>{insights}</p>
+            <div class="text-sm text-foreground leading-relaxed overflow-y-auto w-full h-full">
+                <p class="break-words">{insights}</p>
             </div>
         {:else}
             <div class="flex flex-col items-center justify-center text-center w-full p-4 xl:p-10 space-y-4">
