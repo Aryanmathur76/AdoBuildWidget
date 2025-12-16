@@ -11,6 +11,7 @@
     import * as Pagination from "$lib/components/ui/pagination/index.js";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import CardTitle from "../card/card-title.svelte";
+    import HelpDialog from "../HelpDialog/HelpDialog.svelte";
     import { env } from "$env/dynamic/public";
     import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
     import {
@@ -47,6 +48,9 @@
             : "simple"
     );
 
+    // Track help dialog open state
+    let helpDialogOpen = $state(false);
+
     // Track the best build day for highlighting, with localStorage cache
     let bestBuildDay = $state<string | null>(null);
     let analyzingBestBuild = $state(false);
@@ -70,16 +74,18 @@
     // Fetch all build qualities for the current month only when the month changes
     let lastFetchedMonth = $state(-1);
 
-    // Track if we're on desktop (lg breakpoint = 1024px) and mobile (sm breakpoint = 640px)
+    // Track if we're on desktop (lg breakpoint = 1024px), mobile (sm breakpoint = 640px), and small view (tabs visible)
     let isDesktop = $state(false);
     let isMobile = $state(false);
+    let isSmallView = $state(false);
     
-    // Update isDesktop and isMobile on window resize
+    // Update isDesktop, isMobile, and isSmallView on window resize
     $effect(() => {
         if (typeof window !== 'undefined') {
             const checkScreen = () => {
                 isDesktop = window.innerWidth >= 1024;
                 isMobile = window.innerWidth < 640;
+                isSmallView = window.innerWidth < 1024;
             };
             checkScreen();
             window.addEventListener('resize', checkScreen);
@@ -412,6 +418,10 @@
                                 </span>
                                 {#if !isMobile}<span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>{/if}
                             </button>
+                            <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors" title="Get help about this widget" aria-label="Help">
+                                <span class="material-symbols-outlined" style="font-size: 1.25em;">help</span>
+                                {#if !isMobile}<span>Help</span>{/if}
+                            </button>
                             {#if currentTab === "Monthly"}
                                 <button onclick={analyzeBestBuild} disabled={analyzingBestBuild} class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50" title="Find the best build day this month">
                                     <span class="material-symbols-outlined" style="font-size: 1.25em;">{#if analyzingBestBuild}refresh{:else}star{/if}</span>
@@ -492,6 +502,10 @@
                             <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
                                 <span class="material-symbols-outlined" style="font-size: 1.25em;">{#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}</span>
                                 <span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>
+                            </button>
+                            <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors" title="Get help about this widget" aria-label="Help">
+                                <span class="material-symbols-outlined" style="font-size: 1.25em;">help</span>
+                                <span>Help</span>
                             </button>
                         </div>
                     </div>
@@ -615,3 +629,5 @@
         {/if}
     </Sidebar.Provider>
 </div>
+
+<HelpDialog bind:open={helpDialogOpen} isMobile={isSmallView} />
