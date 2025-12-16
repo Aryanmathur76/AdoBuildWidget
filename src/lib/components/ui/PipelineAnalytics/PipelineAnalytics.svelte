@@ -215,6 +215,10 @@
 
 <div class="w-full h-full xl:h-[80vh] xl:pb-0 pb-20 overflow-auto">
     <div class="p-4 lg:p-0 lg:pb-0 flex flex-col gap-4">
+        <h3 class="text-lg font-semibold flex items-center gap-2">
+            <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
+            Pipeline Analytics
+        </h3>
         {#if pipelineCharts.length === 0}
             <div class="flex items-center justify-center h-full">
                 <p class="text-muted-foreground">No pipeline configuration found</p>

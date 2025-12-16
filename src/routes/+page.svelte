@@ -1,5 +1,5 @@
 <script lang="ts">
-   import BuildHeatmap from "$lib/components/ui/BuildHeatmap/BuildHeatmap.svelte";
+   import { Main } from "$lib/components/ui/Main";
 </script>
 
-<BuildHeatmap />
+<Main />
