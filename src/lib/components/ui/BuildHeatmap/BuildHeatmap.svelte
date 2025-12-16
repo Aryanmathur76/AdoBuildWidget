@@ -5,6 +5,7 @@
     import * as Sidebar from "$lib/components/ui/sidebar/index.js";
     import { useSidebar } from "$lib/components/ui/sidebar/context.svelte.js";
     import { Card, CardContent } from "$lib/components/ui/card/index.js";
+    import * as Popover from "$lib/components/ui/popover/index.js";
     import HeatmapButton from "./HeatmapButton.svelte";
     import WeeklyView from "../WeeklyView/WeeklyView.svelte";
     import { PipelineAnalytics } from "../PipelineAnalytics/index.js";
@@ -149,7 +150,7 @@
     let dayBuildQuality: Record<string, DayBuildQuality> = $state({});
 
     // Get pipeline configuration for optional prefetching
-    let pipelineConfig: PipelineConfig | null = null;
+    let pipelineConfig: PipelineConfig | null = $state(null);
 
     try {
         if (env.PUBLIC_AZURE_PIPELINE_CONFIG) {
@@ -404,13 +405,34 @@
         <Sidebar.Inset class="h-full max-h-full">
             <Card class="py-0 border-0 shadow-none h-full rounded-none overflow-hidden flex flex-col">
                 <Tabs.Root bind:value={currentTab} class="h-full flex flex-col lg:hidden">
-                    <div class="flex items-center justify-between px-4 pt-4 pb-2">
+                    <div class="flex items-center justify-between px-4 pt-4 pb-2 bg-gradient-to-r from-background via-muted/30 to-background rounded-lg">
                         <CardTitle>
                             <span class="inline-flex text-base font-bold py-1 items-center gap-1">
                                 <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
-                                DELTAV BUILD HEALTH
+                                <span>DELTAV BUILD HEALTH</span>
                             </span>
                         </CardTitle>
+                        <Popover.Root>
+                            <Popover.Trigger class="hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 cursor-help">
+                                <span class="text-sm font-semibold text-primary">{pipelineConfig?.pipelines.length || 0}</span>
+                                <span class="material-symbols-outlined text-primary" style="font-size: 1.1em;">science</span>
+                            </Popover.Trigger>
+                            <Popover.Content class="w-auto p-3">
+                                <div class="space-y-2">
+                                    <h4 class="font-semibold text-sm">Test Pipelines</h4>   
+                                    <div class="space-y-1 max-h-64 overflow-y-auto">
+                                        {#each pipelineConfig?.pipelines || [] as pipeline}
+                                            <div class="text-xs flex items-center gap-2 p-1.5 rounded hover:bg-muted/50">
+                                                <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1em;">
+                                                    {pipeline.type === 'build' ? 'build' : 'rocket_launch'}
+                                                </span>
+                                                <span class="text-foreground flex-1">{pipeline.displayName}</span>
+                                            </div>
+                                        {/each}
+                                    </div>
+                                </div>
+                            </Popover.Content>
+                        </Popover.Root>
                         <div class="flex items-center gap-2">
                             <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
                                 <span class="material-symbols-outlined" style="font-size: 1.25em;">
@@ -491,13 +513,34 @@
                     </div>
                 </Tabs.Root>
                 <div class="hidden lg:flex flex-col h-full overflow-hidden">
-                    <div class="flex items-center px-4 pt-4 pb-2">
+                    <div class="flex items-center px-4 pt-4 pb-2 bg-gradient-to-r from-background via-muted/30 to-background rounded-lg">
                         <CardTitle>
                             <span class="inline-flex text-base font-bold py-1 items-center gap-1">
                                 <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
-                                DELTAV BUILD HEALTH
+                                <span>DELTAV BUILD HEALTH</span>
                             </span>
                         </CardTitle>
+                        <Popover.Root>
+                            <Popover.Trigger class="hover:opacity-80 transition-opacity flex items-center gap-1 mx-2 px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 cursor-help">
+                                <span class="text-sm font-semibold text-primary">{pipelineConfig?.pipelines.length || 0}</span>
+                                <span class="material-symbols-outlined text-primary" style="font-size: 1.1em;">science</span>
+                            </Popover.Trigger>
+                            <Popover.Content class="w-auto p-3">
+                                <div class="space-y-2">
+                                    <h4 class="font-semibold text-sm">Test Pipelines</h4>
+                                    <div class="space-y-1 max-h-64 overflow-y-auto">
+                                        {#each pipelineConfig?.pipelines || [] as pipeline}
+                                            <div class="text-xs flex items-center gap-2 p-1.5 rounded hover:bg-muted/50">
+                                                <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1em;">
+                                                    {pipeline.type === 'build' ? 'build' : 'rocket_launch'}
+                                                </span>
+                                                <span class="text-foreground flex-1">{pipeline.displayName}</span>
+                                            </div>
+                                        {/each}
+                                    </div>
+                                </div>
+                            </Popover.Content>
+                        </Popover.Root>
                         <div class="ml-auto flex items-center gap-2">
                             <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
                                 <span class="material-symbols-outlined" style="font-size: 1.25em;">{#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}</span>
