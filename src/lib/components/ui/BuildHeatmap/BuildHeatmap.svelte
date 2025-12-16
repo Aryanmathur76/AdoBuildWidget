@@ -405,7 +405,7 @@
         <Sidebar.Inset class="h-full max-h-full">
             <Card class="py-0 border-0 shadow-none h-full rounded-none overflow-hidden flex flex-col">
                 <Tabs.Root bind:value={currentTab} class="h-full flex flex-col lg:hidden">
-                    <div class="flex items-center justify-between px-4 pt-4 pb-2 bg-gradient-to-r from-background via-muted/30 to-background rounded-lg">
+                    <div class="flex items-center justify-between px-4 pt-4 pb-2 bg-background rounded-lg">
                         <CardTitle>
                             <span class="inline-flex text-base font-bold py-1 items-center gap-1">
                                 <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
@@ -513,7 +513,7 @@
                     </div>
                 </Tabs.Root>
                 <div class="hidden lg:flex flex-col h-full overflow-hidden">
-                    <div class="flex items-center px-4 pt-4 pb-2 bg-gradient-to-r from-background via-muted/30 to-background rounded-lg">
+                    <div class="flex items-center px-4 pt-4 pb-2 bg-background rounded-lg">
                         <CardTitle>
                             <span class="inline-flex text-base font-bold py-1 items-center gap-1">
                                 <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
@@ -674,3 +674,6 @@
 </div>
 
 <HelpDialog bind:open={helpDialogOpen} isMobile={isSmallView} />
+
+<style>
+</style>
