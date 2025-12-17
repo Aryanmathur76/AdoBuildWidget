@@ -213,8 +213,8 @@
     }
 </script>
 
-<div class="w-full h-full xl:h-[80vh] xl:pb-0 pb-20 overflow-auto">
-    <div class="p-4 lg:p-0 lg:pb-0 flex flex-col gap-4">
+<div class="w-full flex-1 min-h-0 overflow-y-auto">
+    <div class="h-full p-4 lg:p-0 lg:pb-0 flex flex-col gap-4 overflow-y-auto">
         <h3 class="text-lg font-semibold flex items-center gap-2">
             <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
             Pipeline Analytics
@@ -292,12 +292,12 @@
                         {#if !pipelineChart.loading}
                             {@const totals = calculateTotals(pipelineChart.data)}
                             <Card.Footer>
-                                <div class="flex w-full items-start text-sm mb-5">
+                                <div class="flex w-full items-start text-sm">
                                     <div class="grid gap-2">
                                         <div class="flex items-center gap-2 font-medium leading-none">
                                             Pass Rate: {totals.passRate}% ({totals.totalPassed}/{totals.total} tests)
                                         </div>
-                                        <div class="text-muted-foreground flex items-center gap-2 leading-none">
+                                        <div class="text-muted-foreground flex items-center gap-2 leading-none mb-4">
                                             {#if totals.totalFailed > 0}
                                                 {totals.totalFailed} failed test{totals.totalFailed !== 1 ? 's' : ''} in the last 7 days
                                             {:else}

@@ -156,14 +156,14 @@
                             </Sidebar.Trigger>
                         </div>
                     </div>
-                    <div class="flex-1 min-h-0">
-                        <Tabs.Content value="Monthly" class="h-full overflow-hidden">
+                    <div class="flex-1 min-h-0 overflow-hidden">
+                        <Tabs.Content value="Monthly" class="h-full overflow-auto">
                             <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} />
                         </Tabs.Content>
-                        <Tabs.Content value="Weekly" class="h-full overflow-hidden">
+                        <Tabs.Content value="Weekly" class="h-full overflow-auto">
                             <WeeklyView viewMode={heatmapViewMode} />
                         </Tabs.Content>
-                        <Tabs.Content value="Analytics" class="h-[100dvh] max-h-[100dvh] overflow-auto">
+                        <Tabs.Content value="Analytics" class="h-full overflow-auto">
                             <PipelineAnalytics />
                         </Tabs.Content>
                     </div>
@@ -211,19 +211,19 @@
                         </div>
                     </div>
                     <div class="flex-1 min-h-0 px-4 pb-4">
-                        <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 h-full">
+                        <div class="grid grid-cols-1 xl:grid-cols-3 grid-rows-[minmax(0,1fr)] gap-4 h-full">
                             <Card class="flex flex-col h-full bg-background/70 backdrop-blur-sm">
-                                <CardContent class="h-full p-4 pt-0 flex flex-col overflow-auto">
+                                <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto">
                                     <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} />
                                 </CardContent>
                             </Card>
                             <Card class="flex flex-col h-full bg-background/70 backdrop-blur-sm">
-                                <CardContent class="h-full p-4 pt-0 flex flex-col overflow-auto">
+                                <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto">
                                     <WeeklyView viewMode={heatmapViewMode} />
                                 </CardContent>
                             </Card>
                             <Card class="flex flex-col h-full bg-background/70 backdrop-blur-sm">
-                                <CardContent class="h-full p-4 pt-0 flex flex-col overflow-auto">
+                                <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto">
                                     <PipelineAnalytics />
                                 </CardContent>
                             </Card>

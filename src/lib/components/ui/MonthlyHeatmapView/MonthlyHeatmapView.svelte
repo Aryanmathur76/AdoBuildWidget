@@ -227,7 +227,7 @@
     }
 </script>
 
-<div class="h-full px-4 pb-4 flex flex-col overflow-auto">
+<div class="flex-1 min-h-0 px-4 pb-4 flex flex-col overflow-auto">
     <div class="flex items-center justify-between mb-3">
         <h3 class="text-lg font-semibold flex items-center gap-2">
             <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
