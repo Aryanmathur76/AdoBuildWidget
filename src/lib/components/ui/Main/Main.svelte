@@ -112,50 +112,60 @@
             <Card class={`py-0 border-0 shadow-none h-full rounded-none overflow-hidden flex flex-col bg-gradient-to-b ${gradientColor} to-background`}>
                 <!-- Mobile: Tabs Interface -->
                 <Tabs.Root bind:value={currentTab} class="h-full flex flex-col lg:hidden">
-                    <div class="flex items-center justify-between px-4 pt-4 pb-2 bg-transparent rounded-lg">
-                        <div class="flex items-center gap-2">
-                            <CardTitle>
-                                <span class="inline-flex text-base font-bold py-1 items-center gap-1">
-                                    <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
-                                    <span>DELTAV BUILD HEALTH</span>
-                                </span>
-                            </CardTitle>
-                            <Popover.Root>
-                                <Popover.Trigger class="hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 cursor-help">
-                                    <span class="text-sm font-semibold text-primary">{pipelineConfig?.pipelines.length || 0}</span>
-                                    <span class="material-symbols-outlined text-primary" style="font-size: 1.1em;">science</span>
-                                </Popover.Trigger>
-                                <Popover.Content class="w-auto p-3">
-                                    <div class="space-y-2">
-                                        <h4 class="font-semibold text-sm">Test Pipelines</h4>   
-                                        <div class="space-y-1 max-h-64 overflow-y-auto">
-                                            {#each pipelineConfig?.pipelines || [] as pipeline}
-                                                <div class="text-xs flex items-center gap-2 p-1.5 rounded hover:bg-muted/50">
-                                                    <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1em;">
-                                                        {pipeline.type === 'build' ? 'build' : 'rocket_launch'}
-                                                    </span>
-                                                    <span class="text-foreground flex-1">{pipeline.displayName}</span>
-                                                </div>
-                                            {/each}
-                                        </div>
-                                    </div>
-                                </Popover.Content>
-                            </Popover.Root>
+                    <!-- Collapsible header - shows arrow handle, expands on hover -->
+                    <div class="group relative">
+                        <!-- Small arrow handle always visible -->
+                        <div class="flex justify-center cursor-pointer bg-background/30 group-hover:bg-transparent transition-colors">
+                            <span class="material-symbols-outlined text-muted-foreground group-hover:opacity-0 transition-opacity" style="font-size: 1.25em;">expand_more</span>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
-                                <span class="material-symbols-outlined" style="font-size: 1.25em;">
-                                    {#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}
-                                </span>
-                                {#if !isMobile}<span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>{/if}
-                            </button>
-                            <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" title="Get help about this widget" aria-label="Help">
-                                <span class="material-symbols-outlined" style="font-size: 1.25em;">help</span>
-                                {#if !isMobile}<span>Help</span>{/if}
-                            </button>
-                            <Sidebar.Trigger class="flex items-center gap-2">
-                                <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">settings</span>
-                            </Sidebar.Trigger>
+                        <!-- Full header - hidden by default, shown on hover -->
+                        <div class="absolute top-0 left-0 right-0 opacity-0 -translate-y-full group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 ease-out bg-gradient-to-b from-background/95 to-background/80 backdrop-blur-sm z-50 shadow-lg">
+                            <div class="flex items-center justify-between px-4 pt-3 pb-2">
+                                <div class="flex items-center gap-2">
+                                    <CardTitle>
+                                        <span class="inline-flex text-base font-bold py-1 items-center gap-1">
+                                            <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
+                                            <span>DELTAV BUILD HEALTH</span>
+                                        </span>
+                                    </CardTitle>
+                                    <Popover.Root>
+                                        <Popover.Trigger class="hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 cursor-help">
+                                            <span class="text-sm font-semibold text-primary">{pipelineConfig?.pipelines.length || 0}</span>
+                                            <span class="material-symbols-outlined text-primary" style="font-size: 1.1em;">science</span>
+                                        </Popover.Trigger>
+                                        <Popover.Content class="w-auto p-3">
+                                            <div class="space-y-2">
+                                                <h4 class="font-semibold text-sm">Test Pipelines</h4>   
+                                                <div class="space-y-1 max-h-64 overflow-y-auto">
+                                                    {#each pipelineConfig?.pipelines || [] as pipeline}
+                                                        <div class="text-xs flex items-center gap-2 p-1.5 rounded hover:bg-muted/50">
+                                                            <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1em;">
+                                                                {pipeline.type === 'build' ? 'build' : 'rocket_launch'}
+                                                            </span>
+                                                            <span class="text-foreground flex-1">{pipeline.displayName}</span>
+                                                        </div>
+                                                    {/each}
+                                                </div>
+                                            </div>
+                                        </Popover.Content>
+                                    </Popover.Root>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
+                                        <span class="material-symbols-outlined" style="font-size: 1.25em;">
+                                            {#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}
+                                        </span>
+                                        {#if !isMobile}<span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>{/if}
+                                    </button>
+                                    <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" title="Get help about this widget" aria-label="Help">
+                                        <span class="material-symbols-outlined" style="font-size: 1.25em;">help</span>
+                                        {#if !isMobile}<span>Help</span>{/if}
+                                    </button>
+                                    <Sidebar.Trigger class="flex items-center gap-2">
+                                        <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">settings</span>
+                                    </Sidebar.Trigger>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="flex-1 min-h-0 overflow-hidden">
@@ -235,7 +245,7 @@
             </Card>
         </Sidebar.Inset>
         {#if !isDesktop}
-            <Sidebar.Root side="right" collapsible="offcanvas">
+            <Sidebar.Root side="right" collapsible="offcanvas" class="bg-background/80 backdrop-blur-md">
                 <Sidebar.Content>
                     <Sidebar.Group>
                         <Sidebar.GroupLabel>Views</Sidebar.GroupLabel>
