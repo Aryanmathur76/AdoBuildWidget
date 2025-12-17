@@ -113,33 +113,35 @@
                 <!-- Mobile: Tabs Interface -->
                 <Tabs.Root bind:value={currentTab} class="h-full flex flex-col lg:hidden">
                     <div class="flex items-center justify-between px-4 pt-4 pb-2 bg-transparent rounded-lg">
-                        <CardTitle>
-                            <span class="inline-flex text-base font-bold py-1 items-center gap-1">
-                                <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
-                                <span>DELTAV BUILD HEALTH</span>
-                            </span>
-                        </CardTitle>
-                        <Popover.Root>
-                            <Popover.Trigger class="hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 cursor-help">
-                                <span class="text-sm font-semibold text-primary">{pipelineConfig?.pipelines.length || 0}</span>
-                                <span class="material-symbols-outlined text-primary" style="font-size: 1.1em;">science</span>
-                            </Popover.Trigger>
-                            <Popover.Content class="w-auto p-3">
-                                <div class="space-y-2">
-                                    <h4 class="font-semibold text-sm">Test Pipelines</h4>   
-                                    <div class="space-y-1 max-h-64 overflow-y-auto">
-                                        {#each pipelineConfig?.pipelines || [] as pipeline}
-                                            <div class="text-xs flex items-center gap-2 p-1.5 rounded hover:bg-muted/50">
-                                                <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1em;">
-                                                    {pipeline.type === 'build' ? 'build' : 'rocket_launch'}
-                                                </span>
-                                                <span class="text-foreground flex-1">{pipeline.displayName}</span>
-                                            </div>
-                                        {/each}
+                        <div class="flex items-center gap-2">
+                            <CardTitle>
+                                <span class="inline-flex text-base font-bold py-1 items-center gap-1">
+                                    <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
+                                    <span>DELTAV BUILD HEALTH</span>
+                                </span>
+                            </CardTitle>
+                            <Popover.Root>
+                                <Popover.Trigger class="hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 cursor-help">
+                                    <span class="text-sm font-semibold text-primary">{pipelineConfig?.pipelines.length || 0}</span>
+                                    <span class="material-symbols-outlined text-primary" style="font-size: 1.1em;">science</span>
+                                </Popover.Trigger>
+                                <Popover.Content class="w-auto p-3">
+                                    <div class="space-y-2">
+                                        <h4 class="font-semibold text-sm">Test Pipelines</h4>   
+                                        <div class="space-y-1 max-h-64 overflow-y-auto">
+                                            {#each pipelineConfig?.pipelines || [] as pipeline}
+                                                <div class="text-xs flex items-center gap-2 p-1.5 rounded hover:bg-muted/50">
+                                                    <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1em;">
+                                                        {pipeline.type === 'build' ? 'build' : 'rocket_launch'}
+                                                    </span>
+                                                    <span class="text-foreground flex-1">{pipeline.displayName}</span>
+                                                </div>
+                                            {/each}
+                                        </div>
                                     </div>
-                                </div>
-                            </Popover.Content>
-                        </Popover.Root>
+                                </Popover.Content>
+                            </Popover.Root>
+                        </div>
                         <div class="flex items-center gap-2">
                             <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
                                 <span class="material-symbols-outlined" style="font-size: 1.25em;">
