@@ -630,6 +630,101 @@ describe('getReleasePipelineStatus - interrupted', () => {
     const status = await getReleasePipelineStatus(release, true);
     expect(status).toBe('unknown');
   });
+
+  it('should return "interrupted" when more than 30% of environments are notStarted', async () => {
+    const release = {
+      id: 7,
+      description: 'Test release with many notStarted envs',
+      name: 'Release 7',
+      status: 'unknown',
+      createdOn: '2023-01-07T00:00:00Z',
+      modifiedOn: '2023-01-07T00:00:00Z',
+      envs: [
+        { id: 1, name: 'Env 1', status: 'succeeded' },
+        { id: 2, name: 'Env 2', status: 'succeeded' },
+        { id: 3, name: 'Env 3', status: 'notStarted' },
+        { id: 4, name: 'Env 4', status: 'notStarted' }
+      ],
+      passedTestCount: 10,
+      failedTestCount: 0
+    };
+    // 2 out of 4 environments (50%) are notStarted, which is > 30% threshold
+    const status = await getReleasePipelineStatus(release);
+    expect(status).toBe('interrupted');
+  });
+
+  it('should NOT return "interrupted" when exactly 30% of environments are notStarted (threshold boundary)', async () => {
+    const release = {
+      id: 8,
+      description: 'Test release at threshold',
+      name: 'Release 8',
+      status: 'unknown',
+      createdOn: '2023-01-08T00:00:00Z',
+      modifiedOn: '2023-01-08T00:00:00Z',
+      envs: [
+        { id: 1, name: 'Env 1', status: 'succeeded' },
+        { id: 2, name: 'Env 2', status: 'succeeded' },
+        { id: 3, name: 'Env 3', status: 'succeeded' },
+        { id: 4, name: 'Env 4', status: 'succeeded' },
+        { id: 5, name: 'Env 5', status: 'succeeded' },
+        { id: 6, name: 'Env 6', status: 'succeeded' },
+        { id: 7, name: 'Env 7', status: 'succeeded' },
+        { id: 8, name: 'Env 8', status: 'notStarted' },
+        { id: 9, name: 'Env 9', status: 'notStarted' },
+        { id: 10, name: 'Env 10', status: 'notStarted' }
+      ],
+      passedTestCount: 100,
+      failedTestCount: 0
+    };
+    // 3 out of 10 environments (30%) are notStarted, exactly at threshold (0.3)
+    // Since code uses >, not >=, this should NOT return interrupted
+    const status = await getReleasePipelineStatus(release);
+    expect(status).toBe('good'); // Falls through to test-based determination
+  });
+
+  it('should NOT return "interrupted" when less than 30% of environments are notStarted', async () => {
+    const release = {
+      id: 9,
+      description: 'Test release below threshold',
+      name: 'Release 9',
+      status: 'unknown',
+      createdOn: '2023-01-09T00:00:00Z',
+      modifiedOn: '2023-01-09T00:00:00Z',
+      envs: [
+        { id: 1, name: 'Env 1', status: 'succeeded' },
+        { id: 2, name: 'Env 2', status: 'succeeded' },
+        { id: 3, name: 'Env 3', status: 'succeeded' },
+        { id: 4, name: 'Env 4', status: 'succeeded' },
+        { id: 5, name: 'Env 5', status: 'notStarted' }
+      ],
+      passedTestCount: 95,
+      failedTestCount: 5
+    };
+    // 1 out of 5 environments (20%) are notStarted, which is < 30% threshold
+    const status = await getReleasePipelineStatus(release);
+    expect(status).toBe('good'); // Should use test-based determination instead
+  });
+
+  it('should return "interrupted" when all environments are notStarted', async () => {
+    const release = {
+      id: 10,
+      description: 'Test release with all notStarted',
+      name: 'Release 10',
+      status: 'unknown',
+      createdOn: '2023-01-10T00:00:00Z',
+      modifiedOn: '2023-01-10T00:00:00Z',
+      envs: [
+        { id: 1, name: 'Env 1', status: 'notStarted' },
+        { id: 2, name: 'Env 2', status: 'notStarted' },
+        { id: 3, name: 'Env 3', status: 'notStarted' }
+      ],
+      passedTestCount: 0,
+      failedTestCount: 0
+    };
+    // 3 out of 3 environments (100%) are notStarted
+    const status = await getReleasePipelineStatus(release);
+    expect(status).toBe('interrupted');
+  });
 });
 
 // If any of the envs are "failed" then return "failed"
