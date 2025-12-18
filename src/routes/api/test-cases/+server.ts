@@ -53,16 +53,17 @@ export async function GET({ url }: { url: URL }) {
                 return json({ testCases: [] });
             }
 
-            // 2. For each unique environment, get the latest test run
-            const envRuns: Record<string, any> = {};
+            // 2. For each unique test run name, get the latest test run
+            // This allows multiple test suites (different names) in the same environment to all be counted
+            const uniqueRuns: Record<string, any> = {};
             for (const run of runsData.value) {
-                const envId = run.release?.environmentId;
-                if (!envId) continue;
-                if (!envRuns[envId] || new Date(run.createdDate) > new Date(envRuns[envId].createdDate)) {
-                    envRuns[envId] = run;
+                const runName = run.name;
+                if (!runName) continue;
+                if (!uniqueRuns[runName] || new Date(run.createdDate) > new Date(uniqueRuns[runName].createdDate)) {
+                    uniqueRuns[runName] = run;
                 }
             }
-            const testRunIds = Object.values(envRuns).map((run: any) => run.id);
+            const testRunIds = Object.values(uniqueRuns).map((run: any) => run.id);
             if (testRunIds.length === 0) {
                 return json({ testCases: [] });
             }
