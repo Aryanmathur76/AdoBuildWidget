@@ -119,6 +119,42 @@
         }
     });
 
+    // Auto-analyze from URL param ?autoAnalyze=true (only on mount)
+    let shouldAutoAnalyze = $state(false);
+    let hasAutoAnalyzed = $state(false);
+    
+    // Initialize shouldAutoAnalyze only once on mount
+    $effect.pre(() => {
+        if (typeof window !== "undefined" && !shouldAutoAnalyze && !hasAutoAnalyzed) {
+            const params = new URLSearchParams(window.location.search);
+            shouldAutoAnalyze = params.get('autoAnalyze') === 'true';
+        }
+    });
+    
+    // Trigger auto-analyze when all data is loaded
+    $effect(() => {
+        if (!shouldAutoAnalyze || hasAutoAnalyzed || analyzingBestBuild) return;
+        
+        // Count non-future days that should be loaded
+        const datesInMonth = getDatesInMonth(currentYear, currentMonth);
+        const nonFutureDates = datesInMonth.filter(dateStr => {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            return !isFutureDay(y, m - 1, d);
+        });
+        
+        const loadedCount = Object.keys(dayBuildQuality).length;
+        const expectedCount = nonFutureDates.length;
+        
+        // Wait until all non-future days are loaded
+        if (loadedCount >= expectedCount && expectedCount > 0) {
+            hasAutoAnalyzed = true;
+            // Add delay to ensure UI settles
+            setTimeout(() => {
+                analyzeBestBuild();
+            }, 2000);
+        }
+    });
+
     // Fetch all build qualities for the month
     async function fetchAllBuildQualitiesForMonth() {
         const dateStrings = getDatesInMonth(currentYear, currentMonth).filter(
