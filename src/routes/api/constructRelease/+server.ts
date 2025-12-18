@@ -118,7 +118,9 @@ export async function GET({ url }: { url: URL }) {
         const minLastUpdatedDate = releaseCreationDate.toISOString();
         const maxLastUpdatedDate = maxDate.toISOString();
         const testRunUrl = `https://dev.azure.com/${organization}/${project}/_apis/test/runs?releaseIds=${releaseId}&minLastUpdatedDate=${encodeURIComponent(minLastUpdatedDate)}&maxLastUpdatedDate=${encodeURIComponent(maxLastUpdatedDate)}&api-version=7.1`;
-
+        if(releaseId === 78128){
+            console.log(testRunUrl);
+        }
         const testRunResponse = await fetch(testRunUrl, {
             headers: {
                 'Authorization': `Basic ${Buffer.from(`:${pat}`).toString('base64')}`
@@ -128,7 +130,7 @@ export async function GET({ url }: { url: URL }) {
 
         if (testRunResponse.ok) {
             const testRunData = await testRunResponse.json();
-
+            
             if (Array.isArray(testRunData.value)) {
                 // Filter test runs to only include those from stages with 'tests' in the name
                 const filteredRuns = testRunData.value.filter((run: any) => {
@@ -138,25 +140,38 @@ export async function GET({ url }: { url: URL }) {
                     return stageName.toLowerCase().includes('tests');
                 });
 
+                if(releaseId === 78128){
+                    console.log('Filtered Run Data:', filteredRuns);
+                }
 
-                // Deduplicate test runs by environment ID, keeping only the latest one per environment
-                const envRuns: Record<string, any> = {};
+
+                // Deduplicate test runs by name, keeping only the latest run for each unique test run name
+                // This allows multiple test suites (different names) in the same environment to all be counted
+                const uniqueRuns: Record<string, any> = {};
                 for (const run of filteredRuns) {
-                    const envId = run.release?.environmentId;
-                    if (!envId) continue;
+                    const runName = run.name;
+                    if (!runName) continue;
                     
-                    // If we haven't seen this envId or this run is newer, keep it
-                    if (!envRuns[envId] || new Date(run.createdDate) > new Date(envRuns[envId].createdDate)) {
-                        envRuns[envId] = run;
+                    // If we haven't seen this run name, or this run is newer, keep it
+                    if (!uniqueRuns[runName] || new Date(run.createdDate) > new Date(uniqueRuns[runName].createdDate)) {
+                        uniqueRuns[runName] = run;
                     }
                 }
 
-                // Aggregate test results from the latest test run per environment
+                
+
+                if(releaseId === 78128){
+                    console.log("================================================================================================");
+                    console.log("================================================================================================");
+                    console.log('Deduplicated Run Data:', uniqueRuns);
+                }
+
+                // Aggregate test results from all unique test runs
                 let passCount = 0;
                 let failCount = 0;
 
-                for (const envId in envRuns) {
-                    const run = envRuns[envId];
+                for (const runName in uniqueRuns) {
+                    const run = uniqueRuns[runName];
                     passCount += run.passedTests ?? 0;
                     failCount += (run.failedTests ?? 0) + (run.unanalyzedTests ?? 0);
                 }

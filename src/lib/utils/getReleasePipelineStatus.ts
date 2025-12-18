@@ -1,5 +1,6 @@
 import type { Release } from '$lib/types/release';
 import { getTestQuality } from '$lib/constants/thresholds';
+import { PIPELINE_ENV_NOT_STARTED_THRESHOLD } from '$lib/constants/thresholds';
 
 // Function to calculate the latest completion time from release environments
 // Traverses all environments and finds the latest finishTime or dateEnded from tasks
@@ -88,6 +89,11 @@ export async function getReleasePipelineStatus(releaseDetails: Release, consider
     if (releaseDetails.passedTestCount === undefined || releaseDetails.failedTestCount === undefined) {
       return 'unknown';
     }
+
+    if (releaseDetails.envs.filter(env => env.status === 'notStarted').length / releaseDetails.envs.length > PIPELINE_ENV_NOT_STARTED_THRESHOLD) {
+      return 'interrupted';
+    }
+
 
     // If the pass ratio is 100% return 'good'
     const totalTests = releaseDetails.passedTestCount + releaseDetails.failedTestCount;
