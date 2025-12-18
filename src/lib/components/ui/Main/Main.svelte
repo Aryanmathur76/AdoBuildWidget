@@ -170,7 +170,7 @@
                     </div>
                     <div class="flex-1 min-h-0 overflow-hidden">
                         <Tabs.Content value="Monthly" class="h-full overflow-auto">
-                            <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} />
+                            <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} isMainView={true} />
                         </Tabs.Content>
                         <Tabs.Content value="Weekly" class="h-full overflow-auto">
                             <WeeklyView viewMode={heatmapViewMode} />

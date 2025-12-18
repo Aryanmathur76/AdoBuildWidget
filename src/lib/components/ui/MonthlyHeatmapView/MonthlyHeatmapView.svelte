@@ -20,8 +20,9 @@
     interface Props {
         viewMode?: "simple" | "graph";
         onTodayQualityChange?: (quality: string) => void;
+        isMainView?: boolean;
     }
-    let { viewMode = "simple", onTodayQualityChange }: Props = $props();
+    let { viewMode = "simple", onTodayQualityChange, isMainView = false }: Props = $props();
 
     // Constants
     const today = new Date();
@@ -123,11 +124,22 @@
     let shouldAutoAnalyze = $state(false);
     let hasAutoAnalyzed = $state(false);
     
-    // Initialize shouldAutoAnalyze only once on mount
+    // Auto-show today's popover from URL param ?autoShowToday=true (only if this is the main view)
+    let shouldAutoShowToday = $state(false);
+    let todayDateStr = $state('');
+    
+    // Initialize URL params only once on mount
     $effect.pre(() => {
-        if (typeof window !== "undefined" && !shouldAutoAnalyze && !hasAutoAnalyzed) {
+        if (typeof window !== "undefined" && !shouldAutoAnalyze && !shouldAutoShowToday && isMainView) {
             const params = new URLSearchParams(window.location.search);
             shouldAutoAnalyze = params.get('autoAnalyze') === 'true';
+            shouldAutoShowToday = params.get('autoShowToday') === 'true';
+            
+            // Set today's date string
+            const todayDate = new Date();
+            todayDateStr = getDateString(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate());
+            
+            console.log('MonthlyHeatmapView init (isMainView=' + isMainView + '):', { shouldAutoShowToday, todayDateStr });
         }
     });
     
@@ -284,10 +296,8 @@
     <div class="grid grid-cols-7 gap-0.5 mb-2 flex-1">
         {#each daysInMonth as dayObj, index (currentMonth + "-" + dayObj.day + "-" + tabAnimationKey)}
             <div class="w-full aspect-square min-w-0 min-h-0 relative {bestBuildDay === dayObj.dateStr ? 'border-2 border-green-400 rounded-lg shadow-lg shadow-green-400/50' : ''}" in:fly={{ y: 10, duration: 200, delay: index * 15 }}>
-                {#if dayBuildQuality[dayObj.dateStr]}
-                    <HeatmapButton {dayObj} delay={index * 50} viewMode={viewMode} />
-                {:else if dayObj.disabled}
-                    <HeatmapButton {dayObj} delay={index * 50} viewMode={viewMode} />
+                {#if dayBuildQuality[dayObj.dateStr] || dayObj.disabled}
+                    <HeatmapButton {dayObj} delay={index * 50} viewMode={viewMode} autoShowPopover={shouldAutoShowToday && dayObj.dateStr === todayDateStr} />
                 {:else}
                     <Skeleton class="w-full h-full min-w-0 min-h-0 rounded" style="aspect-ratio: 1 / 1;" />
                 {/if}
