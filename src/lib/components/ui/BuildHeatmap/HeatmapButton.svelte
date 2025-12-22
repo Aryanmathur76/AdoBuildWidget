@@ -48,10 +48,8 @@
   // Auto-show popover once when prop is true (with delay)
   $effect(() => {
     if (autoShowPopover && !hasAutoShown) {
-      console.log('HeatmapButton auto-show triggered for', dayObj?.dateStr);
       hasAutoShown = true;
       setTimeout(() => {
-        console.log('HeatmapButton showing popover for', dayObj?.dateStr);
         showPopover = true;
       }, 2500);
     }

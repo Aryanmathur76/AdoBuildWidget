@@ -84,7 +84,6 @@
                     });
 
                 releaseDetails.failedTestCases = testCases;
-                console.log('fetched release details: ', releaseDetails);
                 releasePipelines.push(releaseDetails);
             } catch (error) {
                 console.log(`Error fetching release details for pipeline ID ${pipeline.id}:`, error);
@@ -129,7 +128,6 @@
                         });
 
                         buildDetails.failedTestCases = testCases;
-                        console.log('fetched build details: ', buildDetails);
                         buildPipelines.push(buildDetails);
                     }
                 } else {

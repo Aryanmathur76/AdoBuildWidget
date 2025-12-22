@@ -119,7 +119,6 @@ export async function GET({ url }: { url: URL }) {
         const maxLastUpdatedDate = maxDate.toISOString();
         const testRunUrl = `https://dev.azure.com/${organization}/${project}/_apis/test/runs?releaseIds=${releaseId}&minLastUpdatedDate=${encodeURIComponent(minLastUpdatedDate)}&maxLastUpdatedDate=${encodeURIComponent(maxLastUpdatedDate)}&api-version=7.1`;
         if(releaseId === 78128){
-            console.log(testRunUrl);
         }
         const testRunResponse = await fetch(testRunUrl, {
             headers: {
@@ -140,10 +139,6 @@ export async function GET({ url }: { url: URL }) {
                     return stageName.toLowerCase().includes('tests');
                 });
 
-                if(releaseId === 78128){
-                    console.log('Filtered Run Data:', filteredRuns);
-                }
-
 
                 // Deduplicate test runs by name, keeping only the latest run for each unique test run name
                 // This allows multiple test suites (different names) in the same environment to all be counted
@@ -158,14 +153,7 @@ export async function GET({ url }: { url: URL }) {
                     }
                 }
 
-                
-
-                if(releaseId === 78128){
-                    console.log("================================================================================================");
-                    console.log("================================================================================================");
-                    console.log('Deduplicated Run Data:', uniqueRuns);
-                }
-
+            
                 // Aggregate test results from all unique test runs
                 let passCount = 0;
                 let failCount = 0;
