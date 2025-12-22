@@ -126,7 +126,7 @@
             </div>
 
             <!-- Stats Grid -->
-            <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden">
+            <div class="flex flex-col gap-3 flex-1 min-h-0">
                 <!-- Combined Test Statistics -->
                 {#if browser}
                     <Card class="p-3 hidden md:block bg-background/60 border border-border/50">

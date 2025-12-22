@@ -245,7 +245,7 @@
     }
 </script>
 
-<Card class="pt-2 p-4 flex-1 flex flex-col w-full h-full overflow-hidden bg-background/60 border border-border/50">
+<Card class="pt-2 p-4 flex-1 flex flex-col bg-background/60 border border-border/50">
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
             <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">psychology</span>
