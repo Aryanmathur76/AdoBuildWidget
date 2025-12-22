@@ -5,6 +5,7 @@
     import { useSidebar } from "$lib/components/ui/sidebar/context.svelte.js";
     import { Card, CardContent } from "$lib/components/ui/card/index.js";
     import * as Popover from "$lib/components/ui/popover/index.js";
+    import * as Carousel from "$lib/components/ui/carousel/index.js";
     import CardTitle from "../card/card-title.svelte";
     import HelpDialog from "../HelpDialog/HelpDialog.svelte";
     import MonthlyHeatmapView from "../MonthlyHeatmapView/MonthlyHeatmapView.svelte";
@@ -107,11 +108,12 @@
 </script>
 
 <div class="w-full h-screen max-h-screen overflow-hidden" transition:slide={{ duration: 300 }}>
-    <Sidebar.Provider>
-        <Sidebar.Inset class="h-full max-h-full">
-            <Card class={`py-0 border-0 shadow-none h-full rounded-none overflow-hidden flex flex-col bg-gradient-to-b ${gradientColor} to-background`}>
-                <!-- Mobile: Tabs Interface -->
-                <Tabs.Root bind:value={currentTab} class="h-full flex flex-col lg:hidden">
+    <Card class={`py-0 border-0 shadow-none h-full rounded-none flex flex-col bg-gradient-to-b ${gradientColor} to-background`}>
+        <!-- Mobile: Tabs Interface with Sidebar -->
+        <div class="lg:hidden h-full">
+            <Sidebar.Provider>
+                <Sidebar.Inset class="h-full">
+                    <Tabs.Root bind:value={currentTab} class="h-full flex flex-col">
                     <!-- Collapsible header - shows arrow handle, expands on hover -->
                     <div class="group relative">
                         <!-- Small arrow handle always visible -->
@@ -180,9 +182,41 @@
                         </Tabs.Content>
                     </div>
                 </Tabs.Root>
+                </Sidebar.Inset>
+                <Sidebar.Root side="right" collapsible="offcanvas" class="bg-background/80 backdrop-blur-md">
+                    <Sidebar.Content>
+                        <Sidebar.Group>
+                            <Sidebar.GroupLabel>Views</Sidebar.GroupLabel>
+                            <Sidebar.GroupContent>
+                                <Sidebar.Menu>
+                                    <Sidebar.MenuItem>
+                                        <Sidebar.MenuButton onclick={() => { currentTab = "Monthly"; sidebar?.toggle(); }} class={currentTab === "Monthly" ? "bg-accent" : ""}>
+                                            <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
+                                            <span>Monthly View</span>
+                                        </Sidebar.MenuButton>
+                                    </Sidebar.MenuItem>
+                                    <Sidebar.MenuItem>
+                                        <Sidebar.MenuButton onclick={() => { currentTab = "Weekly"; sidebar?.toggle(); }} class={currentTab === "Weekly" ? "bg-accent" : ""}>
+                                            <span class="material-symbols-outlined" style="font-size: 1.5em;">view_week</span>
+                                            <span>Weekly View</span>
+                                        </Sidebar.MenuButton>
+                                    </Sidebar.MenuItem>
+                                    <Sidebar.MenuItem>
+                                        <Sidebar.MenuButton onclick={() => { currentTab = "Analytics"; sidebar?.toggle(); }} class={currentTab === "Analytics" ? "bg-accent" : ""}>
+                                            <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
+                                            <span>Pipeline Analytics</span>
+                                        </Sidebar.MenuButton>
+                                    </Sidebar.MenuItem>
+                                </Sidebar.Menu>
+                            </Sidebar.GroupContent>
+                        </Sidebar.Group>
+                    </Sidebar.Content>
+                </Sidebar.Root>
+            </Sidebar.Provider>
+        </div>
 
-                <!-- Desktop: 3-Column Layout -->
-                <div class="hidden lg:flex flex-col h-full">
+        <!-- Desktop: Carousel Layout (No Sidebar) -->
+        <div class="hidden lg:flex flex-col h-full">
                     <div class="flex items-center p-4 bg-transparent rounded-lg">
                         <CardTitle>
                             <span class="inline-flex font-bold items-center gap-1">
@@ -222,59 +256,70 @@
                             </button>
                         </div>
                     </div>
-                    <div class="flex-1 min-h-0 flex gap-4 px-4 pb-4">
-                        <Card class="flex-1 flex flex-col bg-background/70 backdrop-blur-sm">
-                            <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto">
-                                <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} />
-                            </CardContent>
-                        </Card>
-                        <Card class="flex-1 flex flex-col bg-background/70 backdrop-blur-sm">
-                            <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto">
-                                <WeeklyView viewMode={heatmapViewMode} />
-                            </CardContent>
-                        </Card>
-                        <Card class="flex-1 flex flex-col bg-background/70 backdrop-blur-sm">
-                            <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto">
-                                <PipelineAnalytics />
-                            </CardContent>
-                        </Card>
+                    <div class="h-full flex-1 min-h-0 px-4 pb-4">
+                        <Carousel.Root opts={{ align: "start", slidesToScroll: 1 }} class="h-full flex flex-col">
+                            <Carousel.Content class="h-full flex-1 min-h-0 -ml-4">
+                                <Carousel.Item class="h-full pl-4 basis-1/3">
+                                    <Card class="h-full bg-background/70 backdrop-blur-sm">
+                                        <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
+                                            <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} />
+                                        </CardContent>
+                                    </Card>
+                                </Carousel.Item>
+                                <Carousel.Item class="pl-4 basis-1/3">
+                                    <Card class="h-full bg-background/70 backdrop-blur-sm">
+                                        <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
+                                            <WeeklyView viewMode={heatmapViewMode} />
+                                        </CardContent>
+                                    </Card>
+                                </Carousel.Item>
+                                <Carousel.Item class="pl-4 basis-1/3">
+                                    <Card class="h-full bg-background/70 backdrop-blur-sm">
+                                        <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
+                                            <PipelineAnalytics />
+                                        </CardContent>
+                                    </Card>
+                                </Carousel.Item>
+                                <Carousel.Item class="h-full pl-4 basis-1/3">
+                                    <Card class="h-full bg-background/70 backdrop-blur-sm">
+                                        <CardContent class="flex-1 min-h-0 p-4 flex flex-col overflow-auto h-full">
+                                            <div class="flex items-center gap-2 mb-4">
+                                                <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">calendar_month</span>
+                                                <h3 class="text-lg font-semibold">Monthly Test Results</h3>
+                                            </div>
+                                            <div class="flex-1 flex items-center justify-center text-muted-foreground">
+                                                <div class="text-center space-y-2">
+                                                    <span class="material-symbols-outlined" style="font-size: 3em;">construction</span>
+                                                    <p class="text-sm">Coming Soon</p>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </Carousel.Item>
+                                <Carousel.Item class="h-full pl-4 basis-1/3">
+                                    <Card class="h-full bg-background/70 backdrop-blur-sm">
+                                        <CardContent class="flex-1 min-h-0 p-4 flex flex-col overflow-auto h-full">
+                                            <div class="flex items-center gap-2 mb-4">
+                                                <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">calendar_month</span>
+                                                <h3 class="text-lg font-semibold">Weekly Test Results</h3>
+                                            </div>
+                                            <div class="flex-1 flex items-center justify-center text-muted-foreground">
+                                                <div class="text-center space-y-2">
+                                                    <span class="material-symbols-outlined" style="font-size: 3em;">construction</span>
+                                                    <p class="text-sm">Coming Soon</p>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </Carousel.Item>
+                            </Carousel.Content>
+                            <Carousel.Previous class="-left-4" />
+                            <Carousel.Next class="-right-4" />
+                        </Carousel.Root>
                     </div>
                 </div>
             </Card>
-        </Sidebar.Inset>
-        {#if !isDesktop}
-            <Sidebar.Root side="right" collapsible="offcanvas" class="bg-background/80 backdrop-blur-md">
-                <Sidebar.Content>
-                    <Sidebar.Group>
-                        <Sidebar.GroupLabel>Views</Sidebar.GroupLabel>
-                        <Sidebar.GroupContent>
-                            <Sidebar.Menu>
-                                <Sidebar.MenuItem>
-                                    <Sidebar.MenuButton onclick={() => { currentTab = "Monthly"; sidebar?.toggle(); }} class={currentTab === "Monthly" ? "bg-accent" : ""}>
-                                        <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
-                                        <span>Monthly View</span>
-                                    </Sidebar.MenuButton>
-                                </Sidebar.MenuItem>
-                                <Sidebar.MenuItem>
-                                    <Sidebar.MenuButton onclick={() => { currentTab = "Weekly"; sidebar?.toggle(); }} class={currentTab === "Weekly" ? "bg-accent" : ""}>
-                                        <span class="material-symbols-outlined" style="font-size: 1.5em;">view_week</span>
-                                        <span>Weekly View</span>
-                                    </Sidebar.MenuButton>
-                                </Sidebar.MenuItem>
-                                <Sidebar.MenuItem>
-                                    <Sidebar.MenuButton onclick={() => { currentTab = "Analytics"; sidebar?.toggle(); }} class={currentTab === "Analytics" ? "bg-accent" : ""}>
-                                        <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
-                                        <span>Pipeline Analytics</span>
-                                    </Sidebar.MenuButton>
-                                </Sidebar.MenuItem>
-                            </Sidebar.Menu>
-                        </Sidebar.GroupContent>
-                    </Sidebar.Group>
-                </Sidebar.Content>
-            </Sidebar.Root>
-        {/if}
-    </Sidebar.Provider>
-</div>
+        </div>
 
 <HelpDialog bind:open={helpDialogOpen} isMobile={isSmallView} />
 

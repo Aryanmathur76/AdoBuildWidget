@@ -5,7 +5,6 @@
     import { BarChart, Highlight, type ChartContextValue } from "layerchart";
     import { cubicInOut } from "svelte/easing";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
-    import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
     import { env } from "$env/dynamic/public";
     import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
     import { 
@@ -213,103 +212,101 @@
     }
 </script>
 
-<div class="w-full flex-1 min-h-0 overflow-y-auto">
-    <div class="h-full p-4 lg:p-0 lg:pb-0 flex flex-col gap-4 overflow-y-auto">
-        <h3 class="text-lg font-semibold flex items-center gap-2">
-            <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
-            Pipeline Analytics
-        </h3>
-        {#if pipelineCharts.length === 0}
-            <div class="flex items-center justify-center h-full">
-                <p class="text-muted-foreground">No pipeline configuration found</p>
-            </div>
-        {:else}
-            {#each pipelineCharts as pipelineChart (pipelineChart.pipelineId + '-' + (pipelineChart.testRunName || 'default'))}
-                    <Card.Root class="bg-background/60 border border-border/50">
-                        <Card.Header>
-                            <Card.Title>
-                                {pipelineChart.testRunName || pipelineChart.displayName}
-                            </Card.Title>
-                            {#if pipelineChart.testRunName}
-                                <Card.Description>
-                                    {pipelineChart.displayName} - {pipelineChart.type === 'build' ? 'Build' : 'Release'} Pipeline
-                                </Card.Description>
-                            {/if}
-                        </Card.Header>
-                        <Card.Content>
-                            {#if pipelineChart.loading}
-                                <Skeleton class="w-full h-40 mb-5" />
-                            {:else}
-                                <Chart.Container config={chartConfig} class="h-40 w-full mb-0">
-                                    <BarChart
-                                        bind:context={pipelineChart.context}
-                                        data={pipelineChart.data}
-                                        xScale={scaleBand().padding(0.25)}
-                                        x="date"
-                                        axis="x"
-                                        rule={false}
-                                        series={[
-                                            { key: "passed", label: "Passed", color: chartConfig.passed.color, props: { rounded: "none" } },
-                                            { key: "failed", label: "Failed", color: chartConfig.failed.color, props: { rounded: "none" } },
-                                        ]}
-                                        seriesLayout="stack"
-                                        props={{
-                                            bars: {
-                                                stroke: "none",
-                                                strokeWidth: 0,
-                                                rx: 0,
-                                                ry: 0,
-                                                fillOpacity: 1,
-                                                initialY: pipelineChart.context?.height,
-                                                initialHeight: 0,
-                                                motion: {
-                                                    y: { type: "tween", duration: 500, easing: cubicInOut },
-                                                    height: { type: "tween", duration: 500, easing: cubicInOut },
-                                                },
+<div class="h-full p-4 lg:p-0 lg:pb-0 flex flex-col gap-4">
+    <h3 class="text-lg font-semibold flex items-center gap-2">
+        <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
+        Pipeline Analytics
+    </h3>
+    {#if pipelineCharts.length === 0}
+        <div class="flex items-center justify-center h-full">
+            <p class="text-muted-foreground">No pipeline configuration found</p>
+        </div>
+    {:else}
+        {#each pipelineCharts as pipelineChart (pipelineChart.pipelineId + '-' + (pipelineChart.testRunName || 'default'))}
+                <Card.Root class="bg-background/60 border border-border/50">
+                    <Card.Header>
+                        <Card.Title>
+                            {pipelineChart.testRunName || pipelineChart.displayName}
+                        </Card.Title>
+                        {#if pipelineChart.testRunName}
+                            <Card.Description>
+                                {pipelineChart.displayName} - {pipelineChart.type === 'build' ? 'Build' : 'Release'} Pipeline
+                            </Card.Description>
+                        {/if}
+                    </Card.Header>
+                    <Card.Content>
+                        {#if pipelineChart.loading}
+                            <Skeleton class="w-full h-40 mb-5" />
+                        {:else}
+                            <Chart.Container config={chartConfig} class="h-40 w-full mb-0">
+                                <BarChart
+                                    bind:context={pipelineChart.context}
+                                    data={pipelineChart.data}
+                                    xScale={scaleBand().padding(0.25)}
+                                    x="date"
+                                    axis="x"
+                                    rule={false}
+                                    series={[
+                                        { key: "passed", label: "Passed", color: chartConfig.passed.color, props: { rounded: "none" } },
+                                        { key: "failed", label: "Failed", color: chartConfig.failed.color, props: { rounded: "none" } },
+                                    ]}
+                                    seriesLayout="stack"
+                                    props={{
+                                        bars: {
+                                            stroke: "none",
+                                            strokeWidth: 0,
+                                            rx: 0,
+                                            ry: 0,
+                                            fillOpacity: 1,
+                                            initialY: pipelineChart.context?.height,
+                                            initialHeight: 0,
+                                            motion: {
+                                                y: { type: "tween", duration: 500, easing: cubicInOut },
+                                                height: { type: "tween", duration: 500, easing: cubicInOut },
                                             },
-                                            highlight: { area: false },
-                                        }}
-                                    >
-                                        {#snippet belowMarks()}
-                                            <Highlight area={{ class: "fill-muted" }} />
-                                        {/snippet}
-                                        {#snippet tooltip()}
-                                            <Chart.Tooltip>
-                                                {#snippet formatter({ value, name })}
-                                                    <div class="flex w-full items-center justify-between gap-2">
-                                                        <span class="text-muted-foreground">{name}</span>
-                                                        <span class="font-mono font-medium">
-                                                            {value !== null && value !== undefined ? value.toLocaleString() : '0'}
-                                                        </span>
-                                                    </div>
-                                                {/snippet}
-                                            </Chart.Tooltip>
-                                        {/snippet}
-                                    </BarChart>
-                                </Chart.Container>
-                            {/if}
-                        </Card.Content>
-                        {#if !pipelineChart.loading}
-                            {@const totals = calculateTotals(pipelineChart.data)}
-                            <Card.Footer>
-                                <div class="flex w-full items-start text-sm">
-                                    <div class="grid gap-2">
-                                        <div class="flex items-center gap-2 font-medium leading-none">
-                                            Pass Rate: {totals.passRate}% ({totals.totalPassed}/{totals.total} tests)
-                                        </div>
-                                        <div class="text-muted-foreground flex items-center gap-2 leading-none mb-4">
-                                            {#if totals.totalFailed > 0}
-                                                {totals.totalFailed} failed test{totals.totalFailed !== 1 ? 's' : ''} in the last 7 days
-                                            {:else}
-                                                All tests passed in the last 7 days
-                                            {/if}
-                                        </div>
+                                        },
+                                        highlight: { area: false },
+                                    }}
+                                >
+                                    {#snippet belowMarks()}
+                                        <Highlight area={{ class: "fill-muted" }} />
+                                    {/snippet}
+                                    {#snippet tooltip()}
+                                        <Chart.Tooltip>
+                                            {#snippet formatter({ value, name })}
+                                                <div class="flex w-full items-center justify-between gap-2">
+                                                    <span class="text-muted-foreground">{name}</span>
+                                                    <span class="font-mono font-medium">
+                                                        {value !== null && value !== undefined ? value.toLocaleString() : '0'}
+                                                    </span>
+                                                </div>
+                                            {/snippet}
+                                        </Chart.Tooltip>
+                                    {/snippet}
+                                </BarChart>
+                            </Chart.Container>
+                        {/if}
+                    </Card.Content>
+                    {#if !pipelineChart.loading}
+                        {@const totals = calculateTotals(pipelineChart.data)}
+                        <Card.Footer>
+                            <div class="flex w-full items-start text-sm">
+                                <div class="grid gap-2">
+                                    <div class="flex items-center gap-2 font-medium leading-none">
+                                        Pass Rate: {totals.passRate}% ({totals.totalPassed}/{totals.total} tests)
+                                    </div>
+                                    <div class="text-muted-foreground flex items-center gap-2 leading-none mb-4">
+                                        {#if totals.totalFailed > 0}
+                                            {totals.totalFailed} failed test{totals.totalFailed !== 1 ? 's' : ''} in the last 7 days
+                                        {:else}
+                                            All tests passed in the last 7 days
+                                        {/if}
                                     </div>
                                 </div>
-                            </Card.Footer>
-                        {/if}
-                    </Card.Root>
-                {/each}
-            {/if}
-    </div>
+                            </div>
+                        </Card.Footer>
+                    {/if}
+                </Card.Root>
+            {/each}
+        {/if}
 </div>
