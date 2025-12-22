@@ -275,7 +275,7 @@
     }
 </script>
 
-<div class="flex-1 min-h-0 px-4 pb-4 flex flex-col overflow-auto">
+<div class="flex-1 flex flex-col px-4 pb-4 ">
     <div class="flex items-center justify-between mb-3">
         <h3 class="text-lg font-semibold flex items-center gap-2">
             <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
@@ -293,7 +293,7 @@
             <div class="text-center text-xs font-medium text-muted-foreground h-full flex items-center justify-center" in:fly={{ y: -15, duration: 250, delay: i * 30 }} out:fly={{ y: 15, duration: 150 }}>{label}</div>
         {/each}
     </div>
-    <div class="grid grid-cols-7 gap-0.5 mb-2 flex-1">
+    <div class="flex-1 grid grid-cols-7 gap-0.5 mb-2">
         {#each daysInMonth as dayObj, index (currentMonth + "-" + dayObj.day + "-" + tabAnimationKey)}
             <div class="w-full aspect-square min-w-0 min-h-0 relative {bestBuildDay === dayObj.dateStr ? 'border-2 border-green-400 rounded-lg shadow-lg shadow-green-400/50' : ''}" in:fly={{ y: 10, duration: 200, delay: index * 15 }}>
                 {#if dayBuildQuality[dayObj.dateStr] || dayObj.disabled}
@@ -322,7 +322,7 @@
         </Pagination.Root>
     </div>
     {#if bestBuildRationale}
-        <div class="mt-3 p-3 bg-muted/50 rounded-md border">
+        <div class="mt-3 p-3 bg-muted/50 rounded-md">
             <div class="flex items-center gap-2 mb-2">
                 <span class="material-symbols-outlined text-primary" style="font-size: 1.25em;">psychology</span>
                 <h4 class="text-sm font-medium">AI Analysis</h4>
