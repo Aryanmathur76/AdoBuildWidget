@@ -182,10 +182,10 @@
                 </Tabs.Root>
 
                 <!-- Desktop: 3-Column Layout -->
-                <div class="hidden lg:flex flex-col h-full overflow-hidden">
-                    <div class="flex items-center px-4 pt-4 pb-2 bg-transparent rounded-lg">
+                <div class="hidden lg:flex flex-col h-full">
+                    <div class="flex items-center p-4 bg-transparent rounded-lg">
                         <CardTitle>
-                            <span class="inline-flex text-base font-bold py-1 items-center gap-1">
+                            <span class="inline-flex font-bold items-center gap-1">
                                 <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
                                 <span>DELTAV BUILD HEALTH</span>
                             </span>
@@ -222,24 +222,22 @@
                             </button>
                         </div>
                     </div>
-                    <div class="flex-1 min-h-0 px-4 pb-4">
-                        <div class="grid grid-cols-1 xl:grid-cols-3 grid-rows-[minmax(0,1fr)] gap-4 h-full">
-                            <Card class="flex flex-col h-full bg-background/70 backdrop-blur-sm">
-                                <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto">
-                                    <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} />
-                                </CardContent>
-                            </Card>
-                            <Card class="flex flex-col h-full bg-background/70 backdrop-blur-sm">
-                                <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto">
-                                    <WeeklyView viewMode={heatmapViewMode} />
-                                </CardContent>
-                            </Card>
-                            <Card class="flex flex-col h-full bg-background/70 backdrop-blur-sm">
-                                <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto">
-                                    <PipelineAnalytics />
-                                </CardContent>
-                            </Card>
-                        </div>
+                    <div class="flex-1 min-h-0 flex gap-4 px-4 pb-4">
+                        <Card class="flex-1 flex flex-col bg-background/70 backdrop-blur-sm">
+                            <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto">
+                                <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} />
+                            </CardContent>
+                        </Card>
+                        <Card class="flex-1 flex flex-col bg-background/70 backdrop-blur-sm">
+                            <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto">
+                                <WeeklyView viewMode={heatmapViewMode} />
+                            </CardContent>
+                        </Card>
+                        <Card class="flex-1 flex flex-col bg-background/70 backdrop-blur-sm">
+                            <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto">
+                                <PipelineAnalytics />
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
             </Card>
