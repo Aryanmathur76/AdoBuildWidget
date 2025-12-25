@@ -109,8 +109,9 @@
 
 <div class="w-full h-screen max-h-screen overflow-hidden" transition:slide={{ duration: 300 }}>
     <Card class={`py-0 border-0 shadow-none h-full rounded-none flex flex-col bg-gradient-to-b ${gradientColor} to-background`}>
+        {#if isMobile}
         <!-- Mobile: Tabs Interface with Sidebar -->
-        <div class="lg:hidden h-full">
+        <div class="h-full">
             <Sidebar.Provider>
                 <Sidebar.Inset class="h-full">
                     <Tabs.Root bind:value={currentTab} class="h-full flex flex-col">
@@ -214,112 +215,113 @@
                 </Sidebar.Root>
             </Sidebar.Provider>
         </div>
-
+        {:else}
         <!-- Desktop: Carousel Layout (No Sidebar) -->
-        <div class="hidden lg:flex flex-col h-full">
-                    <div class="flex items-center p-4 bg-transparent rounded-lg">
-                        <CardTitle>
-                            <span class="inline-flex font-bold items-center gap-1">
-                                <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
-                                <span>DELTAV BUILD HEALTH</span>
-                            </span>
-                        </CardTitle>
-                        <Popover.Root>
-                            <Popover.Trigger class="hover:opacity-80 transition-opacity flex items-center gap-1 mx-2 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 cursor-help">
-                                <span class="text-sm font-semibold text-primary">{pipelineConfig?.pipelines.length || 0}</span>
-                                <span class="material-symbols-outlined text-primary" style="font-size: 1.1em;">science</span>
-                            </Popover.Trigger>
-                            <Popover.Content class="w-auto p-3">
-                                <div class="space-y-2">
-                                    <h4 class="font-semibold text-sm">Test Pipelines</h4>
-                                    <div class="space-y-1 max-h-64 overflow-y-auto">
-                                        {#each pipelineConfig?.pipelines || [] as pipeline}
-                                            <div class="text-xs flex items-center gap-2 p-1.5 rounded hover:bg-muted/50">
-                                                <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1em;">
-                                                    {pipeline.type === 'build' ? 'build' : 'rocket_launch'}
-                                                </span>
-                                                <span class="text-foreground flex-1">{pipeline.displayName}</span>
-                                            </div>
-                                        {/each}
+        <div class="flex flex-col h-full">
+            <div class="flex items-center p-4 bg-transparent rounded-lg">
+                <CardTitle>
+                    <span class="inline-flex font-bold items-center gap-1">
+                        <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
+                        <span>DELTAV BUILD HEALTH</span>
+                    </span>
+                </CardTitle>
+                <Popover.Root>
+                    <Popover.Trigger class="hover:opacity-80 transition-opacity flex items-center gap-1 mx-2 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 cursor-help">
+                        <span class="text-sm font-semibold text-primary">{pipelineConfig?.pipelines.length || 0}</span>
+                        <span class="material-symbols-outlined text-primary" style="font-size: 1.1em;">science</span>
+                    </Popover.Trigger>
+                    <Popover.Content class="w-auto p-3">
+                        <div class="space-y-2">
+                            <h4 class="font-semibold text-sm">Test Pipelines</h4>
+                            <div class="space-y-1 max-h-64 overflow-y-auto">
+                                {#each pipelineConfig?.pipelines || [] as pipeline}
+                                    <div class="text-xs flex items-center gap-2 p-1.5 rounded hover:bg-muted/50">
+                                        <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1em;">
+                                            {pipeline.type === 'build' ? 'build' : 'rocket_launch'}
+                                        </span>
+                                        <span class="text-foreground flex-1">{pipeline.displayName}</span>
                                     </div>
-                                </div>
-                            </Popover.Content>
-                        </Popover.Root>
-                        <div class="ml-auto flex items-center gap-2">
-                            <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
-                                <span class="material-symbols-outlined" style="font-size: 1.25em;">{#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}</span>
-                                <span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>
-                            </button>
-                            <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" title="Get help about this widget" aria-label="Help">
-                                <span class="material-symbols-outlined" style="font-size: 1.25em;">help</span>
-                                <span>Help</span>
-                            </button>
+                                {/each}
+                            </div>
                         </div>
-                    </div>
-                    <div class="h-full flex-1 min-h-0 px-4 pb-4">
-                        <Carousel.Root opts={{ align: "start", slidesToScroll: 1 }} class="h-full flex flex-col">
-                            <Carousel.Content class="h-full flex-1 min-h-0 -ml-4">
-                                <Carousel.Item class="h-full pl-4 basis-1/3">
-                                    <Card class="h-full bg-background/70 backdrop-blur-sm">
-                                        <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
-                                            <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} />
-                                        </CardContent>
-                                    </Card>
-                                </Carousel.Item>
-                                <Carousel.Item class="pl-4 basis-1/3">
-                                    <Card class="h-full bg-background/70 backdrop-blur-sm">
-                                        <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
-                                            <WeeklyView viewMode={heatmapViewMode} />
-                                        </CardContent>
-                                    </Card>
-                                </Carousel.Item>
-                                <Carousel.Item class="pl-4 basis-1/3">
-                                    <Card class="h-full bg-background/70 backdrop-blur-sm">
-                                        <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
-                                            <PipelineAnalytics />
-                                        </CardContent>
-                                    </Card>
-                                </Carousel.Item>
-                                <Carousel.Item class="h-full pl-4 basis-1/3">
-                                    <Card class="h-full bg-background/70 backdrop-blur-sm">
-                                        <CardContent class="flex-1 min-h-0 p-4 flex flex-col overflow-auto h-full">
-                                            <div class="flex items-center gap-2 mb-4">
-                                                <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">calendar_month</span>
-                                                <h3 class="text-lg font-semibold">Monthly Test Results</h3>
-                                            </div>
-                                            <div class="flex-1 flex items-center justify-center text-muted-foreground">
-                                                <div class="text-center space-y-2">
-                                                    <span class="material-symbols-outlined" style="font-size: 3em;">construction</span>
-                                                    <p class="text-sm">Coming Soon</p>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </Carousel.Item>
-                                <Carousel.Item class="h-full pl-4 basis-1/3">
-                                    <Card class="h-full bg-background/70 backdrop-blur-sm">
-                                        <CardContent class="flex-1 min-h-0 p-4 flex flex-col overflow-auto h-full">
-                                            <div class="flex items-center gap-2 mb-4">
-                                                <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">calendar_month</span>
-                                                <h3 class="text-lg font-semibold">Weekly Test Results</h3>
-                                            </div>
-                                            <div class="flex-1 flex items-center justify-center text-muted-foreground">
-                                                <div class="text-center space-y-2">
-                                                    <span class="material-symbols-outlined" style="font-size: 3em;">construction</span>
-                                                    <p class="text-sm">Coming Soon</p>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </Carousel.Item>
-                            </Carousel.Content>
-                            <Carousel.Previous class="-left-4" />
-                            <Carousel.Next class="-right-4" />
-                        </Carousel.Root>
-                    </div>
+                    </Popover.Content>
+                </Popover.Root>
+                <div class="ml-auto flex items-center gap-2">
+                    <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
+                        <span class="material-symbols-outlined" style="font-size: 1.25em;">{#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}</span>
+                        <span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>
+                    </button>
+                    <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" title="Get help about this widget" aria-label="Help">
+                        <span class="material-symbols-outlined" style="font-size: 1.25em;">help</span>
+                        <span>Help</span>
+                    </button>
                 </div>
-            </Card>
+            </div>
+            <div class="h-full flex-1 min-h-0 px-4 pb-4">
+                <Carousel.Root opts={{ align: "start", slidesToScroll: 1 }} class="h-full flex flex-col">
+                    <Carousel.Content class="h-full flex-1 min-h-0 -ml-4">
+                        <Carousel.Item class="h-full pl-4 basis-1/3">
+                            <Card class="h-full bg-background/70 backdrop-blur-sm">
+                                <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
+                                    <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} />
+                                </CardContent>
+                            </Card>
+                        </Carousel.Item>
+                        <Carousel.Item class="pl-4 basis-1/3">
+                            <Card class="h-full bg-background/70 backdrop-blur-sm">
+                                <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
+                                    <WeeklyView viewMode={heatmapViewMode} />
+                                </CardContent>
+                            </Card>
+                        </Carousel.Item>
+                        <Carousel.Item class="pl-4 basis-1/3">
+                            <Card class="h-full bg-background/70 backdrop-blur-sm">
+                                <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
+                                    <PipelineAnalytics />
+                                </CardContent>
+                            </Card>
+                        </Carousel.Item>
+                        <Carousel.Item class="h-full pl-4 basis-1/3">
+                            <Card class="h-full bg-background/70 backdrop-blur-sm">
+                                <CardContent class="flex-1 min-h-0 p-4 flex flex-col overflow-auto h-full">
+                                    <div class="flex items-center gap-2 mb-4">
+                                        <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">calendar_month</span>
+                                        <h3 class="text-lg font-semibold">Monthly Test Results</h3>
+                                    </div>
+                                    <div class="flex-1 flex items-center justify-center text-muted-foreground">
+                                        <div class="text-center space-y-2">
+                                            <span class="material-symbols-outlined" style="font-size: 3em;">construction</span>
+                                            <p class="text-sm">Coming Soon</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </Carousel.Item>
+                        <Carousel.Item class="h-full pl-4 basis-1/3">
+                            <Card class="h-full bg-background/70 backdrop-blur-sm">
+                                <CardContent class="flex-1 min-h-0 p-4 flex flex-col overflow-auto h-full">
+                                    <div class="flex items-center gap-2 mb-4">
+                                        <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">calendar_month</span>
+                                        <h3 class="text-lg font-semibold">Weekly Test Results</h3>
+                                    </div>
+                                    <div class="flex-1 flex items-center justify-center text-muted-foreground">
+                                        <div class="text-center space-y-2">
+                                            <span class="material-symbols-outlined" style="font-size: 3em;">construction</span>
+                                            <p class="text-sm">Coming Soon</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </Carousel.Item>
+                    </Carousel.Content>
+                    <Carousel.Previous class="-left-4" />
+                    <Carousel.Next class="-right-4" />
+                </Carousel.Root>
+            </div>
         </div>
+        {/if}
+    </Card>
+</div>
 
 <HelpDialog bind:open={helpDialogOpen} isMobile={isSmallView} />
 
