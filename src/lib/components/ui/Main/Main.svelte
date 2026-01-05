@@ -11,6 +11,8 @@
     import MonthlyHeatmapView from "../MonthlyHeatmapView/MonthlyHeatmapView.svelte";
     import WeeklyView from "../WeeklyView/WeeklyView.svelte";
     import { PipelineAnalytics } from "../PipelineAnalytics/index.js";
+    import { MonthlyTestResults } from "../MonthlyTestResults/index.js";
+    import { WeeklyTestResults } from "../WeeklyTestResults/index.js";
     import { env } from "$env/dynamic/public";
     import type { PipelineConfig } from "$lib/utils/buildQualityUtils.js";
     import { getTestPassColor, getTestFailColor, BUILD_STATUS_COLORS } from "$lib/constants/colors.js";
@@ -284,32 +286,14 @@
                         <Carousel.Item class="h-full pl-4 basis-1/3">
                             <Card class="h-full bg-background/70 backdrop-blur-sm">
                                 <CardContent class="flex-1 min-h-0 p-4 flex flex-col overflow-auto h-full">
-                                    <div class="flex items-center gap-2 mb-4">
-                                        <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">calendar_month</span>
-                                        <h3 class="text-lg font-semibold">Monthly Test Results</h3>
-                                    </div>
-                                    <div class="flex-1 flex items-center justify-center text-muted-foreground">
-                                        <div class="text-center space-y-2">
-                                            <span class="material-symbols-outlined" style="font-size: 3em;">construction</span>
-                                            <p class="text-sm">Coming Soon</p>
-                                        </div>
-                                    </div>
+                                    <MonthlyTestResults />
                                 </CardContent>
                             </Card>
                         </Carousel.Item>
                         <Carousel.Item class="h-full pl-4 basis-1/3">
                             <Card class="h-full bg-background/70 backdrop-blur-sm">
                                 <CardContent class="flex-1 min-h-0 p-4 flex flex-col overflow-auto h-full">
-                                    <div class="flex items-center gap-2 mb-4">
-                                        <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">calendar_month</span>
-                                        <h3 class="text-lg font-semibold">Weekly Test Results</h3>
-                                    </div>
-                                    <div class="flex-1 flex items-center justify-center text-muted-foreground">
-                                        <div class="text-center space-y-2">
-                                            <span class="material-symbols-outlined" style="font-size: 3em;">construction</span>
-                                            <p class="text-sm">Coming Soon</p>
-                                        </div>
-                                    </div>
+                                    <WeeklyTestResults />
                                 </CardContent>
                             </Card>
                         </Carousel.Item>
