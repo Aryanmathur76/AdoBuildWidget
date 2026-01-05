@@ -26,6 +26,8 @@
     let groups = $state<TestRunGroup[]>([]);
     let loading = $state(true);
     let error = $state<string | null>(null);
+    let organization = $state<string>('');
+    let project = $state<string>('');
 
     onMount(async () => {
         try {
@@ -35,12 +37,18 @@
             }
             const data = await response.json();
             groups = data.groups || [];
+            organization = data.organization || '';
+            project = data.project || '';
         } catch (e: any) {
             error = e.message;
         } finally {
             loading = false;
         }
     });
+
+    function getRunUrl(runId: number): string {
+        return `https://dev.azure.com/${organization}/${project}/_testManagement/runs?runId=${runId}&_a=resultQuery`;
+    }
 
     function formatDate(dateString: string): string {
         const date = new Date(dateString);
@@ -81,6 +89,9 @@
     <div class="flex items-center gap-2 mb-4">
         <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">calendar_month</span>
         <h3 class="text-lg font-semibold">Physical CR Test Results</h3>
+        <Badge class="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">
+            Beta
+        </Badge>
     </div>
 
     {#if loading}
@@ -158,11 +169,11 @@
                     {#if group.runs.length <= 10}
                         <div class="space-y-1">
                             {#each group.runs as run}
-                                <div class="text-xs p-2 bg-background/20 rounded flex items-center gap-2 hover:bg-background/40 transition-colors">
+                                <a href={getRunUrl(run.id)} target="_blank" rel="noopener noreferrer" class="text-xs p-2 bg-background/20 rounded flex items-center gap-2 hover:bg-background/40 transition-colors no-underline">
                                     <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1em;">play_circle</span>
                                     <span class="flex-1 truncate" title={run.name}>{run.name}</span>
                                     <span class="text-muted-foreground">{run.passedTests}/{run.totalTests}</span>
-                                </div>
+                                </a>
                             {/each}
                         </div>
                     {:else}
@@ -172,11 +183,11 @@
                             </summary>
                             <div class="space-y-1 mt-1">
                                 {#each group.runs as run}
-                                    <div class="p-2 bg-background/20 rounded flex items-center gap-2 hover:bg-background/40 transition-colors">
+                                    <a href={getRunUrl(run.id)} target="_blank" rel="noopener noreferrer" class="p-2 bg-background/20 rounded flex items-center gap-2 hover:bg-background/40 transition-colors no-underline">
                                         <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1em;">play_circle</span>
                                         <span class="flex-1 truncate" title={run.name}>{run.name}</span>
                                         <span class="text-muted-foreground">{run.passedTests}/{run.totalTests}</span>
-                                    </div>
+                                    </a>
                                 {/each}
                             </div>
                         </details>

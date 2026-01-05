@@ -183,6 +183,9 @@
                         <Tabs.Content value="Analytics" class="h-full overflow-auto">
                             <PipelineAnalytics />
                         </Tabs.Content>
+                        <Tabs.Content value="TestResults" class="h-full overflow-auto p-1">
+                            <MonthlyTestResults />
+                        </Tabs.Content>
                     </div>
                 </Tabs.Root>
                 </Sidebar.Inset>
@@ -208,6 +211,12 @@
                                         <Sidebar.MenuButton onclick={() => { currentTab = "Analytics"; sidebar?.toggle(); }} class={currentTab === "Analytics" ? "bg-accent" : ""}>
                                             <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
                                             <span>Pipeline Analytics</span>
+                                        </Sidebar.MenuButton>
+                                    </Sidebar.MenuItem>
+                                    <Sidebar.MenuItem>
+                                        <Sidebar.MenuButton onclick={() => { currentTab = "TestResults"; sidebar?.toggle(); }} class={currentTab === "TestResults" ? "bg-accent" : ""}>
+                                            <span class="material-symbols-outlined" style="font-size: 1.5em;">calendar_month</span>
+                                            <span>Test Results</span>
                                         </Sidebar.MenuButton>
                                     </Sidebar.MenuItem>
                                 </Sidebar.Menu>

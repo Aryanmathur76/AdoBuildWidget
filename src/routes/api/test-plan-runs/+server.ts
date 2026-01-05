@@ -211,7 +211,11 @@ export async function GET() {
             new Date(b.date).getTime() - new Date(a.date).getTime()
         );
 
-        return json({ groups });
+        return json({ 
+            groups,
+            organization: AZURE_DEVOPS_ORGANIZATION,
+            project: AZURE_DEVOPS_PROJECT
+        });
 
     } catch (error: any) {
         console.error('Error fetching test plan runs:', error);
