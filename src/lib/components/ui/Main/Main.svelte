@@ -6,6 +6,7 @@
     import { Card, CardContent } from "$lib/components/ui/card/index.js";
     import * as Popover from "$lib/components/ui/popover/index.js";
     import * as Carousel from "$lib/components/ui/carousel/index.js";
+    import type { CarouselAPI } from "$lib/components/ui/carousel/context.js";
     import CardTitle from "../card/card-title.svelte";
     import HelpDialog from "../HelpDialog/HelpDialog.svelte";
     import MonthlyHeatmapView from "../MonthlyHeatmapView/MonthlyHeatmapView.svelte";
@@ -30,6 +31,7 @@
     );
     let helpDialogOpen = $state(false);
     let todayQuality = $state<string>("unknown");
+    let carouselApi = $state<CarouselAPI>();
     let gradientColor = $derived.by(() => {
         const colors: Record<string, string> = {
             good: "from-lime-600/60",
@@ -107,6 +109,26 @@
     } catch (e) {
         console.warn("Failed to parse pipeline config:", e);
     }
+
+    // Scroll carousel hint on desktop after a short delay
+    $effect(() => {
+        if (typeof window !== 'undefined' && !isMobile && carouselApi) {
+            const timer = setTimeout(() => {
+                // Scroll carousel slightly to the right to show it can move
+                if (carouselApi) {
+                    carouselApi.scrollTo(1);
+                }
+                
+                // Scroll back
+                setTimeout(() => {
+                    if (carouselApi) {
+                        carouselApi.scrollTo(0);
+                    }
+                }, 800);
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    });
 </script>
 
 <div class="w-full h-screen max-h-screen overflow-hidden" transition:slide={{ duration: 300 }}>
@@ -269,7 +291,7 @@
                 </div>
             </div>
             <div class="h-full flex-1 min-h-0 px-4 pb-4">
-                <Carousel.Root opts={{ align: "start", slidesToScroll: 1 }} class="h-full flex flex-col">
+                <Carousel.Root opts={{ align: "start", slidesToScroll: 1 }} class="h-full flex flex-col" setApi={(api) => carouselApi = api}>
                     <Carousel.Content class="h-full flex-1 min-h-0 -ml-4">
                         <Carousel.Item class="h-full pl-4 basis-1/3">
                             <Card class="h-full bg-background/70 backdrop-blur-sm">
