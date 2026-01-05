@@ -123,11 +123,14 @@ export async function GET() {
         // Process and group test runs by date
         const testRuns: TestRun[] = allRuns
             .filter((run: any) => {
-                // Only completed runs with valid dates
+                // Only completed runs with valid dates and version numbers
                 if (run.state !== 'Completed') return false;
                 if (!run.startedDate) return false;
                 const date = new Date(run.startedDate);
-                return !isNaN(date.getTime()); // Check if date is valid
+                if (isNaN(date.getTime())) return false;
+                // Only include runs with version 16.0.0 or 17.0.0 in the name
+                const runName = run.name || '';
+                return runName.includes('16.0.0') || runName.includes('17.0.0');
             })
             .map((run: any) => ({
                 id: run.id,
@@ -142,7 +145,7 @@ export async function GET() {
             }))
             .sort((a, b) => new Date(a.startedDate).getTime() - new Date(b.startedDate).getTime()); // Sort by start date
 
-        // Group runs into "test sessions" - runs that start within 2 days of each other and have significant test counts
+        // Group runs into "test sessions" - runs that start within 14 days (2 weeks) of each other
         const sessions: TestRunGroup[] = [];
         let currentSession: TestRun[] = [];
         let sessionStartDate: Date | null = null;
@@ -155,10 +158,10 @@ export async function GET() {
                 sessionStartDate = runDate;
                 currentSession = [run];
             } else {
-                // Check if this run is within 2 days of the session start
+                // Check if this run is within 14 days (2 weeks) of the session start
                 const daysDiff = Math.abs((runDate.getTime() - sessionStartDate.getTime()) / (1000 * 60 * 60 * 24));
                 
-                if (daysDiff <= 2) {
+                if (daysDiff <= 14) {
                     // Add to current session
                     currentSession.push(run);
                 } else {
