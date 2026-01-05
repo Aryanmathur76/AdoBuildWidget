@@ -139,37 +139,74 @@ export async function GET() {
                 passedTests: run.passedTests || 0,
                 failedTests: run.failedTests || 0,
                 notExecutedTests: run.notExecutedTests || run.unanalyzedTests || 0,
-            }));
+            }))
+            .sort((a, b) => new Date(a.startedDate).getTime() - new Date(b.startedDate).getTime()); // Sort by start date
 
-        // Group by date (based on startedDate)
-        const groupedByDate: Record<string, TestRun[]> = {};
-        
+        // Group runs into "test sessions" - runs that start within 2 days of each other and have significant test counts
+        const sessions: TestRunGroup[] = [];
+        let currentSession: TestRun[] = [];
+        let sessionStartDate: Date | null = null;
+
         for (const run of testRuns) {
-            const date = new Date(run.startedDate).toISOString().split('T')[0];
-            if (!groupedByDate[date]) {
-                groupedByDate[date] = [];
+            const runDate = new Date(run.startedDate);
+            
+            if (!sessionStartDate) {
+                // Start a new session
+                sessionStartDate = runDate;
+                currentSession = [run];
+            } else {
+                // Check if this run is within 2 days of the session start
+                const daysDiff = Math.abs((runDate.getTime() - sessionStartDate.getTime()) / (1000 * 60 * 60 * 24));
+                
+                if (daysDiff <= 2) {
+                    // Add to current session
+                    currentSession.push(run);
+                } else {
+                    // Finalize current session and start a new one
+                    if (currentSession.length > 0) {
+                        const totalTests = currentSession.reduce((sum, r) => sum + r.totalTests, 0);
+                        const passedTests = currentSession.reduce((sum, r) => sum + r.passedTests, 0);
+                        const failedTests = currentSession.reduce((sum, r) => sum + r.failedTests, 0);
+                        const notExecutedTests = currentSession.reduce((sum, r) => sum + r.notExecutedTests, 0);
+                        
+                        sessions.push({
+                            date: sessionStartDate.toISOString().split('T')[0],
+                            runs: currentSession,
+                            totalTests,
+                            passedTests,
+                            failedTests,
+                            notExecutedTests,
+                        });
+                    }
+                    
+                    // Start new session
+                    sessionStartDate = runDate;
+                    currentSession = [run];
+                }
             }
-            groupedByDate[date].push(run);
         }
 
-        // Convert to array and calculate aggregates
-        const groups: TestRunGroup[] = Object.entries(groupedByDate)
-            .map(([date, runs]) => {
-                const totalTests = runs.reduce((sum, run) => sum + run.totalTests, 0);
-                const passedTests = runs.reduce((sum, run) => sum + run.passedTests, 0);
-                const failedTests = runs.reduce((sum, run) => sum + run.failedTests, 0);
-                const notExecutedTests = runs.reduce((sum, run) => sum + run.notExecutedTests, 0);
+        // Don't forget the last session
+        if (currentSession.length > 0 && sessionStartDate) {
+            const totalTests = currentSession.reduce((sum, r) => sum + r.totalTests, 0);
+            const passedTests = currentSession.reduce((sum, r) => sum + r.passedTests, 0);
+            const failedTests = currentSession.reduce((sum, r) => sum + r.failedTests, 0);
+            const notExecutedTests = currentSession.reduce((sum, r) => sum + r.notExecutedTests, 0);
+            
+            sessions.push({
+                date: sessionStartDate.toISOString().split('T')[0],
+                runs: currentSession,
+                totalTests,
+                passedTests,
+                failedTests,
+                notExecutedTests,
+            });
+        }
 
-                return {
-                    date,
-                    runs,
-                    totalTests,
-                    passedTests,
-                    failedTests,
-                    notExecutedTests,
-                };
-            })
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Most recent first
+        // Sort sessions by date (most recent first)
+        const groups: TestRunGroup[] = sessions.sort((a, b) => 
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
 
         return json({ groups });
 
