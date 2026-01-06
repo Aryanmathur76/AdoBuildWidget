@@ -136,7 +136,7 @@ export async function GET({ url }: { url: URL }) {
                     const envId = run.release?.environmentId;
                     const environment = releaseDetails.environments?.find((env: any) => env.id === envId);
                     const stageName = environment?.name || '';
-                    return stageName.toLowerCase().includes('tests');
+                    return stageName.toLowerCase().includes('tests') || stageName.toLowerCase().includes('checks');
                 });
 
 
