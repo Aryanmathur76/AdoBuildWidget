@@ -48,8 +48,6 @@ export async function GET() {
             return json({ error: 'No pipelines configured in PUBLIC_AZURE_PIPELINE_CONFIG_WEEKLY' }, { status: 500 });
         }
 
-        const pipeline = weeklyConfig.pipelines[0]; // Use first pipeline
-
         // Fetch ALL iterations from classification nodes (not just team-configured ones)
         const iterationsUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/wit/classificationnodes/iterations?$depth=2&api-version=7.1`;
         
@@ -99,13 +97,21 @@ export async function GET() {
 
         console.log(`Found ${sprints.length} sprints`);
 
-        // For each sprint, find the latest release/build in that sprint's date range
-        const sprintResults: SprintTestResult[] = [];
+        // Process each pipeline
+        const pipelineResults: Array<{
+            pipelineName: string;
+            pipelineId: number;
+            sprints: SprintTestResult[];
+        }> = [];
 
-        for (const sprint of sprints) {
-            console.log(`Processing sprint: ${sprint.name} (${sprint.startDate} to ${sprint.finishDate})`);
-            
-            if (pipeline.type === 'release') {
+        for (const pipeline of weeklyConfig.pipelines) {
+            console.log(`Processing pipeline: ${pipeline.displayName}`);
+            const sprintResults: SprintTestResult[] = [];
+
+            for (const sprint of sprints) {
+                console.log(`  Processing sprint: ${sprint.name} (${sprint.startDate} to ${sprint.finishDate})`);
+                
+                if (pipeline.type === 'release') {
                 // Query releases for this sprint date range
                 const releasesUrl = `https://vsrm.dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/release/releases?definitionId=${pipeline.id}&minCreatedTime=${encodeURIComponent(sprint.startDate)}&maxCreatedTime=${encodeURIComponent(sprint.finishDate)}&api-version=7.1-preview.8`;
                 
@@ -218,7 +224,7 @@ export async function GET() {
                             });
                         }
                     } else {
-                        console.log(`  No releases found for this sprint`);
+                        console.log(`    No releases found for this sprint`);
                         // No release for this sprint
                         sprintResults.push({
                             sprintName: sprint.name,
@@ -235,30 +241,36 @@ export async function GET() {
                         });
                     }
                 } else {
-                    console.error(`  Failed to fetch releases: ${releasesRes.status}`);
+                    console.error(`    Failed to fetch releases: ${releasesRes.status}`);
                 }
-            } else {
-                // Handle build pipelines if needed
-                // Similar logic but using build API
-                sprintResults.push({
-                    sprintName: sprint.name,
-                    sprintPath: sprint.path,
-                    startDate: sprint.startDate,
-                    finishDate: sprint.finishDate,
-                    releaseId: null,
-                    releaseName: null,
-                    totalTests: 0,
-                    passedTests: 0,
-                    failedTests: 0,
-                    notExecutedTests: 0,
-                    status: 'not supported',
-                });
+                } else {
+                    // Handle build pipelines if needed
+                    // Similar logic but using build API
+                    sprintResults.push({
+                        sprintName: sprint.name,
+                        sprintPath: sprint.path,
+                        startDate: sprint.startDate,
+                        finishDate: sprint.finishDate,
+                        releaseId: null,
+                        releaseName: null,
+                        totalTests: 0,
+                        passedTests: 0,
+                        failedTests: 0,
+                        notExecutedTests: 0,
+                        status: 'not supported',
+                    });
+                }
             }
+
+            pipelineResults.push({
+                pipelineName: pipeline.displayName,
+                pipelineId: pipeline.id,
+                sprints: sprintResults,
+            });
         }
 
         return json({ 
-            sprints: sprintResults,
-            pipelineName: pipeline.displayName,
+            pipelines: pipelineResults,
             organization: AZURE_DEVOPS_ORGANIZATION,
             project: AZURE_DEVOPS_PROJECT
         });

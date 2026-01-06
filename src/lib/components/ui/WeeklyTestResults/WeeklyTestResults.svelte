@@ -16,12 +16,18 @@
         status: string;
     }
 
-    let sprints = $state<SprintTestResult[]>([]);
+    interface PipelineResults {
+        pipelineName: string;
+        pipelineId: number;
+        sprints: SprintTestResult[];
+    }
+
+    let pipelines = $state<PipelineResults[]>([]);
     let loading = $state(true);
     let error = $state<string | null>(null);
-    let pipelineName = $state<string>('');
     let organization = $state<string>('');
     let project = $state<string>('');
+    let expandedPipelines = $state<Set<number>>(new Set());
 
     onMount(async () => {
         try {
@@ -30,16 +36,29 @@
                 throw new Error('Failed to fetch sprint test results');
             }
             const data = await response.json();
-            sprints = data.sprints || [];
-            pipelineName = data.pipelineName || '';
+            pipelines = data.pipelines || [];
             organization = data.organization || '';
             project = data.project || '';
+            // Expand first pipeline by default
+            if (pipelines.length > 0) {
+                expandedPipelines.add(pipelines[0].pipelineId);
+            }
         } catch (e: any) {
             error = e.message;
         } finally {
             loading = false;
         }
     });
+
+    function togglePipeline(pipelineId: number) {
+        const newSet = new Set(expandedPipelines);
+        if (newSet.has(pipelineId)) {
+            newSet.delete(pipelineId);
+        } else {
+            newSet.add(pipelineId);
+        }
+        expandedPipelines = newSet;
+    }
 
     function formatDate(dateString: string): string {
         const date = new Date(dateString);
@@ -68,9 +87,6 @@
         <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">event_repeat</span>
         <div class="flex flex-col">
             <h3 class="text-lg font-semibold">Sprint Test Results</h3>
-            {#if pipelineName}
-                <p class="text-xs text-muted-foreground">{pipelineName}</p>
-            {/if}
         </div>
         <Badge class="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs ml-auto">
             Beta
@@ -91,7 +107,7 @@
                 <p class="text-sm">{error}</p>
             </div>
         </div>
-    {:else if sprints.length === 0}
+    {:else if pipelines.length === 0}
         <div class="flex-1 flex items-center justify-center text-muted-foreground">
             <div class="text-center space-y-2">
                 <span class="material-symbols-outlined" style="font-size: 3em;">inbox</span>
@@ -99,11 +115,25 @@
             </div>
         </div>
     {:else}
-        <div class="flex-1 overflow-auto space-y-3">
-            {#each sprints as sprint}
-                {@const passRate = getPassRate(sprint.passedTests, sprint.totalTests)}
-                {@const hasRun = sprint.releaseId !== null}
-                <div class="border border-border/40 rounded-lg p-3 bg-background/30 hover:bg-background/50 transition-colors">
+        <div class="flex-1 overflow-auto space-y-4">
+            {#each pipelines as pipeline}
+                {@const isExpanded = expandedPipelines.has(pipeline.pipelineId)}
+                <div class="space-y-2">
+                    <button 
+                        onclick={() => togglePipeline(pipeline.pipelineId)}
+                        class="w-full flex items-center gap-2 px-2 py-2 border-b border-border/40 hover:bg-muted/30 transition-colors rounded-t"
+                    >
+                        <span class="material-symbols-outlined text-muted-foreground transition-transform" style="font-size: 1.25em; transform: rotate({isExpanded ? 90 : 0}deg);">
+                            chevron_right
+                        </span>
+                        <h4 class="text-sm font-semibold text-primary flex-1 text-left">{pipeline.pipelineName}</h4>
+                        <Badge variant="outline" class="text-xs">{pipeline.sprints.length} sprints</Badge>
+                    </button>
+                    {#if isExpanded}
+                        {#each pipeline.sprints as sprint}
+                        {@const passRate = getPassRate(sprint.passedTests, sprint.totalTests)}
+                        {@const hasRun = sprint.releaseId !== null}
+                        <div class="border border-border/40 rounded-lg p-3 bg-background/30 hover:bg-background/50 transition-colors">
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center gap-2">
                             <span class="material-symbols-outlined text-primary" style="font-size: 1.25em;">
@@ -156,6 +186,9 @@
                         <div class="text-xs text-muted-foreground text-center py-2">
                             No test run found for this sprint
                         </div>
+                    {/if}
+                </div>
+            {/each}
                     {/if}
                 </div>
             {/each}
