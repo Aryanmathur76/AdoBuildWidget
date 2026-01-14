@@ -49,13 +49,52 @@ export async function GET({ url }: { url: URL }) {
 			return json({ error: 'Missing suiteId parameter' }, { status: 400 });
 		}
 
+		// Fetch all suites from the test plan once (with pagination)
+		const allSuites: TestSuite[] = [];
+		let continuationToken: string | null = null;
+
+		do {
+			let allSuitesUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/testplan/Plans/${testPlanId}/suites?api-version=7.1`;
+			
+			if (continuationToken) {
+				allSuitesUrl += `&continuationToken=${encodeURIComponent(continuationToken)}`;
+			}
+
+			const allSuitesRes = await fetch(allSuitesUrl, {
+				headers: {
+					'Authorization': `Basic ${btoa(':' + AZURE_DEVOPS_PAT)}`,
+					'Content-Type': 'application/json',
+				},
+			});
+
+			if (!allSuitesRes.ok) {
+				return json({ 
+					error: 'Failed to fetch test suites', 
+					details: await allSuitesRes.text() 
+				}, { status: allSuitesRes.status });
+			}
+
+			const allSuitesData = await allSuitesRes.json();
+			
+			if (Array.isArray(allSuitesData.value)) {
+				allSuites.push(...allSuitesData.value);
+			}
+
+			// Check for continuation token in response headers
+			continuationToken = allSuitesRes.headers.get('x-ms-continuationtoken');
+			
+		} while (continuationToken);
+
+		console.log(`Fetched ${allSuites.length} total suites from test plan`);
+
 		// Recursively fetch the specific suite, all its child suites, and test cases
 		const suite = await fetchSuiteWithChildrenAndTestCases(
 			AZURE_DEVOPS_ORGANIZATION,
 			AZURE_DEVOPS_PROJECT,
 			AZURE_DEVOPS_PAT,
 			testPlanId,
-			suiteId
+			suiteId,
+			allSuites
 		);
 
 		if (!suite) {
@@ -101,27 +140,19 @@ async function fetchSuiteWithChildrenAndTestCases(
 	project: string,
 	pat: string,
 	testPlanId: string,
-	suiteId: string
+	suiteId: string,
+	allSuites: TestSuite[]
 ): Promise<TestSuite | null> {
 	try {
-		// Fetch the suite
-		const suiteUrl = `https://dev.azure.com/${organization}/${project}/_apis/testplan/Plans/${testPlanId}/suites/${suiteId}?api-version=7.1`;
+		// Find this suite in the allSuites array
+		const suite = allSuites.find(s => s.id.toString() === suiteId);
 		
-		const suiteRes = await fetch(suiteUrl, {
-			headers: {
-				'Authorization': `Basic ${btoa(':' + pat)}`,
-				'Content-Type': 'application/json',
-			},
-		});
-
-		if (!suiteRes.ok) {
-			console.error(`Failed to fetch suite ${suiteId}`);
+		if (!suite) {
+			console.error(`Suite ${suiteId} not found in test plan`);
 			return null;
 		}
 
-		const suite: TestSuite = await suiteRes.json();
-
-		// Fetch test cases for this suite
+		// Fetch test cases for this suite (IMPORTANT: Every suite gets its test cases)
 		suite.testCases = await fetchTestCasesForSuite(
 			organization,
 			project,
@@ -130,39 +161,30 @@ async function fetchSuiteWithChildrenAndTestCases(
 			suiteId
 		);
 
-		// Fetch all child suites from the API (not just references)
-		const childSuitesUrl = `https://dev.azure.com/${organization}/${project}/_apis/testplan/Plans/${testPlanId}/suites?api-version=7.1`;
-		const childSuitesRes = await fetch(childSuitesUrl, {
-			headers: {
-				'Authorization': `Basic ${btoa(':' + pat)}`,
-				'Content-Type': 'application/json',
-			},
-		});
+		console.log(`Suite ${suite.name} (${suite.id}) has ${suite.testCases.length} test cases`);
 
-		if (childSuitesRes.ok) {
-			const childSuitesData = await childSuitesRes.json();
-			const allSuites: TestSuite[] = childSuitesData.value || [];
+		// Filter to get only direct children of this suite
+		const directChildren = allSuites.filter(s => s.parentSuite?.id === suite.id);
+		
+		if (directChildren.length > 0) {
+			console.log(`Suite ${suite.name} has ${directChildren.length} child suites`);
 			
-			// Filter to get only direct children of this suite
-			const directChildren = allSuites.filter(s => s.parentSuite?.id === suite.id);
+			// Recursively fetch each child suite with its descendants and test cases
+			const childSuitePromises = directChildren.map(childSuite => 
+				fetchSuiteWithChildrenAndTestCases(
+					organization,
+					project,
+					pat,
+					testPlanId,
+					childSuite.id.toString(),
+					allSuites
+				)
+			);
 			
-			if (directChildren.length > 0) {
-				// Recursively fetch each child suite with its descendants
-				const childSuitePromises = directChildren.map(childSuite => 
-					fetchSuiteWithChildrenAndTestCases(
-						organization,
-						project,
-						pat,
-						testPlanId,
-						childSuite.id.toString()
-					)
-				);
-				
-				const fetchedChildren = await Promise.all(childSuitePromises);
-				suite.childSuites = fetchedChildren.filter((child): child is TestSuite => child !== null);
-			} else {
-				suite.childSuites = [];
-			}
+			const fetchedChildren = await Promise.all(childSuitePromises);
+			suite.childSuites = fetchedChildren.filter((child): child is TestSuite => child !== null);
+		} else {
+			suite.childSuites = [];
 		}
 
 		return suite;
