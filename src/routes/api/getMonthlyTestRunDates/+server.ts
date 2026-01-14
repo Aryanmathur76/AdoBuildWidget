@@ -3,7 +3,7 @@ import { env } from '$env/dynamic/private';
 import { getAzureDevOpsEnvVars } from '$lib/utils';
 
 /**
- * GET /api/getTestRunGraph?planId=1310927
+ * GET /api/getTestRunGraph?planId=1310927&suiteId=123
  * Returns daily aggregated test counts for a specific test plan.
  */
 
@@ -22,12 +22,28 @@ export async function GET({ url }: { url: URL }) {
 		}
 
 		const planId = url.searchParams.get('planId');
+		const suiteId = url.searchParams.get('suiteId');
 		const minRocParam = url.searchParams.get('minRoc');
 		const minRoc = minRocParam ? parseFloat(minRocParam) : 0;
 
 		if (!planId) {
 			return json({ error: 'Missing planId parameter' }, { status: 400 });
 		}
+
+		if (!suiteId) {
+			return json({ error: 'Missing suiteId parameter' }, { status: 400 });
+		}
+
+		// Fetch all expected test cases from the suite
+		const expectedTestCases = await fetchAllTestCasesFromSuite(
+			planId,
+			suiteId,
+			AZURE_DEVOPS_ORGANIZATION,
+			AZURE_DEVOPS_PROJECT,
+			AZURE_DEVOPS_PAT
+		);
+
+		const expectedTestCaseIds = new Set(expectedTestCases.map(tc => tc.workItem.id));
 
 		// Fetch all test runs for the plan
 		const runsUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/test/runs?planId=${planId}&api-version=7.1`;
@@ -56,6 +72,7 @@ export async function GET({ url }: { url: URL }) {
 		});
 
 		const dayMap = new Map<string, number>();
+		const runsByDate = new Map<string, any[]>(); // Track runs by date for later test case collection
 
 		// Fetch runs in parallel batches for speed
 		const batchSize = 50;
@@ -98,6 +115,12 @@ export async function GET({ url }: { url: URL }) {
 
 					const currentTotal = dayMap.get(dateKey) || 0;
 					dayMap.set(dateKey, currentTotal + (runDetail.totalTests || 0));
+					
+					// Store the run detail for later test case collection
+					if (!runsByDate.has(dateKey)) {
+						runsByDate.set(dateKey, []);
+					}
+					runsByDate.get(dateKey)!.push(runDetail);
 				}
 			}
 		}
@@ -135,11 +158,36 @@ export async function GET({ url }: { url: URL }) {
 		const filteredDays = derivatives.filter(d => d.change >= minRoc);
 		const groupedDays = groupByWeekWindow(filteredDays);
 
+		// Now collect unique test cases for each grouped day with dynamic buffer expansion
+		const daysWithTestCases = await Promise.all(
+			groupedDays.map(async (day) => {
+				const result = await getTestCasesAroundDateWithBuffer(
+					day.date,
+					runsByDate,
+					AZURE_DEVOPS_ORGANIZATION,
+					AZURE_DEVOPS_PROJECT,
+					AZURE_DEVOPS_PAT,
+					expectedTestCaseIds
+				);
+				return {
+					...day,
+					testCaseIds: Array.from(result.foundTestCaseIds).sort((a, b) => a - b),
+					testCaseCount: result.foundTestCaseIds.size,
+					bufferUsed: result.bufferUsed,
+					foundTestCases: Array.from(result.foundTestCaseIds).sort((a, b) => a - b),
+					notFoundTestCases: Array.from(result.notFoundTestCaseIds).sort((a, b) => a - b)
+				};
+			})
+		);
+
 		return json({
 			planId: parseInt(planId),
+			suiteId: parseInt(suiteId),
 			totalRuns: testRuns.length,
 			minRoc,
-			days: groupedDays
+			expectedTestCaseCount: expectedTestCaseIds.size,
+			expectedTestCaseIds: Array.from(expectedTestCaseIds).sort((a, b) => a - b),
+			days: daysWithTestCases
 		});
 
 	} catch (error: any) {
@@ -170,6 +218,231 @@ function calculateDerivatives(data: DayData[]) {
 	}
 
 	return result;
+}
+
+/**
+ * Get unique test case IDs executed within a dynamically expanding buffer window around a specific date.
+ * Starts with buffer=0 and expands up to 5 days until all expected test cases are found or max buffer is reached.
+ */
+async function getTestCasesAroundDateWithBuffer(
+	targetDate: string,
+	runsByDate: Map<string, any[]>,
+	org: string,
+	project: string,
+	pat: string,
+	expectedTestCaseIds: Set<number>
+): Promise<{
+	foundTestCaseIds: Set<number>;
+	notFoundTestCaseIds: Set<number>;
+	bufferUsed: number;
+}> {
+	const MAX_BUFFER = 5;
+	
+	for (let bufferDays = 0; bufferDays <= MAX_BUFFER; bufferDays++) {
+		const testCaseIds = await getTestCasesAroundDate(
+			targetDate,
+			bufferDays,
+			runsByDate,
+			org,
+			project,
+			pat
+		);
+		
+		// Check if we found all expected test cases
+		const foundTestCaseIds = new Set<number>();
+		const notFoundTestCaseIds = new Set<number>();
+		
+		for (const expectedId of expectedTestCaseIds) {
+			if (testCaseIds.has(expectedId)) {
+				foundTestCaseIds.add(expectedId);
+			} else {
+				notFoundTestCaseIds.add(expectedId);
+			}
+		}
+		
+		// If all test cases found, return immediately
+		if (notFoundTestCaseIds.size === 0) {
+			return {
+				foundTestCaseIds,
+				notFoundTestCaseIds,
+				bufferUsed: bufferDays
+			};
+		}
+		
+		// If we've reached max buffer, return what we have
+		if (bufferDays === MAX_BUFFER) {
+			return {
+				foundTestCaseIds,
+				notFoundTestCaseIds,
+				bufferUsed: bufferDays
+			};
+		}
+	}
+	
+	// Fallback (should never reach here)
+	return {
+		foundTestCaseIds: new Set(),
+		notFoundTestCaseIds: expectedTestCaseIds,
+		bufferUsed: MAX_BUFFER
+	};
+}
+
+/**
+ * Get unique test case IDs executed within a buffer window around a specific date
+ */
+async function getTestCasesAroundDate(
+	targetDate: string,
+	bufferDays: number,
+	runsByDate: Map<string, any[]>,
+	org: string,
+	project: string,
+	pat: string
+): Promise<Set<number>> {
+	const testCaseIds = new Set<number>();
+	const target = new Date(targetDate);
+	
+	// Iterate through dates within the buffer window
+	for (let offset = -bufferDays; offset <= bufferDays; offset++) {
+		const checkDate = new Date(target);
+		checkDate.setDate(checkDate.getDate() + offset);
+		const dateKey = checkDate.toISOString().split('T')[0];
+		
+		const runsForDay = runsByDate.get(dateKey);
+		if (!runsForDay || runsForDay.length === 0) continue;
+		
+		// Fetch test results for each run on this day
+		for (const run of runsForDay) {
+			try {
+				const resultsUrl = `https://dev.azure.com/${org}/${project}/_apis/test/runs/${run.id}/results?api-version=7.1`;
+				
+				const resultsRes = await fetch(resultsUrl, {
+					headers: {
+						'Authorization': `Basic ${btoa(':' + pat)}`,
+						'Content-Type': 'application/json',
+					},
+				});
+				
+				if (resultsRes.ok) {
+					const resultsData = await resultsRes.json();
+					if (Array.isArray(resultsData.value)) {
+						for (const result of resultsData.value) {
+							if (result.testCase && result.testCase.id) {
+								testCaseIds.add(parseInt(result.testCase.id));
+							}
+						}
+					}
+				}
+			} catch (error) {
+				// Continue on error, just skip this run
+				console.error(`Error fetching test results for run ${run.id}:`, error);
+			}
+		}
+	}
+	
+	return testCaseIds;
+}
+
+/**
+ * Fetch all test cases from a suite using the getAllTestCases API
+ */
+async function fetchAllTestCasesFromSuite(
+	testPlanId: string,
+	suiteId: string,
+	org: string,
+	project: string,
+	pat: string
+): Promise<Array<{ workItem: { id: number; name: string } }>> {
+	const allTestCases: Array<{ workItem: { id: number; name: string } }> = [];
+	
+	// Recursively fetch test cases from suite and all child suites
+	const fetchSuiteTestCases = async (currentSuiteId: string) => {
+		// Fetch test cases for this suite
+		let continuationToken: string | null = null;
+		
+		do {
+			let testCasesUrl = `https://dev.azure.com/${org}/${project}/_apis/testplan/Plans/${testPlanId}/Suites/${currentSuiteId}/TestCase?api-version=7.1`;
+			
+			if (continuationToken) {
+				testCasesUrl += `&continuationToken=${encodeURIComponent(continuationToken)}`;
+			}
+
+			const testCasesRes = await fetch(testCasesUrl, {
+				headers: {
+					'Authorization': `Basic ${btoa(':' + pat)}`,
+					'Content-Type': 'application/json',
+				},
+			});
+
+			if (testCasesRes.ok) {
+				const testCasesData = await testCasesRes.json();
+				
+				if (Array.isArray(testCasesData.value)) {
+					allTestCases.push(...testCasesData.value);
+				}
+
+				continuationToken = testCasesRes.headers.get('x-ms-continuationtoken');
+			} else {
+				break;
+			}
+			
+		} while (continuationToken);
+	};
+	
+	// Fetch all suites to find child suites
+	const allSuites: Array<{ id: number; parentSuite?: { id: number } }> = [];
+	let suiteContinuationToken: string | null = null;
+
+	do {
+		let allSuitesUrl = `https://dev.azure.com/${org}/${project}/_apis/testplan/Plans/${testPlanId}/suites?api-version=7.1`;
+		
+		if (suiteContinuationToken) {
+			allSuitesUrl += `&continuationToken=${encodeURIComponent(suiteContinuationToken)}`;
+		}
+
+		const allSuitesRes = await fetch(allSuitesUrl, {
+			headers: {
+				'Authorization': `Basic ${btoa(':' + pat)}`,
+				'Content-Type': 'application/json',
+			},
+		});
+
+		if (allSuitesRes.ok) {
+			const allSuitesData = await allSuitesRes.json();
+			
+			if (Array.isArray(allSuitesData.value)) {
+				allSuites.push(...allSuitesData.value);
+			}
+
+			suiteContinuationToken = allSuitesRes.headers.get('x-ms-continuationtoken');
+		} else {
+			break;
+		}
+		
+	} while (suiteContinuationToken);
+
+	// Recursively find all child suite IDs
+	const findChildSuites = (parentId: number): number[] => {
+		const children = allSuites
+			.filter(s => s.parentSuite?.id === parentId)
+			.map(s => s.id);
+		
+		const allChildren = [...children];
+		for (const childId of children) {
+			allChildren.push(...findChildSuites(childId));
+		}
+		
+		return allChildren;
+	};
+
+	// Get all suite IDs (current suite + all descendants)
+	const suiteIds = [parseInt(suiteId), ...findChildSuites(parseInt(suiteId))];
+	
+	// Fetch test cases from all suites
+	for (const id of suiteIds) {
+		await fetchSuiteTestCases(id.toString());
+	}
+	
+	return allTestCases;
 }
 
 /**
