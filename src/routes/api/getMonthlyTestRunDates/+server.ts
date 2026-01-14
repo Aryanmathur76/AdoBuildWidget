@@ -240,6 +240,12 @@ export async function GET({ url }: { url: URL }) {
 				}
 				flakyTests.sort((a, b) => b.executionCount - a.executionCount); // Sort by execution count descending
 
+				// Calculate pass rates
+				const passRates = calculatePassRates(
+					expectedTestCaseIds,
+					result.testCaseExecutions
+				);
+
 				return {
 					...day,
 					testCaseIds: Array.from(result.foundTestCaseIds).sort((a, b) => a - b),
@@ -249,6 +255,13 @@ export async function GET({ url }: { url: URL }) {
 					notFoundTestCases: Array.from(result.notFoundTestCaseIds).sort((a, b) => a - b),
 					flakyTests: flakyTests,
 					flakyTestCount: flakyTests.length,
+					passRates: {
+						initialPassRate: passRates.initialPassRate,
+						finalPassRate: passRates.finalPassRate,
+						initialPassedCount: passRates.initialPassedCount,
+						finalPassedCount: passRates.finalPassedCount,
+						totalExpectedTests: passRates.totalExpectedTests
+					},
 					runBoundaries: {
 						startDate: boundaries.startDate,
 						endDate: boundaries.endDate,
@@ -338,6 +351,7 @@ async function getTestCasesAroundDateWithBuffer(
 	bufferUsed: number;
 	executionDates: Set<string>;
 	executionCounts: Map<number, number>;
+	testCaseExecutions: Map<number, Array<{ outcome: string; completedDate: string }>>;
 }> {
 	const MAX_BUFFER = 5;
 	
@@ -371,7 +385,8 @@ async function getTestCasesAroundDateWithBuffer(
 				notFoundTestCaseIds,
 				bufferUsed: bufferDays,
 				executionDates: result.executionDates,
-				executionCounts: result.executionCounts
+				executionCounts: result.executionCounts,
+				testCaseExecutions: result.testCaseExecutions
 			};
 		}
 		
@@ -382,7 +397,8 @@ async function getTestCasesAroundDateWithBuffer(
 				notFoundTestCaseIds,
 				bufferUsed: bufferDays,
 				executionDates: result.executionDates,
-				executionCounts: result.executionCounts
+				executionCounts: result.executionCounts,
+				testCaseExecutions: result.testCaseExecutions
 			};
 		}
 	}
@@ -393,7 +409,8 @@ async function getTestCasesAroundDateWithBuffer(
 		notFoundTestCaseIds: expectedTestCaseIds,
 		bufferUsed: MAX_BUFFER,
 		executionDates: new Set(),
-		executionCounts: new Map()
+		executionCounts: new Map(),
+		testCaseExecutions: new Map()
 	};
 }
 
@@ -408,10 +425,16 @@ async function getTestCasesAroundDate(
 	project: string,
 	pat: string,
 	expectedTestCaseIds?: Set<number>
-): Promise<{ testCaseIds: Set<number>; executionDates: Set<string>; executionCounts: Map<number, number> }> {
+): Promise<{ 
+	testCaseIds: Set<number>; 
+	executionDates: Set<string>; 
+	executionCounts: Map<number, number>;
+	testCaseExecutions: Map<number, Array<{ outcome: string; completedDate: string }>>;
+}> {
 	const testCaseIds = new Set<number>();
 	const executionDates = new Set<string>();
 	const executionCounts = new Map<number, number>();
+	const testCaseExecutions = new Map<number, Array<{ outcome: string; completedDate: string }>>();
 	const target = new Date(targetDate);
 	
 	// Iterate through dates within the buffer window
@@ -449,6 +472,15 @@ async function getTestCasesAroundDate(
 								const currentCount = executionCounts.get(testCaseId) || 0;
 								executionCounts.set(testCaseId, currentCount + 1);
 								
+								// Track execution details (outcome and timestamp)
+								if (!testCaseExecutions.has(testCaseId)) {
+									testCaseExecutions.set(testCaseId, []);
+								}
+								testCaseExecutions.get(testCaseId)!.push({
+									outcome: result.outcome || 'Unknown',
+									completedDate: result.completedDate || result.startedDate || dateKey
+								});
+								
 								// Track execution date if this is an expected test case
 								if (expectedTestCaseIds && expectedTestCaseIds.has(testCaseId)) {
 									foundExpectedTestCase = true;
@@ -469,7 +501,7 @@ async function getTestCasesAroundDate(
 		}
 	}
 	
-	return { testCaseIds, executionDates, executionCounts };
+	return { testCaseIds, executionDates, executionCounts, testCaseExecutions };
 }
 
 /**
@@ -500,6 +532,64 @@ function determineExecutionBoundaries(
 		startDate,
 		endDate,
 		durationDays
+	};
+}
+
+/**
+ * Calculate initial and final pass rates for a monthly run
+ */
+function calculatePassRates(
+	expectedTestCaseIds: Set<number>,
+	testCaseExecutions: Map<number, Array<{ outcome: string; completedDate: string }>>
+): {
+	initialPassRate: number;
+	finalPassRate: number;
+	initialPassedCount: number;
+	finalPassedCount: number;
+	totalExpectedTests: number;
+} {
+	let initialPassedCount = 0;
+	let finalPassedCount = 0;
+	const totalExpectedTests = expectedTestCaseIds.size;
+	
+	for (const testCaseId of expectedTestCaseIds) {
+		const executions = testCaseExecutions.get(testCaseId);
+		
+		if (executions && executions.length > 0) {
+			// Sort executions by completed date to get chronological order
+			const sortedExecutions = [...executions].sort((a, b) => 
+				a.completedDate.localeCompare(b.completedDate)
+			);
+			
+			// Check first execution (initial pass rate)
+			const firstExecution = sortedExecutions[0];
+			if (firstExecution.outcome === 'Passed') {
+				initialPassedCount++;
+			}
+			
+			// Check last execution (final pass rate)
+			const lastExecution = sortedExecutions[sortedExecutions.length - 1];
+			if (lastExecution.outcome === 'Passed') {
+				finalPassedCount++;
+			}
+		}
+		// If a test case was never executed, it counts as failed for both metrics
+	}
+	
+	const initialPassRate = totalExpectedTests > 0 
+		? (initialPassedCount / totalExpectedTests) * 100 
+		: 0;
+	
+	const finalPassRate = totalExpectedTests > 0 
+		? (finalPassedCount / totalExpectedTests) * 100 
+		: 0;
+	
+	return {
+		initialPassRate: Math.round(initialPassRate * 100) / 100, // Round to 2 decimal places
+		finalPassRate: Math.round(finalPassRate * 100) / 100,
+		initialPassedCount,
+		finalPassedCount,
+		totalExpectedTests
 	};
 }
 
