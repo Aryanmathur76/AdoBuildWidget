@@ -73,8 +73,11 @@ export async function GET({ url }: { url: URL }) {
 
 		const dayMap = new Map<string, number>();
 		const runsByDate = new Map<string, any[]>(); // Track runs by date for later test case collection
+		const testCaseExecutionDates = new Map<number, Set<string>>(); // Track when each expected test case was executed
+		let earliestTestCaseDate: string | null = null;
+		let latestTestCaseDate: string | null = null;
 
-		// Fetch runs in parallel batches for speed
+		// Fetch runs in parallel batches for speed and track test case executions
 		const batchSize = 50;
 
 		for (let i = 0; i < testRuns.length; i += batchSize) {
@@ -105,10 +108,38 @@ export async function GET({ url }: { url: URL }) {
 
 			const runDetails = await Promise.all(batchPromises);
 
-			for (const runDetail of runDetails) {
-				if (!runDetail) continue;
+			// Also fetch test results for each run to track test case execution dates
+			const resultsPromises = runDetails.map(async (runDetail) => {
+				if (!runDetail || !runDetail.id) return null;
 
+				try {
+					const resultsUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/test/runs/${runDetail.id}/results?api-version=7.1`;
+					
+					const resultsRes = await fetch(resultsUrl, {
+						headers: {
+							'Authorization': `Basic ${btoa(':' + AZURE_DEVOPS_PAT)}`,
+							'Content-Type': 'application/json',
+						},
+					});
+
+					if (resultsRes.ok) {
+						const resultsData = await resultsRes.json();
+						return { runDetail, results: resultsData.value || [] };
+					}
+				} catch (error) {
+					console.error(`Error fetching test results for run ${runDetail.id}:`, error);
+				}
+				return null;
+			});
+
+			const runResultsPairs = await Promise.all(resultsPromises);
+
+			for (const pair of runResultsPairs) {
+				if (!pair) continue;
+
+				const { runDetail, results } = pair;
 				const runDateStr = runDetail.completedDate || runDetail.startedDate;
+				
 				if (runDateStr) {
 					const runDate = new Date(runDateStr);
 					const dateKey = runDate.toISOString().split('T')[0];
@@ -121,6 +152,29 @@ export async function GET({ url }: { url: URL }) {
 						runsByDate.set(dateKey, []);
 					}
 					runsByDate.get(dateKey)!.push(runDetail);
+
+					// Track execution dates for expected test cases
+					for (const result of results) {
+						if (result.testCase && result.testCase.id) {
+							const testCaseId = parseInt(result.testCase.id);
+							
+							// Only track if this is an expected test case
+							if (expectedTestCaseIds.has(testCaseId)) {
+								if (!testCaseExecutionDates.has(testCaseId)) {
+									testCaseExecutionDates.set(testCaseId, new Set());
+								}
+								testCaseExecutionDates.get(testCaseId)!.add(dateKey);
+
+								// Update earliest and latest dates
+								if (!earliestTestCaseDate || dateKey < earliestTestCaseDate) {
+									earliestTestCaseDate = dateKey;
+								}
+								if (!latestTestCaseDate || dateKey > latestTestCaseDate) {
+									latestTestCaseDate = dateKey;
+								}
+							}
+						}
+					}
 				}
 			}
 		}
@@ -169,25 +223,61 @@ export async function GET({ url }: { url: URL }) {
 					AZURE_DEVOPS_PAT,
 					expectedTestCaseIds
 				);
+
+				// Determine actual execution boundaries for this monthly run
+				const boundaries = determineExecutionBoundaries(
+					day.date,
+					result.bufferUsed,
+					result.executionDates
+				);
+
 				return {
 					...day,
 					testCaseIds: Array.from(result.foundTestCaseIds).sort((a, b) => a - b),
 					testCaseCount: result.foundTestCaseIds.size,
 					bufferUsed: result.bufferUsed,
 					foundTestCases: Array.from(result.foundTestCaseIds).sort((a, b) => a - b),
-					notFoundTestCases: Array.from(result.notFoundTestCaseIds).sort((a, b) => a - b)
+					notFoundTestCases: Array.from(result.notFoundTestCaseIds).sort((a, b) => a - b),
+					runBoundaries: {
+						startDate: boundaries.startDate,
+						endDate: boundaries.endDate,
+						durationDays: boundaries.durationDays
+					}
 				};
 			})
 		);
+
+		// Calculate test case execution statistics
+		const executedTestCaseIds = Array.from(testCaseExecutionDates.keys());
+		const neverExecutedTestCaseIds = Array.from(expectedTestCaseIds).filter(id => !testCaseExecutionDates.has(id));
+
+		// Calculate duration if we have both boundaries
+		let durationDays = null;
+		if (earliestTestCaseDate && latestTestCaseDate) {
+			const start = new Date(earliestTestCaseDate);
+			const end = new Date(latestTestCaseDate);
+			durationDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+		}
 
 		return json({
 			planId: parseInt(planId),
 			suiteId: parseInt(suiteId),
 			totalRuns: testRuns.length,
 			minRoc,
-			expectedTestCaseCount: expectedTestCaseIds.size,
-			expectedTestCaseIds: Array.from(expectedTestCaseIds).sort((a, b) => a - b),
-			days: daysWithTestCases
+			overallBoundaries: {
+				startDate: earliestTestCaseDate,
+				endDate: latestTestCaseDate,
+				durationDays: durationDays
+			},
+			testCaseSummary: {
+				expectedCount: expectedTestCaseIds.size,
+				executedCount: executedTestCaseIds.length,
+				neverExecutedCount: neverExecutedTestCaseIds.length,
+				expectedTestCaseIds: Array.from(expectedTestCaseIds).sort((a, b) => a - b),
+				executedTestCaseIds: executedTestCaseIds.sort((a, b) => a - b),
+				neverExecutedTestCaseIds: neverExecutedTestCaseIds.sort((a, b) => a - b)
+			},
+			monthlyRuns: daysWithTestCases
 		});
 
 	} catch (error: any) {
@@ -235,17 +325,19 @@ async function getTestCasesAroundDateWithBuffer(
 	foundTestCaseIds: Set<number>;
 	notFoundTestCaseIds: Set<number>;
 	bufferUsed: number;
+	executionDates: Set<string>;
 }> {
 	const MAX_BUFFER = 5;
 	
 	for (let bufferDays = 0; bufferDays <= MAX_BUFFER; bufferDays++) {
-		const testCaseIds = await getTestCasesAroundDate(
+		const result = await getTestCasesAroundDate(
 			targetDate,
 			bufferDays,
 			runsByDate,
 			org,
 			project,
-			pat
+			pat,
+			expectedTestCaseIds
 		);
 		
 		// Check if we found all expected test cases
@@ -253,7 +345,7 @@ async function getTestCasesAroundDateWithBuffer(
 		const notFoundTestCaseIds = new Set<number>();
 		
 		for (const expectedId of expectedTestCaseIds) {
-			if (testCaseIds.has(expectedId)) {
+			if (result.testCaseIds.has(expectedId)) {
 				foundTestCaseIds.add(expectedId);
 			} else {
 				notFoundTestCaseIds.add(expectedId);
@@ -265,7 +357,8 @@ async function getTestCasesAroundDateWithBuffer(
 			return {
 				foundTestCaseIds,
 				notFoundTestCaseIds,
-				bufferUsed: bufferDays
+				bufferUsed: bufferDays,
+				executionDates: result.executionDates
 			};
 		}
 		
@@ -274,7 +367,8 @@ async function getTestCasesAroundDateWithBuffer(
 			return {
 				foundTestCaseIds,
 				notFoundTestCaseIds,
-				bufferUsed: bufferDays
+				bufferUsed: bufferDays,
+				executionDates: result.executionDates
 			};
 		}
 	}
@@ -283,7 +377,8 @@ async function getTestCasesAroundDateWithBuffer(
 	return {
 		foundTestCaseIds: new Set(),
 		notFoundTestCaseIds: expectedTestCaseIds,
-		bufferUsed: MAX_BUFFER
+		bufferUsed: MAX_BUFFER,
+		executionDates: new Set()
 	};
 }
 
@@ -296,9 +391,11 @@ async function getTestCasesAroundDate(
 	runsByDate: Map<string, any[]>,
 	org: string,
 	project: string,
-	pat: string
-): Promise<Set<number>> {
+	pat: string,
+	expectedTestCaseIds?: Set<number>
+): Promise<{ testCaseIds: Set<number>; executionDates: Set<string> }> {
 	const testCaseIds = new Set<number>();
+	const executionDates = new Set<string>();
 	const target = new Date(targetDate);
 	
 	// Iterate through dates within the buffer window
@@ -324,12 +421,25 @@ async function getTestCasesAroundDate(
 				
 				if (resultsRes.ok) {
 					const resultsData = await resultsRes.json();
+					let foundExpectedTestCase = false;
+					
 					if (Array.isArray(resultsData.value)) {
 						for (const result of resultsData.value) {
 							if (result.testCase && result.testCase.id) {
-								testCaseIds.add(parseInt(result.testCase.id));
+								const testCaseId = parseInt(result.testCase.id);
+								testCaseIds.add(testCaseId);
+								
+								// Track execution date if this is an expected test case
+								if (expectedTestCaseIds && expectedTestCaseIds.has(testCaseId)) {
+									foundExpectedTestCase = true;
+								}
 							}
 						}
+					}
+					
+					// Only record this date if it had at least one expected test case execution
+					if (foundExpectedTestCase) {
+						executionDates.add(dateKey);
 					}
 				}
 			} catch (error) {
@@ -339,7 +449,38 @@ async function getTestCasesAroundDate(
 		}
 	}
 	
-	return testCaseIds;
+	return { testCaseIds, executionDates };
+}
+
+/**
+ * Determine the actual start and end dates for a monthly run based on execution dates
+ */
+function determineExecutionBoundaries(
+	targetDate: string,
+	bufferUsed: number,
+	executionDates: Set<string>
+): { startDate: string | null; endDate: string | null; durationDays: number | null } {
+	if (executionDates.size === 0) {
+		return {
+			startDate: null,
+			endDate: null,
+			durationDays: null
+		};
+	}
+	
+	const sortedDates = Array.from(executionDates).sort();
+	const startDate = sortedDates[0];
+	const endDate = sortedDates[sortedDates.length - 1];
+	
+	const start = new Date(startDate);
+	const end = new Date(endDate);
+	const durationDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+	
+	return {
+		startDate,
+		endDate,
+		durationDays
+	};
 }
 
 /**
