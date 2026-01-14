@@ -2,103 +2,187 @@
     import { onMount } from 'svelte';
     import { Badge } from '$lib/components/ui/badge/index.js';
 
-    interface TestRun {
-        id: number;
-        name: string;
-        state: string;
-        startedDate: string;
-        completedDate: string;
-        totalTests: number;
-        passedTests: number;
-        failedTests: number;
-        notExecutedTests: number;
+    interface TestCase {
+        testCaseId: number;
+        testCaseName: string;
     }
 
-    interface TestRunGroup {
+    interface FlakyTest {
+        testCaseId: number;
+        testCaseName: string;
+        executionCount: number;
+    }
+
+    interface MonthlyRun {
         date: string;
-        runs: TestRun[];
-        totalTests: number;
-        passedTests: number;
-        failedTests: number;
-        notExecutedTests: number;
+        testCaseCount: number;
+        bufferUsed: number;
+        foundTestCases: TestCase[];
+        notFoundTestCases: TestCase[];
+        casesRunThatAreNotInTestPlan: TestCase[];
+        flakyTests: FlakyTest[];
+        flakyTestCount: number;
+        passRates: {
+            initialPassRate: number;
+            finalPassRate: number;
+            initialPassedCount: number;
+            finalPassedCount: number;
+            totalTestsFound: number;
+        };
+        runBoundaries: {
+            startDate: string | null;
+            endDate: string | null;
+            durationDays: number | null;
+        };
     }
 
-    let groups = $state<TestRunGroup[]>([]);
+    interface MonthlyTestData {
+        planId: number;
+        suiteId: number;
+        totalRuns: number;
+        minRoc: number;
+        overallBoundaries: {
+            startDate: string | null;
+            endDate: string | null;
+            durationDays: number | null;
+        };
+        testCaseSummary: {
+            expectedCount: number;
+            executedCount: number;
+            neverExecutedCount: number;
+            expectedTestCaseIds: number[];
+            executedTestCaseIds: number[];
+            neverExecutedTestCaseIds: number[];
+        };
+        monthlyRuns: MonthlyRun[];
+    }
+
+    let data = $state<MonthlyTestData | null>(null);
     let loading = $state(true);
     let error = $state<string | null>(null);
-    let organization = $state<string>('');
-    let project = $state<string>('');
+    let showConfig = $state(false);
 
-    onMount(async () => {
+    // Configuration - hardcoded defaults
+    let planId = $state('1310927');
+    let suiteId = $state('1310934');
+    let minRoc = $state(800);
+
+    async function fetchData() {
+        loading = true;
+        error = null;
+        data = null;
         try {
-            const response = await fetch('/api/test-plan-runs');
+            const url = `/api/getMonthlyTestRunDates?planId=${planId}&suiteId=${suiteId}&minRoc=${minRoc}`;
+            console.log('Fetching from:', url);
+            const response = await fetch(url);
             if (!response.ok) {
-                throw new Error('Failed to fetch test plan runs');
+                const errorText = await response.text();
+                console.error('API Error:', errorText);
+                throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
             }
-            const data = await response.json();
-            groups = data.groups || [];
-            organization = data.organization || '';
-            project = data.project || '';
+            const result = await response.json();
+            console.log('API Response:', result);
+            console.log('testCaseSummary:', result.testCaseSummary);
+            console.log('overallBoundaries:', result.overallBoundaries);
+            console.log('monthlyRuns count:', result.monthlyRuns?.length);
+            data = result;
         } catch (e: any) {
+            console.error('Fetch error:', e);
             error = e.message;
         } finally {
             loading = false;
         }
-    });
-
-    function getRunUrl(runId: number): string {
-        return `https://dev.azure.com/${organization}/${project}/_testManagement/runs?runId=${runId}&_a=resultQuery`;
     }
 
-    function formatDate(dateString: string): string {
+    onMount(() => {
+        fetchData();
+    });
+
+    function formatDate(dateString: string | null): string {
+        if (!dateString) return 'N/A';
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
-    function formatDateRange(runs: TestRun[]): string {
-        if (runs.length === 0) return '';
-        const dates = runs.map(r => new Date(r.startedDate)).sort((a, b) => a.getTime() - b.getTime());
-        const start = dates[0];
-        const end = dates[dates.length - 1];
-        
-        if (start.toDateString() === end.toDateString()) {
-            return formatDate(start.toISOString());
-        }
-        
-        return `${formatDate(start.toISOString())} - ${formatDate(end.toISOString())}`;
-    }
-
-    function getPassRate(passed: number, total: number): number {
-        if (total === 0) return 0;
-        return Math.round((passed / total) * 100);
-    }
-
-    function getStatusColor(passRate: number): string {
-        if (passRate >= 90) return 'bg-green-500/20 text-green-400 border-green-500/30';
-        if (passRate >= 70) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+    function getPassRateColor(passRate: number): string {
+        if (passRate >= 95) return 'bg-green-500/20 text-green-400 border-green-500/30';
+        if (passRate >= 90) return 'bg-lime-500/20 text-lime-400 border-lime-500/30';
+        if (passRate >= 80) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+        if (passRate >= 70) return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
         return 'bg-red-500/20 text-red-400 border-red-500/30';
     }
 
-    function isMajorTestRun(group: TestRunGroup): boolean {
-        // Consider it a major test run if it has 1000+ total tests
-        return group.totalTests >= 1000;
+    function getBufferBadgeColor(bufferDays: number): string {
+        if (bufferDays === 0) return 'bg-green-500/20 text-green-400 border-green-500/30';
+        if (bufferDays <= 2) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+        return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
     }
+
 </script>
 
-<div class="flex flex-col h-full">
-    <div class="flex items-center gap-2 mb-4">
-        <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">calendar_month</span>
-        <h3 class="text-lg font-semibold">Physical CR Test Results</h3>
-        <Badge class="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">
-            Beta
-        </Badge>
+<div class="flex flex-col h-full p-4">
+    <div class="flex items-center justify-between gap-2 mb-4">
+        <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">calendar_month</span>
+            <h3 class="text-lg font-semibold">Monthly Test Run Analysis</h3>
+        </div>
+        <button 
+            onclick={() => showConfig = !showConfig}
+            class="px-2 py-1 text-xs rounded border border-border/50 hover:bg-accent/20 transition-colors"
+        >
+            {showConfig ? 'Hide' : 'Show'} Config
+        </button>
     </div>
+
+    {#if showConfig}
+        <div class="mb-4 p-3 bg-muted/30 rounded border border-border/50">
+            <div class="font-semibold mb-3 text-sm">Configuration:</div>
+            <div class="space-y-3">
+                <div>
+                    <label for="planId" class="text-xs text-muted-foreground block mb-1">Test Plan ID</label>
+                    <input 
+                        id="planId"
+                        type="text" 
+                        bind:value={planId}
+                        class="w-full px-2 py-1 text-sm bg-background border border-border rounded"
+                        placeholder="Enter Plan ID"
+                    />
+                </div>
+                <div>
+                    <label for="suiteId" class="text-xs text-muted-foreground block mb-1">Test Suite ID</label>
+                    <input 
+                        id="suiteId"
+                        type="text" 
+                        bind:value={suiteId}
+                        class="w-full px-2 py-1 text-sm bg-background border border-border rounded"
+                        placeholder="Enter Suite ID"
+                    />
+                </div>
+                <div>
+                    <label for="minRoc" class="text-xs text-muted-foreground block mb-1">Min Rate of Change</label>
+                    <input 
+                        id="minRoc"
+                        type="number" 
+                        bind:value={minRoc}
+                        class="w-full px-2 py-1 text-sm bg-background border border-border rounded"
+                        placeholder="Enter Min ROC"
+                    />
+                </div>
+                <button 
+                    onclick={fetchData}
+                    class="w-full px-3 py-2 text-sm font-medium rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                    Load Data
+                </button>
+            </div>
+        </div>
+    {/if}
 
     {#if loading}
         <div class="flex-1 flex items-center justify-center text-muted-foreground">
             <div class="text-center space-y-2">
                 <span class="material-symbols-outlined animate-spin" style="font-size: 3em;">progress_activity</span>
-                <p class="text-sm">Loading test results...</p>
+                <p class="text-sm">Loading test analysis...</p>
             </div>
         </div>
     {:else if error}
@@ -108,95 +192,184 @@
                 <p class="text-sm">{error}</p>
             </div>
         </div>
-    {:else if groups.length === 0}
+    {:else if !data}
         <div class="flex-1 flex items-center justify-center text-muted-foreground">
             <div class="text-center space-y-2">
                 <span class="material-symbols-outlined" style="font-size: 3em;">inbox</span>
-                <p class="text-sm">No test runs found</p>
+                <p class="text-sm">No data available</p>
             </div>
         </div>
     {:else}
-        <div class="flex-1 overflow-auto space-y-3">
-            {#each groups as group}
-                {@const passRate = getPassRate(group.passedTests, group.totalTests)}
-                {@const isMajor = isMajorTestRun(group)}
-                <div class="border rounded-lg p-3 bg-background/30 hover:bg-background/50 transition-colors {isMajor ? 'border-primary/60 shadow-lg shadow-primary/10' : 'border-border/40'}">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="flex items-center gap-2">
-                            {#if isMajor}
-                                <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">rocket_launch</span>
-                            {:else}
-                                <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1.25em;">science</span>
-                            {/if}
-                            <div>
-                                <div class="font-semibold text-sm flex items-center gap-2">
-                                    {formatDateRange(group.runs)}
-                                    {#if isMajor}
-                                        <Badge class="bg-primary/20 text-primary border-primary/30 text-xs">
-                                            Full Suite
-                                        </Badge>
-                                    {/if}
-                                </div>
-                                <div class="text-xs text-muted-foreground">
-                                    {group.runs.length} test run{group.runs.length !== 1 ? 's' : ''}
-                                </div>
-                            </div>
-                        </div>
-                        <Badge class={getStatusColor(passRate)}>
-                            {passRate}% Pass
-                        </Badge>
-                    </div>
-                    
-                    <div class="grid grid-cols-4 gap-2 mb-2 text-xs">
-                        <div class="text-center p-1.5 bg-background/40 rounded">
-                            <div class="text-muted-foreground">Total</div>
-                            <div class="font-semibold">{group.totalTests.toLocaleString()}</div>
-                        </div>
-                        <div class="text-center p-1.5 bg-green-500/10 rounded">
-                            <div class="text-green-400">Passed</div>
-                            <div class="font-semibold text-green-400">{group.passedTests.toLocaleString()}</div>
-                        </div>
-                        <div class="text-center p-1.5 bg-red-500/10 rounded">
-                            <div class="text-red-400">Failed</div>
-                            <div class="font-semibold text-red-400">{group.failedTests.toLocaleString()}</div>
-                        </div>
-                        <div class="text-center p-1.5 bg-gray-500/10 rounded">
-                            <div class="text-gray-400">Skipped</div>
-                            <div class="font-semibold text-gray-400">{group.notExecutedTests.toLocaleString()}</div>
-                        </div>
-                    </div>
-
-                    {#if group.runs.length <= 10}
-                        <div class="space-y-1">
-                            {#each group.runs as run}
-                                <a href={getRunUrl(run.id)} target="_blank" rel="noopener noreferrer" class="text-xs p-2 bg-background/20 rounded flex items-center gap-2 hover:bg-background/40 transition-colors no-underline">
-                                    <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1em;">play_circle</span>
-                                    <span class="flex-1 truncate" title={run.name}>{run.name}</span>
-                                    <span class="text-muted-foreground">{run.passedTests}/{run.totalTests}</span>
-                                </a>
-                            {/each}
-                        </div>
-                    {:else}
-                        <details class="text-xs">
-                            <summary class="cursor-pointer p-2 bg-background/20 rounded hover:bg-background/40 transition-colors">
-                                View {group.runs.length} test runs
-                            </summary>
-                            <div class="space-y-1 mt-1">
-                                {#each group.runs as run}
-                                    <a href={getRunUrl(run.id)} target="_blank" rel="noopener noreferrer" class="p-2 bg-background/20 rounded flex items-center gap-2 hover:bg-background/40 transition-colors no-underline">
-                                        <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1em;">play_circle</span>
-                                        <span class="flex-1 truncate" title={run.name}>{run.name}</span>
-                                        <span class="text-muted-foreground">{run.passedTests}/{run.totalTests}</span>
-                                    </a>
-                                {/each}
-                            </div>
-                        </details>
-                    {/if}
+        <!-- Overall Summary -->
+        <div class="mb-4 p-4 border rounded-lg bg-background/30">
+            <h4 class="font-semibold mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">summarize</span>
+                Overall Summary
+            </h4>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div class="p-2 bg-background/40 rounded">
+                    <div class="text-muted-foreground text-xs">Test Period</div>
+                    <div class="font-semibold">{data?.overallBoundaries?.durationDays ?? 0} days</div>
+                    <div class="text-xs text-muted-foreground">{formatDate(data?.overallBoundaries?.startDate ?? null)} - {formatDate(data?.overallBoundaries?.endDate ?? null)}</div>
                 </div>
+                <div class="p-2 bg-background/40 rounded">
+                    <div class="text-muted-foreground text-xs">Expected Tests</div>
+                    <div class="font-semibold">{data?.testCaseSummary?.expectedCount ?? 0}</div>
+                </div>
+                <div class="p-2 bg-green-500/10 rounded">
+                    <div class="text-green-400 text-xs">Executed</div>
+                    <div class="font-semibold text-green-400">{data?.testCaseSummary?.executedCount ?? 0}</div>
+                </div>
+                <div class="p-2 bg-red-500/10 rounded">
+                    <div class="text-red-400 text-xs">Never Executed</div>
+                    <div class="font-semibold text-red-400">{data?.testCaseSummary?.neverExecutedCount ?? 0}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Runs -->
+        <div class="flex-1 overflow-auto space-y-3">
+            {#each data.monthlyRuns as run, index}
+                {@const passRateImprovement = run.passRates.finalPassRate - run.passRates.initialPassRate}
+                <details class="border rounded-lg bg-background/30 overflow-hidden">
+                    <summary class="px-4 py-3 hover:bg-background/50 cursor-pointer list-none">
+                        <div class="flex items-center justify-between w-full">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-primary">rocket_launch</span>
+                                <div class="text-left">
+                                    <div class="font-semibold">Run #{index + 1} - {formatDate(run.date)}</div>
+                                    <div class="text-xs text-muted-foreground">
+                                        {run.runBoundaries.startDate && run.runBoundaries.endDate 
+                                            ? `${formatDate(run.runBoundaries.startDate)} - ${formatDate(run.runBoundaries.endDate)} (${run.runBoundaries.durationDays} days)`
+                                            : 'No execution data'}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <Badge class={getPassRateColor(run.passRates.finalPassRate)}>
+                                    {run.passRates.finalPassRate.toFixed(1)}%
+                                </Badge>
+                                <Badge class={getBufferBadgeColor(run.bufferUsed)}>
+                                    Buffer: {run.bufferUsed}d
+                                </Badge>
+                            </div>
+                        </div>
+                    </summary>
+                    <div class="px-4 pb-4">
+                            <!-- Pass Rate Details -->
+                            <div class="mb-4 p-3 bg-background/20 rounded">
+                                <h5 class="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-sm">done_all</span>
+                                    Pass Rates
+                                </h5>
+                                <div class="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <div class="text-muted-foreground text-xs">Initial Pass Rate</div>
+                                        <div class="font-semibold text-lg">{run.passRates.initialPassRate.toFixed(1)}%</div>
+                                        <div class="text-xs text-muted-foreground">{run.passRates.initialPassedCount}/{run.passRates.totalTestsFound} passed first time</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted-foreground text-xs">Final Pass Rate</div>
+                                        <div class="font-semibold text-lg">{run.passRates.finalPassRate.toFixed(1)}%</div>
+                                        <div class="text-xs text-muted-foreground">{run.passRates.finalPassedCount}/{run.passRates.totalTestsFound} passed eventually</div>
+                                    </div>
+                                </div>
+                                {#if passRateImprovement > 0}
+                                    <div class="mt-2 p-2 bg-green-500/10 rounded border border-green-500/20">
+                                        <div class="text-xs text-green-400 flex items-center gap-1">
+                                            <span class="material-symbols-outlined" style="font-size: 1em;">trending_up</span>
+                                            <span>+{passRateImprovement.toFixed(1)}% improvement from retries</span>
+                                        </div>
+                                    </div>
+                                {/if}
+                            </div>
+
+                            <!-- Test Coverage -->
+                            <div class="mb-4 p-3 bg-background/20 rounded">
+                                <h5 class="font-semibold text-sm mb-2 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-sm">fact_check</span>
+                                    Test Coverage
+                                </h5>
+                                <div class="grid grid-cols-3 gap-2 text-xs">
+                                    <div class="p-2 bg-green-500/10 rounded text-center">
+                                        <div class="text-green-400">Found</div>
+                                        <div class="font-semibold text-lg text-green-400">{run.testCaseCount}</div>
+                                    </div>
+                                    <div class="p-2 bg-red-500/10 rounded text-center">
+                                        <div class="text-red-400">Not Found</div>
+                                        <div class="font-semibold text-lg text-red-400">{run.notFoundTestCases.length}</div>
+                                    </div>
+                                    <div class="p-2 bg-blue-500/10 rounded text-center">
+                                        <div class="text-blue-400">Not in Plan</div>
+                                        <div class="font-semibold text-lg text-blue-400">{run.casesRunThatAreNotInTestPlan.length}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Flaky Tests -->
+                            {#if run.flakyTestCount > 0}
+                                <div class="mb-4 p-3 bg-orange-500/10 border border-orange-500/20 rounded">
+                                    <h5 class="font-semibold text-sm mb-2 flex items-center gap-2 text-orange-400">
+                                        <span class="material-symbols-outlined text-sm">warning</span>
+                                        Flaky Tests ({run.flakyTestCount})
+                                    </h5>
+                                    <div class="space-y-1 max-h-40 overflow-y-auto">
+                                        {#each run.flakyTests.slice(0, 10) as flaky}
+                                            <div class="text-xs p-2 bg-background/30 rounded flex items-center justify-between">
+                                                <span class="truncate flex-1" title={flaky.testCaseName}>
+                                                    <span class="text-muted-foreground">#{flaky.testCaseId}</span> - {flaky.testCaseName}
+                                                </span>
+                                                <Badge class="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs ml-2">
+                                                    {flaky.executionCount}x
+                                                </Badge>
+                                            </div>
+                                        {/each}
+                                        {#if run.flakyTests.length > 10}
+                                            <div class="text-xs text-muted-foreground text-center py-1">
+                                                ... and {run.flakyTests.length - 10} more
+                                            </div>
+                                        {/if}
+                                    </div>
+                                </div>
+                            {/if}
+
+                            <!-- Not Found Tests -->
+                            {#if run.notFoundTestCases.length > 0}
+                                <details class="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded">
+                                    <summary class="font-semibold text-sm mb-2 cursor-pointer flex items-center gap-2 text-red-400">
+                                        <span class="material-symbols-outlined text-sm">error</span>
+                                        Not Found Tests ({run.notFoundTestCases.length})
+                                    </summary>
+                                    <div class="space-y-1 max-h-40 overflow-y-auto mt-2">
+                                        {#each run.notFoundTestCases as test}
+                                            <div class="text-xs p-2 bg-background/30 rounded">
+                                                <span class="text-muted-foreground">#{test.testCaseId}</span> - {test.testCaseName}
+                                            </div>
+                                        {/each}
+                                    </div>
+                                </details>
+                            {/if}
+
+                            <!-- Cases Not in Plan -->
+                            {#if run.casesRunThatAreNotInTestPlan.length > 0}
+                                <details class="p-3 bg-blue-500/10 border border-blue-500/20 rounded">
+                                    <summary class="font-semibold text-sm mb-2 cursor-pointer flex items-center gap-2 text-blue-400">
+                                        <span class="material-symbols-outlined text-sm">info</span>
+                                        Tests Not in Plan ({run.casesRunThatAreNotInTestPlan.length})
+                                    </summary>
+                                    <div class="space-y-1 max-h-40 overflow-y-auto mt-2">
+                                        {#each run.casesRunThatAreNotInTestPlan as test}
+                                            <div class="text-xs p-2 bg-background/30 rounded">
+                                                <span class="text-muted-foreground">#{test.testCaseId}</span> - {test.testCaseName}
+                                            </div>
+                                        {/each}
+                                    </div>
+                                </details>
+                            {/if}
+                    </div>
+                </details>
             {/each}
         </div>
     {/if}
-</div>
-
-<style>
+</div><style>
 </style>

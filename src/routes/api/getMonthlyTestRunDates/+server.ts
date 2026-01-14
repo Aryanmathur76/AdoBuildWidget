@@ -44,6 +44,12 @@ export async function GET({ url }: { url: URL }) {
 		);
 
 		const expectedTestCaseIds = new Set(expectedTestCases.map(tc => tc.workItem.id));
+		
+		// Create a map of test case ID to name for quick lookup
+		const testCaseIdToName = new Map<number, string>();
+		for (const tc of expectedTestCases) {
+			testCaseIdToName.set(tc.workItem.id, tc.workItem.name);
+		}
 
 		// Fetch all test runs for the plan
 		const runsUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/test/runs?planId=${planId}&api-version=7.1`;
@@ -232,27 +238,52 @@ export async function GET({ url }: { url: URL }) {
 				);
 
 				// Identify flaky test cases (executed more than once)
-				const flakyTests: Array<{ testCaseId: number; executionCount: number }> = [];
+				const flakyTests: Array<{ testCaseId: number; testCaseName: string; executionCount: number }> = [];
 				for (const [testCaseId, count] of result.executionCounts.entries()) {
 					if (count > 1) {
-						flakyTests.push({ testCaseId, executionCount: count });
+						flakyTests.push({ 
+							testCaseId, 
+							testCaseName: testCaseIdToName.get(testCaseId) || 'Unknown',
+							executionCount: count 
+						});
 					}
 				}
 				flakyTests.sort((a, b) => b.executionCount - a.executionCount); // Sort by execution count descending
 
 				// Calculate pass rates
 				const passRates = calculatePassRates(
-					expectedTestCaseIds,
+					result.foundTestCaseIds,
 					result.testCaseExecutions
 				);
 
+				// Identify test cases that were run but are not in the test plan
+				const casesRunThatAreNotInTestPlan: Array<{ testCaseId: number; testCaseName: string }> = [];
+				for (const testCaseId of result.allExecutedTestCaseIds) {
+					if (!expectedTestCaseIds.has(testCaseId)) {
+						casesRunThatAreNotInTestPlan.push({ 
+							testCaseId,
+							testCaseName: 'Not in test plan - fetch details if needed'
+						});
+					}
+				}
+				casesRunThatAreNotInTestPlan.sort((a, b) => a.testCaseId - b.testCaseId);
+
+				// Create detailed test case info for found and not found
+				const foundTestCasesWithNames = Array.from(result.foundTestCaseIds)
+					.map(id => ({ testCaseId: id, testCaseName: testCaseIdToName.get(id) || 'Unknown' }))
+					.sort((a, b) => a.testCaseId - b.testCaseId);
+
+				const notFoundTestCasesWithNames = Array.from(result.notFoundTestCaseIds)
+					.map(id => ({ testCaseId: id, testCaseName: testCaseIdToName.get(id) || 'Unknown' }))
+					.sort((a, b) => a.testCaseId - b.testCaseId);
+
 				return {
-					...day,
-					testCaseIds: Array.from(result.foundTestCaseIds).sort((a, b) => a - b),
+					date: day.date,
 					testCaseCount: result.foundTestCaseIds.size,
 					bufferUsed: result.bufferUsed,
-					foundTestCases: Array.from(result.foundTestCaseIds).sort((a, b) => a - b),
-					notFoundTestCases: Array.from(result.notFoundTestCaseIds).sort((a, b) => a - b),
+					foundTestCases: foundTestCasesWithNames,
+					notFoundTestCases: notFoundTestCasesWithNames,
+					casesRunThatAreNotInTestPlan: casesRunThatAreNotInTestPlan,
 					flakyTests: flakyTests,
 					flakyTestCount: flakyTests.length,
 					passRates: {
@@ -260,7 +291,7 @@ export async function GET({ url }: { url: URL }) {
 						finalPassRate: passRates.finalPassRate,
 						initialPassedCount: passRates.initialPassedCount,
 						finalPassedCount: passRates.finalPassedCount,
-						totalExpectedTests: passRates.totalExpectedTests
+						totalTestsFound: passRates.totalTestsFound
 					},
 					runBoundaries: {
 						startDate: boundaries.startDate,
@@ -352,6 +383,7 @@ async function getTestCasesAroundDateWithBuffer(
 	executionDates: Set<string>;
 	executionCounts: Map<number, number>;
 	testCaseExecutions: Map<number, Array<{ outcome: string; completedDate: string }>>;
+	allExecutedTestCaseIds: Set<number>;
 }> {
 	const MAX_BUFFER = 5;
 	
@@ -386,7 +418,8 @@ async function getTestCasesAroundDateWithBuffer(
 				bufferUsed: bufferDays,
 				executionDates: result.executionDates,
 				executionCounts: result.executionCounts,
-				testCaseExecutions: result.testCaseExecutions
+				testCaseExecutions: result.testCaseExecutions,
+				allExecutedTestCaseIds: result.testCaseIds
 			};
 		}
 		
@@ -398,7 +431,8 @@ async function getTestCasesAroundDateWithBuffer(
 				bufferUsed: bufferDays,
 				executionDates: result.executionDates,
 				executionCounts: result.executionCounts,
-				testCaseExecutions: result.testCaseExecutions
+				testCaseExecutions: result.testCaseExecutions,
+				allExecutedTestCaseIds: result.testCaseIds
 			};
 		}
 	}
@@ -410,7 +444,8 @@ async function getTestCasesAroundDateWithBuffer(
 		bufferUsed: MAX_BUFFER,
 		executionDates: new Set(),
 		executionCounts: new Map(),
-		testCaseExecutions: new Map()
+		testCaseExecutions: new Map(),
+		allExecutedTestCaseIds: new Set()
 	};
 }
 
@@ -537,22 +572,23 @@ function determineExecutionBoundaries(
 
 /**
  * Calculate initial and final pass rates for a monthly run
+ * Only considers test cases that were actually found/executed
  */
 function calculatePassRates(
-	expectedTestCaseIds: Set<number>,
+	foundTestCaseIds: Set<number>,
 	testCaseExecutions: Map<number, Array<{ outcome: string; completedDate: string }>>
 ): {
 	initialPassRate: number;
 	finalPassRate: number;
 	initialPassedCount: number;
 	finalPassedCount: number;
-	totalExpectedTests: number;
+	totalTestsFound: number;
 } {
 	let initialPassedCount = 0;
 	let finalPassedCount = 0;
-	const totalExpectedTests = expectedTestCaseIds.size;
+	const totalTestsFound = foundTestCaseIds.size;
 	
-	for (const testCaseId of expectedTestCaseIds) {
+	for (const testCaseId of foundTestCaseIds) {
 		const executions = testCaseExecutions.get(testCaseId);
 		
 		if (executions && executions.length > 0) {
@@ -573,15 +609,14 @@ function calculatePassRates(
 				finalPassedCount++;
 			}
 		}
-		// If a test case was never executed, it counts as failed for both metrics
 	}
 	
-	const initialPassRate = totalExpectedTests > 0 
-		? (initialPassedCount / totalExpectedTests) * 100 
+	const initialPassRate = totalTestsFound > 0 
+		? (initialPassedCount / totalTestsFound) * 100 
 		: 0;
 	
-	const finalPassRate = totalExpectedTests > 0 
-		? (finalPassedCount / totalExpectedTests) * 100 
+	const finalPassRate = totalTestsFound > 0 
+		? (finalPassedCount / totalTestsFound) * 100 
 		: 0;
 	
 	return {
@@ -589,7 +624,7 @@ function calculatePassRates(
 		finalPassRate: Math.round(finalPassRate * 100) / 100,
 		initialPassedCount,
 		finalPassedCount,
-		totalExpectedTests
+		totalTestsFound
 	};
 }
 
@@ -697,7 +732,7 @@ async function fetchAllTestCasesFromSuite(
 }
 
 /**
- * Group consecutive dates within 1-week windows and return the median date from each group
+ * Group consecutive dates within 2-week windows and return the median date from each group
  */
 function groupByWeekWindow(days: Array<{ date: string; change: number; testsBefore: number; testsAfter: number }>) {
 	if (days.length === 0) return [];
@@ -710,8 +745,8 @@ function groupByWeekWindow(days: Array<{ date: string; change: number; testsBefo
 		const currDate = new Date(days[i].date);
 		const daysDiff = Math.abs((currDate.getTime() - groupFirstDate.getTime()) / (1000 * 60 * 60 * 24));
 
-		if (daysDiff <= 7) {
-			// Within 1 week of group start, add to current group
+		if (daysDiff <= 14) {
+			// Within 2 weeks of group start, add to current group
 			currentGroup.push(days[i]);
 		} else {
 			// Outside window, calculate median date of current group and start new group
