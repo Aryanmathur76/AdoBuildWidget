@@ -231,6 +231,15 @@ export async function GET({ url }: { url: URL }) {
 					result.executionDates
 				);
 
+				// Identify flaky test cases (executed more than once)
+				const flakyTests: Array<{ testCaseId: number; executionCount: number }> = [];
+				for (const [testCaseId, count] of result.executionCounts.entries()) {
+					if (count > 1) {
+						flakyTests.push({ testCaseId, executionCount: count });
+					}
+				}
+				flakyTests.sort((a, b) => b.executionCount - a.executionCount); // Sort by execution count descending
+
 				return {
 					...day,
 					testCaseIds: Array.from(result.foundTestCaseIds).sort((a, b) => a - b),
@@ -238,6 +247,8 @@ export async function GET({ url }: { url: URL }) {
 					bufferUsed: result.bufferUsed,
 					foundTestCases: Array.from(result.foundTestCaseIds).sort((a, b) => a - b),
 					notFoundTestCases: Array.from(result.notFoundTestCaseIds).sort((a, b) => a - b),
+					flakyTests: flakyTests,
+					flakyTestCount: flakyTests.length,
 					runBoundaries: {
 						startDate: boundaries.startDate,
 						endDate: boundaries.endDate,
@@ -326,6 +337,7 @@ async function getTestCasesAroundDateWithBuffer(
 	notFoundTestCaseIds: Set<number>;
 	bufferUsed: number;
 	executionDates: Set<string>;
+	executionCounts: Map<number, number>;
 }> {
 	const MAX_BUFFER = 5;
 	
@@ -358,7 +370,8 @@ async function getTestCasesAroundDateWithBuffer(
 				foundTestCaseIds,
 				notFoundTestCaseIds,
 				bufferUsed: bufferDays,
-				executionDates: result.executionDates
+				executionDates: result.executionDates,
+				executionCounts: result.executionCounts
 			};
 		}
 		
@@ -368,7 +381,8 @@ async function getTestCasesAroundDateWithBuffer(
 				foundTestCaseIds,
 				notFoundTestCaseIds,
 				bufferUsed: bufferDays,
-				executionDates: result.executionDates
+				executionDates: result.executionDates,
+				executionCounts: result.executionCounts
 			};
 		}
 	}
@@ -378,7 +392,8 @@ async function getTestCasesAroundDateWithBuffer(
 		foundTestCaseIds: new Set(),
 		notFoundTestCaseIds: expectedTestCaseIds,
 		bufferUsed: MAX_BUFFER,
-		executionDates: new Set()
+		executionDates: new Set(),
+		executionCounts: new Map()
 	};
 }
 
@@ -393,9 +408,10 @@ async function getTestCasesAroundDate(
 	project: string,
 	pat: string,
 	expectedTestCaseIds?: Set<number>
-): Promise<{ testCaseIds: Set<number>; executionDates: Set<string> }> {
+): Promise<{ testCaseIds: Set<number>; executionDates: Set<string>; executionCounts: Map<number, number> }> {
 	const testCaseIds = new Set<number>();
 	const executionDates = new Set<string>();
+	const executionCounts = new Map<number, number>();
 	const target = new Date(targetDate);
 	
 	// Iterate through dates within the buffer window
@@ -429,6 +445,10 @@ async function getTestCasesAroundDate(
 								const testCaseId = parseInt(result.testCase.id);
 								testCaseIds.add(testCaseId);
 								
+								// Track execution count for all test cases
+								const currentCount = executionCounts.get(testCaseId) || 0;
+								executionCounts.set(testCaseId, currentCount + 1);
+								
 								// Track execution date if this is an expected test case
 								if (expectedTestCaseIds && expectedTestCaseIds.has(testCaseId)) {
 									foundExpectedTestCase = true;
@@ -449,7 +469,7 @@ async function getTestCasesAroundDate(
 		}
 	}
 	
-	return { testCaseIds, executionDates };
+	return { testCaseIds, executionDates, executionCounts };
 }
 
 /**
