@@ -200,36 +200,9 @@
             </div>
         </div>
     {:else}
-        <!-- Overall Summary -->
-        <div class="mb-4 p-4 border rounded-lg bg-background/30">
-            <h4 class="font-semibold mb-3 flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">summarize</span>
-                Overall Summary
-            </h4>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                <div class="p-2 bg-background/40 rounded">
-                    <div class="text-muted-foreground text-xs">Test Period</div>
-                    <div class="font-semibold">{data?.overallBoundaries?.durationDays ?? 0} days</div>
-                    <div class="text-xs text-muted-foreground">{formatDate(data?.overallBoundaries?.startDate ?? null)} - {formatDate(data?.overallBoundaries?.endDate ?? null)}</div>
-                </div>
-                <div class="p-2 bg-background/40 rounded">
-                    <div class="text-muted-foreground text-xs">Expected Tests</div>
-                    <div class="font-semibold">{data?.testCaseSummary?.expectedCount ?? 0}</div>
-                </div>
-                <div class="p-2 bg-green-500/10 rounded">
-                    <div class="text-green-400 text-xs">Executed</div>
-                    <div class="font-semibold text-green-400">{data?.testCaseSummary?.executedCount ?? 0}</div>
-                </div>
-                <div class="p-2 bg-red-500/10 rounded">
-                    <div class="text-red-400 text-xs">Never Executed</div>
-                    <div class="font-semibold text-red-400">{data?.testCaseSummary?.neverExecutedCount ?? 0}</div>
-                </div>
-            </div>
-        </div>
-
         <!-- Monthly Runs -->
         <div class="flex-1 overflow-auto space-y-3">
-            {#each data.monthlyRuns as run, index}
+            {#each (data?.monthlyRuns || []) as run, index}
                 {@const passRateImprovement = run.passRates.finalPassRate - run.passRates.initialPassRate}
                 <details class="border rounded-lg bg-background/30 overflow-hidden">
                     <summary class="px-4 py-3 hover:bg-background/50 cursor-pointer list-none">
@@ -275,9 +248,9 @@
                                     </div>
                                 </div>
                                 {#if passRateImprovement > 0}
-                                    <div class="mt-2 p-2 bg-green-500/10 rounded border border-green-500/20">
-                                        <div class="text-xs text-green-400 flex items-center gap-1">
-                                            <span class="material-symbols-outlined" style="font-size: 1em;">trending_up</span>
+                                    <div class="mt-2 p-2 bg-muted/20 rounded border border-border/50">
+                                        <div class="text-xs text-muted-foreground flex items-center gap-1">
+                                            <span class="material-symbols-outlined" style="font-size: 1em;">info</span>
                                             <span>+{passRateImprovement.toFixed(1)}% improvement from retries</span>
                                         </div>
                                     </div>
