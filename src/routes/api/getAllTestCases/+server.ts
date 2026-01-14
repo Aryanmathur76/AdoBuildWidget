@@ -3,8 +3,8 @@ import { env } from '$env/dynamic/private';
 import { getAzureDevOpsEnvVars } from '$lib/utils';
 
 /**
- * GET /api/getAllTestCases?testPlanId=123
- * Returns all test suites and their test cases for a given test plan.
+ * GET /api/getAllTestCases?testPlanId=123&suiteId=456
+ * Returns a specific test suite and its child suites with their test cases.
  * Handles pagination using continuationToken from Azure DevOps API.
  */
 
@@ -14,6 +14,10 @@ interface TestSuite {
 	suiteType: string;
 	testCases?: TestCase[];
 	childSuites?: TestSuite[];
+	parentSuite?: {
+		id: number;
+		name?: string;
+	};
 }
 
 interface TestCase {
@@ -35,67 +39,49 @@ export async function GET({ url }: { url: URL }) {
 		}
 
 		const testPlanId = url.searchParams.get('testPlanId');
+		const suiteId = url.searchParams.get('suiteId');
+		
 		if (!testPlanId) {
 			return json({ error: 'Missing testPlanId parameter' }, { status: 400 });
 		}
-
-		// Fetch all test suites with pagination
-		const allSuites: TestSuite[] = [];
-		let continuationToken: string | null = null;
-
-		do {
-			let suitesUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/testplan/Plans/${testPlanId}/suites?api-version=7.1`;
-			
-			if (continuationToken) {
-				suitesUrl += `&continuationToken=${encodeURIComponent(continuationToken)}`;
-			}
-
-			const suitesRes = await fetch(suitesUrl, {
-				headers: {
-					'Authorization': `Basic ${btoa(':' + AZURE_DEVOPS_PAT)}`,
-					'Content-Type': 'application/json',
-				},
-			});
-
-			if (!suitesRes.ok) {
-				return json({ 
-					error: 'Failed to fetch test suites', 
-					details: await suitesRes.text() 
-				}, { status: suitesRes.status });
-			}
-
-			const suitesData = await suitesRes.json();
-			
-			if (Array.isArray(suitesData.value)) {
-				allSuites.push(...suitesData.value);
-			}
-
-			// Check for continuation token in response headers
-			continuationToken = suitesRes.headers.get('x-ms-continuationtoken');
-			
-		} while (continuationToken);
-
-		// Now fetch test cases for each suite
-		let totalTestCases = 0;
-		for (const suite of allSuites) {
-			if (suite.id) {
-				const testCases = await fetchTestCasesForSuite(
-					AZURE_DEVOPS_ORGANIZATION,
-					AZURE_DEVOPS_PROJECT,
-					AZURE_DEVOPS_PAT,
-					testPlanId,
-					suite.id.toString()
-				);
-				suite.testCases = testCases;
-				totalTestCases += testCases.length;
-			}
+		
+		if (!suiteId) {
+			return json({ error: 'Missing suiteId parameter' }, { status: 400 });
 		}
+
+		// Recursively fetch the specific suite, all its child suites, and test cases
+		const suite = await fetchSuiteWithChildrenAndTestCases(
+			AZURE_DEVOPS_ORGANIZATION,
+			AZURE_DEVOPS_PROJECT,
+			AZURE_DEVOPS_PAT,
+			testPlanId,
+			suiteId
+		);
+
+		if (!suite) {
+			return json({ 
+				error: 'Failed to fetch test suite' 
+			}, { status: 404 });
+		}
+
+		// Count total suites and test cases recursively
+		let totalSuites = 0;
+		let totalTestCases = 0;
+		const countSuitesAndTestCases = (s: TestSuite) => {
+			totalSuites++;
+			totalTestCases += s.testCases?.length || 0;
+			if (s.childSuites && Array.isArray(s.childSuites)) {
+				s.childSuites.forEach(countSuitesAndTestCases);
+			}
+		};
+		countSuitesAndTestCases(suite);
 
 		return json({
 			testPlanId: parseInt(testPlanId),
-			totalSuites: allSuites.length,
+			suiteId: parseInt(suiteId),
+			totalSuites: totalSuites,
 			totalTestCases,
-			suites: allSuites
+			suite: suite // Return the main suite with nested structure
 		});
 
 	} catch (error: any) {
@@ -104,6 +90,85 @@ export async function GET({ url }: { url: URL }) {
 			error: 'Internal server error', 
 			details: error.message 
 		}, { status: 500 });
+	}
+}
+
+/**
+ * Recursively fetches a suite, all its child suites, and test cases for each.
+ */
+async function fetchSuiteWithChildrenAndTestCases(
+	organization: string,
+	project: string,
+	pat: string,
+	testPlanId: string,
+	suiteId: string
+): Promise<TestSuite | null> {
+	try {
+		// Fetch the suite
+		const suiteUrl = `https://dev.azure.com/${organization}/${project}/_apis/testplan/Plans/${testPlanId}/suites/${suiteId}?api-version=7.1`;
+		
+		const suiteRes = await fetch(suiteUrl, {
+			headers: {
+				'Authorization': `Basic ${btoa(':' + pat)}`,
+				'Content-Type': 'application/json',
+			},
+		});
+
+		if (!suiteRes.ok) {
+			console.error(`Failed to fetch suite ${suiteId}`);
+			return null;
+		}
+
+		const suite: TestSuite = await suiteRes.json();
+
+		// Fetch test cases for this suite
+		suite.testCases = await fetchTestCasesForSuite(
+			organization,
+			project,
+			pat,
+			testPlanId,
+			suiteId
+		);
+
+		// Fetch all child suites from the API (not just references)
+		const childSuitesUrl = `https://dev.azure.com/${organization}/${project}/_apis/testplan/Plans/${testPlanId}/suites?api-version=7.1`;
+		const childSuitesRes = await fetch(childSuitesUrl, {
+			headers: {
+				'Authorization': `Basic ${btoa(':' + pat)}`,
+				'Content-Type': 'application/json',
+			},
+		});
+
+		if (childSuitesRes.ok) {
+			const childSuitesData = await childSuitesRes.json();
+			const allSuites: TestSuite[] = childSuitesData.value || [];
+			
+			// Filter to get only direct children of this suite
+			const directChildren = allSuites.filter(s => s.parentSuite?.id === suite.id);
+			
+			if (directChildren.length > 0) {
+				// Recursively fetch each child suite with its descendants
+				const childSuitePromises = directChildren.map(childSuite => 
+					fetchSuiteWithChildrenAndTestCases(
+						organization,
+						project,
+						pat,
+						testPlanId,
+						childSuite.id.toString()
+					)
+				);
+				
+				const fetchedChildren = await Promise.all(childSuitePromises);
+				suite.childSuites = fetchedChildren.filter((child): child is TestSuite => child !== null);
+			} else {
+				suite.childSuites = [];
+			}
+		}
+
+		return suite;
+	} catch (error) {
+		console.error(`Error fetching suite ${suiteId}:`, error);
+		return null;
 	}
 }
 
