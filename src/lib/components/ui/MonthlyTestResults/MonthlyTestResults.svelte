@@ -61,6 +61,7 @@
     let loading = $state(true);
     let error = $state<string | null>(null);
     let showConfig = $state(false);
+    let expandedFlakyTests = $state<Record<string, boolean>>({});
 
     // Configuration - hardcoded defaults
     let planId = $state('1310927');
@@ -287,7 +288,7 @@
                                         Flaky Tests ({run.flakyTestCount})
                                     </h5>
                                     <div class="space-y-1 max-h-40 overflow-y-auto">
-                                        {#each run.flakyTests.slice(0, 10) as flaky}
+                                        {#each (expandedFlakyTests[run.date] ? run.flakyTests : run.flakyTests.slice(0, 10)) as flaky}
                                             <div class="text-xs p-2 bg-background/30 rounded flex items-center justify-between">
                                                 <span class="truncate flex-1" title={flaky.testCaseName}>
                                                     <span class="text-muted-foreground">#{flaky.testCaseId}</span> - {flaky.testCaseName}
@@ -297,10 +298,21 @@
                                                 </Badge>
                                             </div>
                                         {/each}
-                                        {#if run.flakyTests.length > 10}
-                                            <div class="text-xs text-muted-foreground text-center py-1">
-                                                ... and {run.flakyTests.length - 10} more
-                                            </div>
+                                        {#if run.flakyTests.length > 10 && !expandedFlakyTests[run.date]}
+                                            <button 
+                                                class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
+                                                onclick={() => expandedFlakyTests[run.date] = true}
+                                            >
+                                                ... and {run.flakyTests.length - 10} more (click to expand)
+                                            </button>
+                                        {/if}
+                                        {#if expandedFlakyTests[run.date]}
+                                            <button 
+                                                class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
+                                                onclick={() => expandedFlakyTests[run.date] = false}
+                                            >
+                                                Show less
+                                            </button>
                                         {/if}
                                     </div>
                                 </div>

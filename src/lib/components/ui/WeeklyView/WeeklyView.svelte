@@ -95,7 +95,7 @@
 </script>
 
 <div class="w-full flex-1 min-h-0" transition:slide={{ duration: 300 }}>
-    <Card class="h-full flex flex-col py-2 border-0 bg-transparent shadow-none">
+    <Card class="h-full flex flex-col py-0 border-0 bg-transparent shadow-none">
         <CardContent class="p-4 xl:pb-0 pt-0 flex flex-col h-full">
             <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
                 <span class="material-symbols-outlined" style="font-size: 1.5em;">view_week</span>
