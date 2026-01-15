@@ -182,6 +182,9 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 		testRuns = filteredRuns;
 		sendProgress?.('Filtering Test Runs', `Filtered out ${filteredCount} runs with cases outside the suite. ${testRuns.length} runs remain.`, 100, true);
 
+		// Mark 'Fetching Test Runs' as completed before starting next stage
+		sendProgress?.('Fetching Test Runs', 'Completed fetching test runs.', 100, true);
+
 		const dayMap = new Map<string, number>();
 		const runsByDate = new Map<string, any[]>(); // Track runs by date for later test case collection
 		const testCaseExecutionDates = new Map<number, Set<string>>(); // Track when each expected test case was executed
