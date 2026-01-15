@@ -96,7 +96,7 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 			throw new Error('Missing suiteId parameter');
 		}
 
-		// Stage 1: Fetch test cases from suite
+		// Stage 1: Fetch test cases from suite (and all descendants)
 		sendProgress?.('Fetching Test Cases', 'Loading expected test cases from suite...', 0);
 		const expectedTestCases = await fetchAllTestCasesFromSuite(
 			planId,
@@ -107,8 +107,9 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 		);
 		sendProgress?.('Fetching Test Cases', `Loaded ${expectedTestCases.length} expected test cases`, 100, true);
 
-		const expectedTestCaseIds = new Set(expectedTestCases.map(tc => tc.workItem.id));
-		
+		// Set of all valid test case IDs for the suite (and descendants)
+		const validTestCaseIds = new Set(expectedTestCases.map(tc => tc.workItem.id));
+
 		// Create a map of test case ID to name for quick lookup
 		const testCaseIdToName = new Map<number, string>();
 		for (const tc of expectedTestCases) {
@@ -132,13 +133,54 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 
 		const runsData = await runsRes.json();
 		const allRuns = Array.isArray(runsData.value) ? runsData.value : [];
-		
+
 		// Filter out runs with 'development', 'dev', or 'cloned' in their names
-		const testRuns = allRuns.filter((run: any) => {
+		let testRuns = allRuns.filter((run: any) => {
 			const name = (run.name || '').toLowerCase();
 			return !name.includes('development') && !name.includes('dev') && !name.includes('cloned');
 		});
-		sendProgress?.('Fetching Test Runs', `Found ${testRuns.length} test runs`, 100, true);
+
+		// For each run, fetch the executed test cases and filter out runs with any test case not in the suite
+		sendProgress?.('Filtering Test Runs', 'Filtering test runs to only those with test cases in the suite...', 0);
+		const filteredRuns: any[] = [];
+		let filteredCount = 0;
+		for (let i = 0; i < testRuns.length; i++) {
+			const run = testRuns[i];
+			const resultsUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/test/runs/${run.id}/results?api-version=7.1`;
+			try {
+				const resultsRes = await fetch(resultsUrl, {
+					headers: {
+						'Authorization': `Basic ${btoa(':' + AZURE_DEVOPS_PAT)}`,
+						'Content-Type': 'application/json',
+					},
+				});
+				if (resultsRes.ok) {
+					const resultsData = await resultsRes.json();
+					const executedTestCaseIds = new Set((resultsData.value || []).map((r: any) => parseInt(r.testCase?.id)));
+					// If any executed test case is not in the suite, skip this run
+					let allInSuite = true;
+					for (const id of executedTestCaseIds) {
+						if (!validTestCaseIds.has(Number(id))) {
+							allInSuite = false;
+							break;
+						}
+					}
+					if (allInSuite) {
+						filteredRuns.push(run);
+					} else {
+						filteredCount++;
+					}
+				}
+			} catch (e) {
+				// If error, skip this run
+				filteredCount++;
+			}
+			if (i % 10 === 0) {
+				sendProgress?.('Filtering Test Runs', `Filtered ${i + 1} of ${testRuns.length} runs...`, Math.round(((i + 1) / testRuns.length) * 100));
+			}
+		}
+		testRuns = filteredRuns;
+		sendProgress?.('Filtering Test Runs', `Filtered out ${filteredCount} runs with cases outside the suite. ${testRuns.length} runs remain.`, 100, true);
 
 		const dayMap = new Map<string, number>();
 		const runsByDate = new Map<string, any[]>(); // Track runs by date for later test case collection
@@ -231,9 +273,8 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 					for (const result of results) {
 						if (result.testCase && result.testCase.id) {
 							const testCaseId = parseInt(result.testCase.id);
-							
-							// Only track if this is an expected test case
-							if (expectedTestCaseIds.has(testCaseId)) {
+							// Only track if this is a valid test case for the suite
+							if (validTestCaseIds.has(testCaseId)) {
 								if (!testCaseExecutionDates.has(testCaseId)) {
 									testCaseExecutionDates.set(testCaseId, new Set());
 								}
@@ -307,7 +348,7 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 				AZURE_DEVOPS_ORGANIZATION,
 				AZURE_DEVOPS_PROJECT,
 				AZURE_DEVOPS_PAT,
-				expectedTestCaseIds
+				validTestCaseIds
 			);
 
 			// Determine actual execution boundaries for this monthly run
@@ -339,7 +380,7 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 			// Identify test cases that were run but are not in the test plan
 			const casesRunThatAreNotInTestPlan: Array<{ testCaseId: number; testCaseName: string }> = [];
 			for (const testCaseId of result.allExecutedTestCaseIds) {
-				if (!expectedTestCaseIds.has(testCaseId)) {
+				if (!validTestCaseIds.has(testCaseId)) {
 					casesRunThatAreNotInTestPlan.push({ 
 						testCaseId,
 						testCaseName: 'Not in test plan - fetch details if needed'
@@ -386,8 +427,8 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 		sendProgress?.('Finalizing Results', 'Calculating test execution statistics...', 100, true);
 		
 		// Calculate test case execution statistics
-		const executedTestCaseIds = Array.from(testCaseExecutionDates.keys());
-		const neverExecutedTestCaseIds = Array.from(expectedTestCaseIds).filter(id => !testCaseExecutionDates.has(id));
+		const executedTestCaseIds = Array.from(testCaseExecutionDates.keys()).map(Number);
+		const neverExecutedTestCaseIds = Array.from(validTestCaseIds).map(Number).filter(id => !testCaseExecutionDates.has(id));
 
 		// Calculate duration if we have both boundaries
 		let durationDays = null;
@@ -408,10 +449,10 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 				durationDays: durationDays
 			},
 			testCaseSummary: {
-				expectedCount: expectedTestCaseIds.size,
+				expectedCount: validTestCaseIds.size,
 				executedCount: executedTestCaseIds.length,
 				neverExecutedCount: neverExecutedTestCaseIds.length,
-				expectedTestCaseIds: Array.from(expectedTestCaseIds).sort((a, b) => a - b),
+				expectedTestCaseIds: Array.from(validTestCaseIds).map(Number).sort((a, b) => a - b),
 				executedTestCaseIds: executedTestCaseIds.sort((a, b) => a - b),
 				neverExecutedTestCaseIds: neverExecutedTestCaseIds.sort((a, b) => a - b)
 			},
