@@ -121,12 +121,12 @@
 
 </script>
 
-<div class="flex flex-col h-full p-4">
-    <div class="flex items-center justify-between gap-2 mb-4">
-        <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">calendar_month</span>
-            <h3 class="text-lg font-semibold">Monthly Test Run Analysis</h3>
-        </div>
+<div class="h-full p-4 lg:p-0 lg:pb-0 flex flex-col gap-4">
+    <div class="flex items-center justify-between gap-2">
+        <h3 class="text-lg font-semibold flex items-center gap-2">
+            <span class="material-symbols-outlined" style="font-size: 1.5em;">calendar_month</span>
+            Monthly Test Run Analysis
+        </h3>
         <button 
             onclick={() => showConfig = !showConfig}
             class="px-2 py-1 text-xs rounded border border-border/50 hover:bg-accent/20 transition-colors"

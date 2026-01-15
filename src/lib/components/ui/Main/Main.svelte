@@ -300,14 +300,14 @@
                                 </CardContent>
                             </Card>
                         </Carousel.Item>
-                        <Carousel.Item class="pl-4 basis-1/3">
+                        <Carousel.Item class="h-full pl-4 basis-1/3">
                             <Card class="h-full bg-background/70 backdrop-blur-sm">
                                 <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
                                     <WeeklyView viewMode={heatmapViewMode} />
                                 </CardContent>
                             </Card>
                         </Carousel.Item>
-                        <Carousel.Item class="pl-4 basis-1/3">
+                        <Carousel.Item class="h-full pl-4 basis-1/3">
                             <Card class="h-full bg-background/70 backdrop-blur-sm">
                                 <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
                                     <PipelineAnalytics />
@@ -316,14 +316,14 @@
                         </Carousel.Item>
                         <Carousel.Item class="h-full pl-4 basis-1/3">
                             <Card class="h-full bg-background/70 backdrop-blur-sm">
-                                <CardContent class="flex-1 min-h-0 p-4 flex flex-col overflow-auto h-full">
+                                <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
                                     <MonthlyTestResults />
                                 </CardContent>
                             </Card>
                         </Carousel.Item>
                         <Carousel.Item class="h-full pl-4 basis-1/3">
                             <Card class="h-full bg-background/70 backdrop-blur-sm">
-                                <CardContent class="flex-1 min-h-0 p-4 flex flex-col overflow-auto h-full">
+                                <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
                                     <WeeklyTestResults />
                                 </CardContent>
                             </Card>
