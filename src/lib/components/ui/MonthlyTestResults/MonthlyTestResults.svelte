@@ -317,8 +317,8 @@
                                 <Badge class={getPassRateColor(run.passRates.finalPassRate)}>
                                     {run.passRates.finalPassRate.toFixed(1)}%
                                 </Badge>
-                                <Badge class={getBufferBadgeColor(run.bufferUsed)}>
-                                    Buffer: {run.bufferUsed}d
+                                <Badge class="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                                    {run.foundTestCases.length} / {data?.testCaseSummary.expectedCount} cases found
                                 </Badge>
                             </div>
                         </div>
