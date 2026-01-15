@@ -144,40 +144,46 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 		sendProgress?.('Filtering Test Runs', 'Filtering test runs to only those with test cases in the suite...', 0);
 		const filteredRuns: any[] = [];
 		let filteredCount = 0;
-		for (let i = 0; i < testRuns.length; i++) {
-			const run = testRuns[i];
-			const resultsUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/test/runs/${run.id}/results?api-version=7.1`;
-			try {
-				const resultsRes = await fetch(resultsUrl, {
-					headers: {
-						'Authorization': `Basic ${btoa(':' + AZURE_DEVOPS_PAT)}`,
-						'Content-Type': 'application/json',
-					},
-				});
-				if (resultsRes.ok) {
-					const resultsData = await resultsRes.json();
-					const executedTestCaseIds = new Set((resultsData.value || []).map((r: any) => parseInt(r.testCase?.id)));
-					// If any executed test case is not in the suite, skip this run
-					let allInSuite = true;
-					for (const id of executedTestCaseIds) {
-						if (!validTestCaseIds.has(Number(id))) {
-							allInSuite = false;
-							break;
+		const filterBatchSize = 100;
+		for (let i = 0; i < testRuns.length; i += filterBatchSize) {
+			const batch = testRuns.slice(i, i + filterBatchSize);
+			const batchPromises = batch.map(async (run: any) => {
+				const resultsUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/test/runs/${run.id}/results?api-version=7.1`;
+				try {
+					const resultsRes = await fetch(resultsUrl, {
+						headers: {
+							'Authorization': `Basic ${btoa(':' + AZURE_DEVOPS_PAT)}`,
+							'Content-Type': 'application/json',
+						},
+					});
+					if (resultsRes.ok) {
+						const resultsData = await resultsRes.json();
+						const executedTestCaseIds = new Set((resultsData.value || []).map((r: any) => parseInt(r.testCase?.id)));
+						// If any executed test case is not in the suite, skip this run
+						let allInSuite = true;
+						for (const id of executedTestCaseIds) {
+							if (!validTestCaseIds.has(Number(id))) {
+								allInSuite = false;
+								break;
+							}
+						}
+						if (allInSuite) {
+							return run;
+						} else {
+							filteredCount++;
+							return null;
 						}
 					}
-					if (allInSuite) {
-						filteredRuns.push(run);
-					} else {
-						filteredCount++;
-					}
+				} catch (e) {
+					filteredCount++;
 				}
-			} catch (e) {
-				// If error, skip this run
-				filteredCount++;
+				return null;
+			});
+			const batchResults = await Promise.all(batchPromises);
+			for (const result of batchResults) {
+				if (result) filteredRuns.push(result);
 			}
-			if (i % 10 === 0) {
-				sendProgress?.('Filtering Test Runs', `Filtered ${i + 1} of ${testRuns.length} runs...`, Math.round(((i + 1) / testRuns.length) * 100));
-			}
+			sendProgress?.('Filtering Test Runs', `Filtered ${Math.min(i + filterBatchSize, testRuns.length)} of ${testRuns.length} runs...`, Math.round((Math.min(i + filterBatchSize, testRuns.length) / testRuns.length) * 100));
 		}
 		testRuns = filteredRuns;
 		sendProgress?.('Filtering Test Runs', `Filtered out ${filteredCount} runs with cases outside the suite. ${testRuns.length} runs remain.`, 100, true);
