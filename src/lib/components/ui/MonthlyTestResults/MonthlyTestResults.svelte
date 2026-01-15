@@ -57,11 +57,19 @@
         monthlyRuns: MonthlyRun[];
     }
 
+    interface LoadingProgress {
+        stage: string;
+        message: string;
+        progress: number;
+        completed: boolean;
+    }
+
     let data = $state<MonthlyTestData | null>(null);
     let loading = $state(true);
     let error = $state<string | null>(null);
     let showConfig = $state(false);
     let expandedFlakyTests = $state<Record<string, boolean>>({});
+    let loadingStages = $state<LoadingProgress[]>([]);
 
     // Configuration - hardcoded defaults
     let planId = $state('1310927');
@@ -72,21 +80,72 @@
         loading = true;
         error = null;
         data = null;
+        loadingStages = [];
+        
         try {
-            const url = `/api/getMonthlyTestRunDates?planId=${planId}&suiteId=${suiteId}&minRoc=${minRoc}`;
+            const url = `/api/getMonthlyTestRunDates?planId=${planId}&suiteId=${suiteId}&minRoc=${minRoc}&stream=true`;
             console.log('Fetching from:', url);
             const response = await fetch(url);
+            
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('API Error:', errorText);
                 throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
             }
-            const result = await response.json();
-            console.log('API Response:', result);
-            console.log('testCaseSummary:', result.testCaseSummary);
-            console.log('overallBoundaries:', result.overallBoundaries);
-            console.log('monthlyRuns count:', result.monthlyRuns?.length);
-            data = result;
+
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder();
+            
+            if (!reader) {
+                throw new Error('Response body is not readable');
+            }
+
+            let buffer = '';
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                
+                if (done) break;
+                
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+                
+                for (const line of lines) {
+                    if (!line.trim() || !line.startsWith('data: ')) continue;
+                    
+                    const jsonStr = line.slice(6);
+                    try {
+                        const message = JSON.parse(jsonStr);
+                        
+                        if (message.type === 'progress') {
+                            const existingIndex = loadingStages.findIndex(s => s.stage === message.stage);
+                            if (existingIndex >= 0) {
+                                loadingStages[existingIndex] = {
+                                    stage: message.stage,
+                                    message: message.message,
+                                    progress: message.progress || 0,
+                                    completed: message.completed || false
+                                };
+                            } else {
+                                loadingStages.push({
+                                    stage: message.stage,
+                                    message: message.message,
+                                    progress: message.progress || 0,
+                                    completed: message.completed || false
+                                });
+                            }
+                        } else if (message.type === 'complete') {
+                            data = message.data;
+                            console.log('API Response:', data);
+                        } else if (message.type === 'error') {
+                            throw new Error(message.error);
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse SSE message:', line, e);
+                    }
+                }
+            }
         } catch (e: any) {
             console.error('Fetch error:', e);
             error = e.message;
@@ -124,7 +183,11 @@
 <div class="h-full p-4 lg:p-0 lg:pb-0 flex flex-col gap-4">
     <div class="flex items-center justify-between gap-2">
         <h3 class="text-lg font-semibold flex items-center gap-2">
-            <span class="material-symbols-outlined" style="font-size: 1.5em;">calendar_month</span>
+            {#if loading}
+                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+            {:else}
+                <span class="material-symbols-outlined" style="font-size: 1.5em;">calendar_month</span>
+            {/if}
             Monthly Test Run Analysis
         </h3>
         <button 
@@ -179,18 +242,49 @@
         </div>
     {/if}
 
-    {#if loading}
-        <div class="flex-1 flex items-center justify-center text-muted-foreground">
-            <div class="text-center space-y-2">
-                <span class="material-symbols-outlined animate-spin" style="font-size: 3em;">progress_activity</span>
-                <p class="text-sm">Loading test analysis...</p>
-            </div>
+    {#if loading && loadingStages.length > 0}
+        <div class="space-y-3">
+            {#each loadingStages as stage}
+                <div class="bg-muted/30 rounded-lg p-4 border border-border/50">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            {#if stage.completed}
+                                <span class="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                            {:else}
+                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                            {/if}
+                            <span class="text-sm font-medium">{stage.stage}</span>
+                        </div>
+                        {#if stage.progress > 0}
+                            <span class="text-xs text-muted-foreground">{stage.progress}%</span>
+                        {/if}
+                    </div>
+                    <p class="text-xs text-muted-foreground ml-6">{stage.message}</p>
+                    {#if stage.progress > 0 && !stage.completed}
+                        <div class="mt-2 ml-6 mr-0">
+                            <div class="w-full bg-muted rounded-full h-1.5">
+                                <div 
+                                    class="bg-primary h-1.5 rounded-full transition-all duration-300" 
+                                    style="width: {stage.progress}%"
+                                ></div>
+                            </div>
+                        </div>
+                    {/if}
+                </div>
+            {/each}
         </div>
     {:else if error}
         <div class="flex-1 flex items-center justify-center text-destructive">
             <div class="text-center space-y-2">
                 <span class="material-symbols-outlined" style="font-size: 3em;">error</span>
                 <p class="text-sm">{error}</p>
+            </div>
+        </div>
+    {:else if loading}
+        <div class="flex-1 flex items-center justify-center text-muted-foreground">
+            <div class="text-center space-y-2">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p class="text-sm">Preparing to load data...</p>
             </div>
         </div>
     {:else if !data}

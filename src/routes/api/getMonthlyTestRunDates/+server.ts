@@ -13,12 +13,74 @@ interface DayData {
 }
 
 export async function GET({ url }: { url: URL }) {
+	const streamMode = url.searchParams.get('stream') === 'true';
+	
+	// If streaming is enabled, return a streaming response
+	if (streamMode) {
+		const stream = new ReadableStream({
+			async start(controller) {
+				const encoder = new TextEncoder();
+				
+				const sendProgress = (stage: string, message: string, progress?: number, completed?: boolean) => {
+					const data = JSON.stringify({ 
+						type: 'progress', 
+						stage, 
+						message, 
+						progress: progress || 0,
+						completed: completed || false
+					});
+					controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+				};
+
+				const sendComplete = (data: any) => {
+					const msg = JSON.stringify({ type: 'complete', data });
+					controller.enqueue(encoder.encode(`data: ${msg}\n\n`));
+					controller.close();
+				};
+
+				const sendError = (error: string) => {
+					const msg = JSON.stringify({ type: 'error', error });
+					controller.enqueue(encoder.encode(`data: ${msg}\n\n`));
+					controller.close();
+				};
+
+				try {
+					const result = await getMonthlyTestData(url, sendProgress);
+					sendComplete(result);
+				} catch (error: any) {
+					sendError(error.message || 'Internal server error');
+				}
+			}
+		});
+
+		return new Response(stream, {
+			headers: {
+				'Content-Type': 'text/event-stream',
+				'Cache-Control': 'no-cache',
+				'Connection': 'keep-alive'
+			}
+		});
+	}
+	
+	// Non-streaming mode - original behavior
+	try {
+		const result = await getMonthlyTestData(url);
+		return json(result);
+	} catch (error: any) {
+		return json({
+			error: 'Internal server error',
+			details: error.message
+		}, { status: 500 });
+	}
+}
+
+async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, message: string, progress?: number, completed?: boolean) => void) {
 	try {
 		let AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT, AZURE_DEVOPS_PAT;
 		try {
 			({ AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT, AZURE_DEVOPS_PAT } = getAzureDevOpsEnvVars(env));
 		} catch (e: any) {
-			return json({ error: e.message || 'Missing Azure DevOps environment variables' }, { status: 500 });
+			throw new Error(e.message || 'Missing Azure DevOps environment variables');
 		}
 
 		const planId = url.searchParams.get('planId');
@@ -27,14 +89,15 @@ export async function GET({ url }: { url: URL }) {
 		const minRoc = minRocParam ? parseFloat(minRocParam) : 0;
 
 		if (!planId) {
-			return json({ error: 'Missing planId parameter' }, { status: 400 });
+			throw new Error('Missing planId parameter');
 		}
 
 		if (!suiteId) {
-			return json({ error: 'Missing suiteId parameter' }, { status: 400 });
+			throw new Error('Missing suiteId parameter');
 		}
 
-		// Fetch all expected test cases from the suite
+		// Stage 1: Fetch test cases from suite
+		sendProgress?.('Fetching Test Cases', 'Loading expected test cases from suite...', 0);
 		const expectedTestCases = await fetchAllTestCasesFromSuite(
 			planId,
 			suiteId,
@@ -42,6 +105,7 @@ export async function GET({ url }: { url: URL }) {
 			AZURE_DEVOPS_PROJECT,
 			AZURE_DEVOPS_PAT
 		);
+		sendProgress?.('Fetching Test Cases', `Loaded ${expectedTestCases.length} expected test cases`, 100, true);
 
 		const expectedTestCaseIds = new Set(expectedTestCases.map(tc => tc.workItem.id));
 		
@@ -51,7 +115,8 @@ export async function GET({ url }: { url: URL }) {
 			testCaseIdToName.set(tc.workItem.id, tc.workItem.name);
 		}
 
-		// Fetch all test runs for the plan
+		// Stage 2: Fetch all test runs for the plan
+		sendProgress?.('Fetching Test Runs', 'Loading test runs for the plan...', 0);
 		const runsUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/test/runs?planId=${planId}&api-version=7.1`;
 
 		const runsRes = await fetch(runsUrl, {
@@ -62,10 +127,7 @@ export async function GET({ url }: { url: URL }) {
 		});
 
 		if (!runsRes.ok) {
-			return json({
-				error: 'Failed to fetch test runs',
-				details: await runsRes.text()
-			}, { status: runsRes.status });
+			throw new Error(`Failed to fetch test runs: ${runsRes.status}`);
 		}
 
 		const runsData = await runsRes.json();
@@ -76,6 +138,7 @@ export async function GET({ url }: { url: URL }) {
 			const name = (run.name || '').toLowerCase();
 			return !name.includes('development') && !name.includes('dev') && !name.includes('cloned');
 		});
+		sendProgress?.('Fetching Test Runs', `Found ${testRuns.length} test runs`, 100, true);
 
 		const dayMap = new Map<string, number>();
 		const runsByDate = new Map<string, any[]>(); // Track runs by date for later test case collection
@@ -83,11 +146,16 @@ export async function GET({ url }: { url: URL }) {
 		let earliestTestCaseDate: string | null = null;
 		let latestTestCaseDate: string | null = null;
 
-		// Fetch runs in parallel batches for speed and track test case executions
+		// Stage 3: Process test runs in batches
 		const batchSize = 50;
+		const totalBatches = Math.ceil(testRuns.length / batchSize);
+		sendProgress?.('Processing Test Runs', `Processing ${testRuns.length} test runs in ${totalBatches} batches...`, 0);
 
 		for (let i = 0; i < testRuns.length; i += batchSize) {
 			const batch = testRuns.slice(i, i + batchSize);
+			const batchNum = Math.floor(i / batchSize) + 1;
+			const progress = Math.round((batchNum / totalBatches) * 100);
+			sendProgress?.('Processing Test Runs', `Processing batch ${batchNum} of ${totalBatches}...`, progress);
 			
 			const batchPromises = batch.map(async (run: { id: any; }) => {
 				if (!run.id) return null;
@@ -184,11 +252,14 @@ export async function GET({ url }: { url: URL }) {
 				}
 			}
 		}
+		sendProgress?.('Processing Test Runs', `Processed all ${testRuns.length} test runs`, 100, true);
 
 		const sortedDays = Array.from(dayMap.entries())
 			.map(([date, totalTests]) => ({ date, totalTests }))
 			.sort((a, b) => a.date.localeCompare(b.date));
 
+		// Stage 4: Calculate derivatives and filter
+		sendProgress?.('Analyzing Data', 'Calculating rate of change and filtering significant runs...', 50);
 		const filledData: DayData[] = [];
 		
 		if (sortedDays.length > 0) {
@@ -217,91 +288,103 @@ export async function GET({ url }: { url: URL }) {
 		const derivatives = calculateDerivatives(filledData);
 		const filteredDays = derivatives.filter(d => d.change >= minRoc);
 		const groupedDays = groupByWeekWindow(filteredDays);
+		sendProgress?.('Analyzing Data', `Found ${groupedDays.length} monthly runs to analyze`, 100, true);
 
-		// Now collect unique test cases for each grouped day with dynamic buffer expansion
-		const daysWithTestCases = await Promise.all(
-			groupedDays.map(async (day) => {
-				const result = await getTestCasesAroundDateWithBuffer(
-					day.date,
-					runsByDate,
-					AZURE_DEVOPS_ORGANIZATION,
-					AZURE_DEVOPS_PROJECT,
-					AZURE_DEVOPS_PAT,
-					expectedTestCaseIds
-				);
+		// Stage 5: Collect test case details for each monthly run
+		sendProgress?.('Collecting Test Details', `Analyzing ${groupedDays.length} monthly runs...`, 0);
+		const totalRuns = groupedDays.length;
+		
+		// Process each run sequentially to show proper progress
+		const daysWithTestCases = [];
+		for (let index = 0; index < groupedDays.length; index++) {
+			const day = groupedDays[index];
+			const progress = Math.round(((index + 1) / totalRuns) * 100);
+			sendProgress?.('Collecting Test Details', `Processing run ${index + 1} of ${totalRuns} (${day.date})...`, progress);
+			
+			const result = await getTestCasesAroundDateWithBuffer(
+				day.date,
+				runsByDate,
+				AZURE_DEVOPS_ORGANIZATION,
+				AZURE_DEVOPS_PROJECT,
+				AZURE_DEVOPS_PAT,
+				expectedTestCaseIds
+			);
 
-				// Determine actual execution boundaries for this monthly run
-				const boundaries = determineExecutionBoundaries(
-					day.date,
-					result.bufferUsed,
-					result.executionDates
-				);
+			// Determine actual execution boundaries for this monthly run
+			const boundaries = determineExecutionBoundaries(
+				day.date,
+				result.bufferUsed,
+				result.executionDates
+			);
 
-				// Identify flaky test cases (executed more than once)
-				const flakyTests: Array<{ testCaseId: number; testCaseName: string; executionCount: number }> = [];
-				for (const [testCaseId, count] of result.executionCounts.entries()) {
-					if (count > 1) {
-						flakyTests.push({ 
-							testCaseId, 
-							testCaseName: testCaseIdToName.get(testCaseId) || 'Unknown',
-							executionCount: count 
-						});
-					}
+			// Identify flaky test cases (executed more than once)
+			const flakyTests: Array<{ testCaseId: number; testCaseName: string; executionCount: number }> = [];
+			for (const [testCaseId, count] of result.executionCounts.entries()) {
+				if (count > 1) {
+					flakyTests.push({ 
+						testCaseId, 
+						testCaseName: testCaseIdToName.get(testCaseId) || 'Unknown',
+						executionCount: count 
+					});
 				}
-				flakyTests.sort((a, b) => b.executionCount - a.executionCount); // Sort by execution count descending
+			}
+			flakyTests.sort((a, b) => b.executionCount - a.executionCount); // Sort by execution count descending
 
-				// Calculate pass rates
-				const passRates = calculatePassRates(
-					result.foundTestCaseIds,
-					result.testCaseExecutions
-				);
+			// Calculate pass rates
+			const passRates = calculatePassRates(
+				result.foundTestCaseIds,
+				result.testCaseExecutions
+			);
 
-				// Identify test cases that were run but are not in the test plan
-				const casesRunThatAreNotInTestPlan: Array<{ testCaseId: number; testCaseName: string }> = [];
-				for (const testCaseId of result.allExecutedTestCaseIds) {
-					if (!expectedTestCaseIds.has(testCaseId)) {
-						casesRunThatAreNotInTestPlan.push({ 
-							testCaseId,
-							testCaseName: 'Not in test plan - fetch details if needed'
-						});
-					}
+			// Identify test cases that were run but are not in the test plan
+			const casesRunThatAreNotInTestPlan: Array<{ testCaseId: number; testCaseName: string }> = [];
+			for (const testCaseId of result.allExecutedTestCaseIds) {
+				if (!expectedTestCaseIds.has(testCaseId)) {
+					casesRunThatAreNotInTestPlan.push({ 
+						testCaseId,
+						testCaseName: 'Not in test plan - fetch details if needed'
+					});
 				}
-				casesRunThatAreNotInTestPlan.sort((a, b) => a.testCaseId - b.testCaseId);
+			}
+			casesRunThatAreNotInTestPlan.sort((a, b) => a.testCaseId - b.testCaseId);
 
-				// Create detailed test case info for found and not found
-				const foundTestCasesWithNames = Array.from(result.foundTestCaseIds)
-					.map(id => ({ testCaseId: id, testCaseName: testCaseIdToName.get(id) || 'Unknown' }))
-					.sort((a, b) => a.testCaseId - b.testCaseId);
+			// Create detailed test case info for found and not found
+			const foundTestCasesWithNames = Array.from(result.foundTestCaseIds)
+				.map(id => ({ testCaseId: id, testCaseName: testCaseIdToName.get(id) || 'Unknown' }))
+				.sort((a, b) => a.testCaseId - b.testCaseId);
 
-				const notFoundTestCasesWithNames = Array.from(result.notFoundTestCaseIds)
-					.map(id => ({ testCaseId: id, testCaseName: testCaseIdToName.get(id) || 'Unknown' }))
-					.sort((a, b) => a.testCaseId - b.testCaseId);
+			const notFoundTestCasesWithNames = Array.from(result.notFoundTestCaseIds)
+				.map(id => ({ testCaseId: id, testCaseName: testCaseIdToName.get(id) || 'Unknown' }))
+				.sort((a, b) => a.testCaseId - b.testCaseId);
 
-				return {
-					date: day.date,
-					testCaseCount: result.foundTestCaseIds.size,
-					bufferUsed: result.bufferUsed,
-					foundTestCases: foundTestCasesWithNames,
-					notFoundTestCases: notFoundTestCasesWithNames,
-					casesRunThatAreNotInTestPlan: casesRunThatAreNotInTestPlan,
-					flakyTests: flakyTests,
-					flakyTestCount: flakyTests.length,
-					passRates: {
-						initialPassRate: passRates.initialPassRate,
-						finalPassRate: passRates.finalPassRate,
-						initialPassedCount: passRates.initialPassedCount,
-						finalPassedCount: passRates.finalPassedCount,
-						totalTestsFound: passRates.totalTestsFound
-					},
-					runBoundaries: {
-						startDate: boundaries.startDate,
-						endDate: boundaries.endDate,
-						durationDays: boundaries.durationDays
-					}
-				};
-			})
-		);
+			daysWithTestCases.push({
+				date: day.date,
+				testCaseCount: result.foundTestCaseIds.size,
+				bufferUsed: result.bufferUsed,
+				foundTestCases: foundTestCasesWithNames,
+				notFoundTestCases: notFoundTestCasesWithNames,
+				casesRunThatAreNotInTestPlan: casesRunThatAreNotInTestPlan,
+				flakyTests: flakyTests,
+				flakyTestCount: flakyTests.length,
+				passRates: {
+					initialPassRate: passRates.initialPassRate,
+					finalPassRate: passRates.finalPassRate,
+					initialPassedCount: passRates.initialPassedCount,
+					finalPassedCount: passRates.finalPassedCount,
+					totalTestsFound: passRates.totalTestsFound
+				},
+				runBoundaries: {
+					startDate: boundaries.startDate,
+					endDate: boundaries.endDate,
+					durationDays: boundaries.durationDays
+				}
+			});
+		}
+		sendProgress?.('Collecting Test Details', `Completed analysis of all ${totalRuns} monthly runs`, 100, true);
 
+		// Stage 6: Calculate final statistics
+		sendProgress?.('Finalizing Results', 'Calculating test execution statistics...', 100, true);
+		
 		// Calculate test case execution statistics
 		const executedTestCaseIds = Array.from(testCaseExecutionDates.keys());
 		const neverExecutedTestCaseIds = Array.from(expectedTestCaseIds).filter(id => !testCaseExecutionDates.has(id));
@@ -314,7 +397,7 @@ export async function GET({ url }: { url: URL }) {
 			durationDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
 		}
 
-		return json({
+		return {
 			planId: parseInt(planId),
 			suiteId: parseInt(suiteId),
 			totalRuns: testRuns.length,
@@ -333,8 +416,20 @@ export async function GET({ url }: { url: URL }) {
 				neverExecutedTestCaseIds: neverExecutedTestCaseIds.sort((a, b) => a - b)
 			},
 			monthlyRuns: daysWithTestCases
-		});
+		};
 
+	} catch (error: any) {
+		throw error;
+	}
+}
+
+/**
+ * Original non-streaming GET handler wrapper (kept for compatibility)
+ */
+async function handleNonStreamingRequest({ url }: { url: URL }) {
+	try {
+		const result = await getMonthlyTestData(url);
+		return json(result);
 	} catch (error: any) {
 		return json({
 			error: 'Internal server error',
