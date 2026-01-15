@@ -184,7 +184,7 @@
     <div class="flex items-center justify-between gap-2">
         <h3 class="text-lg font-semibold flex items-center gap-2">
             {#if loading}
-                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                <span class="material-symbols-outlined animate-spin" style="font-size: 1.5em;">progress_activity</span>
             {:else}
                 <span class="material-symbols-outlined" style="font-size: 1.5em;">calendar_month</span>
             {/if}
@@ -251,7 +251,7 @@
                             {#if stage.completed}
                                 <span class="material-symbols-outlined text-green-500 text-sm">check_circle</span>
                             {:else}
-                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                                <span class="material-symbols-outlined animate-spin" style="font-size: 1em;">progress_activity</span>
                             {/if}
                             <span class="text-sm font-medium">{stage.stage}</span>
                         </div>
@@ -283,7 +283,7 @@
     {:else if loading}
         <div class="flex-1 flex items-center justify-center text-muted-foreground">
             <div class="text-center space-y-2">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <span class="material-symbols-outlined animate-spin" style="font-size: 3em;">progress_activity</span>
                 <p class="text-sm">Preparing to load data...</p>
             </div>
         </div>
