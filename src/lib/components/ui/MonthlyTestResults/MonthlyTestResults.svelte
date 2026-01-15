@@ -412,38 +412,71 @@
                                 </div>
                             {/if}
 
-                            <!-- Not Found Tests -->
+
+                            <!-- Not Found Tests (Expandable) -->
                             {#if run.notFoundTestCases.length > 0}
-                                <details class="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded">
-                                    <summary class="font-semibold text-sm mb-2 cursor-pointer flex items-center gap-2 text-red-400">
+                                <div class="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded">
+                                    <h5 class="font-semibold text-sm mb-2 flex items-center gap-2 text-red-400">
                                         <span class="material-symbols-outlined text-sm">error</span>
                                         Not Found Tests ({run.notFoundTestCases.length})
-                                    </summary>
-                                    <div class="space-y-1 max-h-40 overflow-y-auto mt-2">
-                                        {#each run.notFoundTestCases as test}
+                                    </h5>
+                                    <div class="space-y-1 max-h-40 overflow-y-auto">
+                                        {#each (expandedFlakyTests[run.date + '-notfound'] ? run.notFoundTestCases : run.notFoundTestCases.slice(0, 10)) as test}
                                             <div class="text-xs p-2 bg-background/30 rounded">
                                                 <span class="text-muted-foreground">#{test.testCaseId}</span> - {test.testCaseName}
                                             </div>
                                         {/each}
+                                        {#if run.notFoundTestCases.length > 10 && !expandedFlakyTests[run.date + '-notfound']}
+                                            <button 
+                                                class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
+                                                onclick={() => expandedFlakyTests[run.date + '-notfound'] = true}
+                                            >
+                                                ... and {run.notFoundTestCases.length - 10} more (click to expand)
+                                            </button>
+                                        {/if}
+                                        {#if expandedFlakyTests[run.date + '-notfound']}
+                                            <button 
+                                                class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
+                                                onclick={() => expandedFlakyTests[run.date + '-notfound'] = false}
+                                            >
+                                                Show less
+                                            </button>
+                                        {/if}
                                     </div>
-                                </details>
+                                </div>
                             {/if}
 
-                            <!-- Cases Not in Plan -->
+                            <!-- Cases Not in Plan (Expandable) -->
                             {#if run.casesRunThatAreNotInTestPlan.length > 0}
-                                <details class="p-3 bg-blue-500/10 border border-blue-500/20 rounded">
-                                    <summary class="font-semibold text-sm mb-2 cursor-pointer flex items-center gap-2 text-blue-400">
+                                <div class="p-3 bg-blue-500/10 border border-blue-500/20 rounded mb-4">
+                                    <h5 class="font-semibold text-sm mb-2 flex items-center gap-2 text-blue-400">
                                         <span class="material-symbols-outlined text-sm">info</span>
                                         Tests Not in Plan ({run.casesRunThatAreNotInTestPlan.length})
-                                    </summary>
-                                    <div class="space-y-1 max-h-40 overflow-y-auto mt-2">
-                                        {#each run.casesRunThatAreNotInTestPlan as test}
+                                    </h5>
+                                    <div class="space-y-1 max-h-40 overflow-y-auto">
+                                        {#each (expandedFlakyTests[run.date + '-notinplan'] ? run.casesRunThatAreNotInTestPlan : run.casesRunThatAreNotInTestPlan.slice(0, 10)) as test}
                                             <div class="text-xs p-2 bg-background/30 rounded">
                                                 <span class="text-muted-foreground">#{test.testCaseId}</span> - {test.testCaseName}
                                             </div>
                                         {/each}
+                                        {#if run.casesRunThatAreNotInTestPlan.length > 10 && !expandedFlakyTests[run.date + '-notinplan']}
+                                            <button 
+                                                class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
+                                                onclick={() => expandedFlakyTests[run.date + '-notinplan'] = true}
+                                            >
+                                                ... and {run.casesRunThatAreNotInTestPlan.length - 10} more (click to expand)
+                                            </button>
+                                        {/if}
+                                        {#if expandedFlakyTests[run.date + '-notinplan']}
+                                            <button 
+                                                class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
+                                                onclick={() => expandedFlakyTests[run.date + '-notinplan'] = false}
+                                            >
+                                                Show less
+                                            </button>
+                                        {/if}
                                     </div>
-                                </details>
+                                </div>
                             {/if}
                     </div>
                 </details>
