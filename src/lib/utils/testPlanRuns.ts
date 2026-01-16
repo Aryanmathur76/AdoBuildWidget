@@ -25,9 +25,14 @@ export async function fetchTestRunsForPlan(azureEnv: AzureEnv, testPlanId: strin
     const now = toDate;
     let currentStart = new Date(fromDate);
 
-    while (currentStart < now) {
+    // Azure DevOps requires the date range to be within 7 days.
+    // Build windows that cover up to 7 calendar days by taking a 6-day span
+    // and extending the end to the end of that day, then advance the start by 1 day.
+    while (currentStart <= now) {
         const currentEnd = new Date(currentStart);
-        currentEnd.setDate(currentEnd.getDate() + 7);
+        currentEnd.setDate(currentEnd.getDate() + 6); // 6 days ahead -> inclusive 7 calendar days
+        // set to end of day to include the full day window
+        currentEnd.setHours(23, 59, 59, 999);
 
         if (currentEnd > now) currentEnd.setTime(now.getTime());
 
@@ -63,7 +68,9 @@ export async function fetchTestRunsForPlan(azureEnv: AzureEnv, testPlanId: strin
             continuationToken = runsRes.headers.get('x-ms-continuationtoken') || runsData.continuationToken || null;
         } while (continuationToken);
 
+        // Advance start to the next day after currentEnd to avoid overlap
         currentStart = new Date(currentEnd);
+        currentStart.setDate(currentStart.getDate() + 1);
     }
 
     return allRuns;

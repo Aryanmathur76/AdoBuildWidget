@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { getAzureDevOpsEnvVars } from '$lib/utils';
 import type { TestSuite, TestCase } from '$lib/types/getAllTestCases';
-import { fetchAllSuites, fetchSuiteWithChildrenAndTestCases } from '$lib/utils/getAllTestCases';
+import { fetchAllSuites, fetchSuiteWithChildrenAndTestCases } from '$lib/utils/getAllTestCases.js';
 
 /**
  * GET /api/getAllTestCases?testPlanId=123&suiteId=456
