@@ -88,6 +88,9 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 		const minRocParam = url.searchParams.get('minRoc');
 		const minRoc = minRocParam ? parseFloat(minRocParam) : 0;
 
+		const processingConcurrencyParam = url.searchParams.get('processingConcurrency');
+		const processingConcurrency = processingConcurrencyParam ? Math.max(1, parseInt(processingConcurrencyParam)) : 20;
+
 		if (!planId) {
 			throw new Error('Missing planId parameter');
 		}
@@ -117,7 +120,7 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 		}
 
 		// Stage 2: Fetch all test runs for the plan
-		sendProgress?.('Fetching Test Runs', 'Loading test runs for the plan...', 0);
+		sendProgress?.('Fetching Test Runs', 'Fetching and filtering test runs for the plan...', 0);
 		const runsUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/test/runs?planId=${planId}&api-version=7.1`;
 
 		const runsRes = await fetch(runsUrl, {
@@ -141,7 +144,8 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 		});
 
 		// For each run, fetch the executed test cases and filter out runs with any test case not in the suite
-		sendProgress?.('Filtering Test Runs', 'Filtering test runs to only those with test cases in the suite...', 0);
+		// Use the same stage name so the UI shows a single combined stage
+		sendProgress?.('Fetching Test Runs', 'Filtering test runs to only those with test cases in the suite...', 0);
 		const filteredRuns: any[] = [];
 		let filteredCount = 0;
 		const filterBatchSize = 100;
@@ -183,13 +187,13 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 			for (const result of batchResults) {
 				if (result) filteredRuns.push(result);
 			}
-			sendProgress?.('Filtering Test Runs', `Filtered ${Math.min(i + filterBatchSize, testRuns.length)} of ${testRuns.length} runs...`, Math.round((Math.min(i + filterBatchSize, testRuns.length) / testRuns.length) * 100));
+			sendProgress?.('Fetching Test Runs', `Filtered ${Math.min(i + filterBatchSize, testRuns.length)} of ${testRuns.length} runs...`, Math.round((Math.min(i + filterBatchSize, testRuns.length) / testRuns.length) * 100));
 		}
 		testRuns = filteredRuns;
-		sendProgress?.('Filtering Test Runs', `Filtered out ${filteredCount} runs with cases outside the suite. ${testRuns.length} runs remain.`, 100, true);
+		sendProgress?.('Fetching Test Runs', `Filtered out ${filteredCount} runs with cases outside the suite. ${testRuns.length} runs remain.`, 100, true);
 
-		// Mark 'Fetching Test Runs' as completed before starting next stage
-		sendProgress?.('Fetching Test Runs', 'Completed fetching test runs.', 100, true);
+		// Mark fetching/filtering as completed before starting next stage
+		sendProgress?.('Fetching Test Runs', 'Completed fetching and filtering test runs.', 100, true);
 
 		const dayMap = new Map<string, number>();
 		const runsByDate = new Map<string, any[]>(); // Track runs by date for later test case collection
@@ -198,113 +202,109 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 		let earliestTestCaseDate: string | null = null;
 		let latestTestCaseDate: string | null = null;
 
-		// Stage 3: Process test runs in batches
-		const batchSize = 50;
-		const totalBatches = Math.ceil(testRuns.length / batchSize);
-		sendProgress?.('Processing Test Runs', `Processing ${testRuns.length} test runs in ${totalBatches} batches...`, 0);
+		// Stage 3: Process test runs with concurrency-limited parallelism
+		sendProgress?.('Processing Test Runs', `Processing ${testRuns.length} test runs with concurrency ${processingConcurrency}...`, 0);
 
-		for (let i = 0; i < testRuns.length; i += batchSize) {
-			const batch = testRuns.slice(i, i + batchSize);
-			const batchNum = Math.floor(i / batchSize) + 1;
-			const progress = Math.round((batchNum / totalBatches) * 100);
-			sendProgress?.('Processing Test Runs', `Processing batch ${batchNum} of ${totalBatches}...`, progress);
-			
-			const batchPromises = batch.map(async (run: { id: any; }) => {
-				if (!run.id) return null;
+		let completed = 0;
+		const updateEvery = Math.max(1, Math.floor(testRuns.length / 50));
 
-				const runDetailUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/test/runs/${run.id}?api-version=7.1`;
-
-				try {
-					const runDetailRes = await fetch(runDetailUrl, {
-						headers: {
-							'Authorization': `Basic ${btoa(':' + AZURE_DEVOPS_PAT)}`,
-							'Content-Type': 'application/json',
-						},
-					});
-
-					if (!runDetailRes.ok) {
-						return null;
+		// concurrency-limited async pool
+		async function asyncPool<T, R>(limit: number, list: T[], iteratorFn: (item: T) => Promise<R | null>) {
+			const results: Array<R | null> = new Array(list.length).fill(null);
+			let i = 0;
+			const workers = new Array(Math.min(limit, list.length)).fill(0).map(async () => {
+				while (true) {
+					const idx = i++;
+					if (idx >= list.length) break;
+					try {
+						results[idx] = await iteratorFn(list[idx]);
+					} catch (e) {
+						results[idx] = null;
 					}
-
-					return await runDetailRes.json();
-				} catch (error) {
-					return null;
+					completed++;
+					if (completed % updateEvery === 0 || completed === list.length) {
+						const prog = Math.round((completed / list.length) * 100);
+						sendProgress?.('Processing Test Runs', `Processed ${completed} of ${list.length} runs...`, prog);
+					}
 				}
 			});
+			await Promise.all(workers);
+			return results;
+		}
 
-			const runDetails = await Promise.all(batchPromises);
+		// iteratorFn: fetch run detail and results (use cache) and update maps
+		const processRun = async (run: any) => {
+			if (!run || !run.id) return null;
+			const runId = run.id;
+			const runDetailUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/test/runs/${runId}?api-version=7.1`;
+			const resultsUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/test/runs/${runId}/results?api-version=7.1`;
+			let runDetail: any = null;
+			let results: any[] | undefined = runResultsCache.get(runId);
+			try {
+				// Fetch run detail
+				const rdRes = await fetch(runDetailUrl, {
+					headers: {
+						'Authorization': `Basic ${btoa(':' + AZURE_DEVOPS_PAT)}`,
+						'Content-Type': 'application/json'
+					}
+				});
+				if (rdRes.ok) runDetail = await rdRes.json();
+			} catch (e) {
+				// ignore
+			}
 
-			// Also fetch test results for each run to track test case execution dates
-			const resultsPromises = runDetails.map(async (runDetail) => {
-				if (!runDetail || !runDetail.id) return null;
-
+			// Fetch results if not cached
+			if (!results) {
 				try {
-					const resultsUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/test/runs/${runDetail.id}/results?api-version=7.1`;
-					
-					const resultsRes = await fetch(resultsUrl, {
+					const resRes = await fetch(resultsUrl, {
 						headers: {
 							'Authorization': `Basic ${btoa(':' + AZURE_DEVOPS_PAT)}`,
-							'Content-Type': 'application/json',
-						},
+							'Content-Type': 'application/json'
+						}
 					});
-
-					if (resultsRes.ok) {
-						const resultsData = await resultsRes.json();
-						// Cache the results for this run
-						runResultsCache.set(runDetail.id, resultsData.value || []);
-						return { runDetail, results: resultsData.value || [] };
+					if (resRes.ok) {
+						const resData = await resRes.json();
+						results = resData.value || [];
+						runResultsCache.set(runId, results || []);
 					}
-				} catch (error) {
-					console.error(`Error fetching test results for run ${runDetail.id}:`, error);
+				} catch (e) {
+					console.error(`Error fetching test results for run ${runId}:`, e);
 				}
-				return null;
-			});
+			}
 
-			const runResultsPairs = await Promise.all(resultsPromises);
+			if (!runDetail) return null;
 
-			for (const pair of runResultsPairs) {
-				if (!pair) continue;
+			const runDateStr = runDetail.completedDate || runDetail.startedDate;
+			if (runDateStr) {
+				const runDate = new Date(runDateStr);
+				const dateKey = runDate.toISOString().split('T')[0];
 
-				const { runDetail, results } = pair;
-				const runDateStr = runDetail.completedDate || runDetail.startedDate;
-				
-				if (runDateStr) {
-					const runDate = new Date(runDateStr);
-					const dateKey = runDate.toISOString().split('T')[0];
+				const currentTotal = dayMap.get(dateKey) || 0;
+				dayMap.set(dateKey, currentTotal + (runDetail.totalTests || 0));
 
-					const currentTotal = dayMap.get(dateKey) || 0;
-					dayMap.set(dateKey, currentTotal + (runDetail.totalTests || 0));
-					
-					// Store the run detail for later test case collection
-					if (!runsByDate.has(dateKey)) {
-						runsByDate.set(dateKey, []);
-					}
-					runsByDate.get(dateKey)!.push(runDetail);
+				if (!runsByDate.has(dateKey)) runsByDate.set(dateKey, []);
+				runsByDate.get(dateKey)!.push(runDetail);
 
-					// Track execution dates for expected test cases
+				if (Array.isArray(results)) {
 					for (const result of results) {
 						if (result.testCase && result.testCase.id) {
 							const testCaseId = parseInt(result.testCase.id);
 							// Only track if this is a valid test case for the suite
 							if (validTestCaseIds.has(testCaseId)) {
-								if (!testCaseExecutionDates.has(testCaseId)) {
-									testCaseExecutionDates.set(testCaseId, new Set());
-								}
+								if (!testCaseExecutionDates.has(testCaseId)) testCaseExecutionDates.set(testCaseId, new Set());
 								testCaseExecutionDates.get(testCaseId)!.add(dateKey);
-
-								// Update earliest and latest dates
-								if (!earliestTestCaseDate || dateKey < earliestTestCaseDate) {
-									earliestTestCaseDate = dateKey;
-								}
-								if (!latestTestCaseDate || dateKey > latestTestCaseDate) {
-									latestTestCaseDate = dateKey;
-								}
+								if (!earliestTestCaseDate || dateKey < earliestTestCaseDate) earliestTestCaseDate = dateKey;
+								if (!latestTestCaseDate || dateKey > latestTestCaseDate) latestTestCaseDate = dateKey;
 							}
 						}
 					}
 				}
 			}
-		}
+
+			return runDetail;
+		};
+
+		await asyncPool(processingConcurrency, testRuns, processRun);
 		sendProgress?.('Processing Test Runs', `Processed all ${testRuns.length} test runs`, 100, true);
 
 		const sortedDays = Array.from(dayMap.entries())
