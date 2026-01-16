@@ -193,6 +193,7 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 
 		const dayMap = new Map<string, number>();
 		const runsByDate = new Map<string, any[]>(); // Track runs by date for later test case collection
+		const runResultsCache = new Map<number, any[]>(); // Cache results for runs to avoid duplicate fetches
 		const testCaseExecutionDates = new Map<number, Set<string>>(); // Track when each expected test case was executed
 		let earliestTestCaseDate: string | null = null;
 		let latestTestCaseDate: string | null = null;
@@ -249,6 +250,8 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 
 					if (resultsRes.ok) {
 						const resultsData = await resultsRes.json();
+						// Cache the results for this run
+						runResultsCache.set(runDetail.id, resultsData.value || []);
 						return { runDetail, results: resultsData.value || [] };
 					}
 				} catch (error) {
@@ -357,7 +360,8 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 				AZURE_DEVOPS_ORGANIZATION,
 				AZURE_DEVOPS_PROJECT,
 				AZURE_DEVOPS_PAT,
-				validTestCaseIds
+				validTestCaseIds,
+				runResultsCache
 			);
 
 			// Determine actual execution boundaries for this monthly run
@@ -520,7 +524,8 @@ async function getTestCasesAroundDateWithBuffer(
 	org: string,
 	project: string,
 	pat: string,
-	expectedTestCaseIds: Set<number>
+	expectedTestCaseIds: Set<number>,
+	runResultsCache: Map<number, any[]> // cache of runId -> results
 ): Promise<{
 	foundTestCaseIds: Set<number>;
 	notFoundTestCaseIds: Set<number>;
@@ -540,7 +545,8 @@ async function getTestCasesAroundDateWithBuffer(
 			org,
 			project,
 			pat,
-			expectedTestCaseIds
+			expectedTestCaseIds,
+			runResultsCache
 		);
 		
 		// Check if we found all expected test cases
@@ -604,7 +610,9 @@ async function getTestCasesAroundDate(
 	org: string,
 	project: string,
 	pat: string,
-	expectedTestCaseIds?: Set<number>
+	expectedTestCaseIds?: Set<number>,
+	runResultsCache?: Map<number, any[]>,
+	concurrency: number = 20
 ): Promise<{ 
 	testCaseIds: Set<number>; 
 	executionDates: Set<string>; 
@@ -626,57 +634,73 @@ async function getTestCasesAroundDate(
 		const runsForDay = runsByDate.get(dateKey);
 		if (!runsForDay || runsForDay.length === 0) continue;
 		
-		// Fetch test results for each run on this day
-		for (const run of runsForDay) {
-			try {
-				const resultsUrl = `https://dev.azure.com/${org}/${project}/_apis/test/runs/${run.id}/results?api-version=7.1`;
-				
-				const resultsRes = await fetch(resultsUrl, {
-					headers: {
-						'Authorization': `Basic ${btoa(':' + pat)}`,
-						'Content-Type': 'application/json',
-					},
-				});
-				
-				if (resultsRes.ok) {
-					const resultsData = await resultsRes.json();
-					let foundExpectedTestCase = false;
-					
-					if (Array.isArray(resultsData.value)) {
-						for (const result of resultsData.value) {
-							if (result.testCase && result.testCase.id) {
-								const testCaseId = parseInt(result.testCase.id);
-								testCaseIds.add(testCaseId);
-								
-								// Track execution count for all test cases
-								const currentCount = executionCounts.get(testCaseId) || 0;
-								executionCounts.set(testCaseId, currentCount + 1);
-								
-								// Track execution details (outcome and timestamp)
-								if (!testCaseExecutions.has(testCaseId)) {
-									testCaseExecutions.set(testCaseId, []);
-								}
-								testCaseExecutions.get(testCaseId)!.push({
-									outcome: result.outcome || 'Unknown',
-									completedDate: result.completedDate || result.startedDate || dateKey
-								});
-								
-								// Track execution date if this is an expected test case
-								if (expectedTestCaseIds && expectedTestCaseIds.has(testCaseId)) {
-									foundExpectedTestCase = true;
-								}
-							}
+		// Fetch test results for runs on this day in parallel with concurrency and cache
+		const runsToFetch = runsForDay.filter(r => r && r.id);
+		const resultsForRuns: Array<{ runId: number; results: any[]; run?: any } | null> = [];
+
+		// process in batches for concurrency control
+		for (let j = 0; j < runsToFetch.length; j += concurrency) {
+			const batch = runsToFetch.slice(j, j + concurrency);
+			const batchPromises = batch.map(async (run: any) => {
+				try {
+					// Use cached results if available
+					if (runResultsCache && runResultsCache.has(run.id)) {
+						return { runId: run.id, results: runResultsCache.get(run.id) || [], run };
+					}
+
+					const resultsUrl = `https://dev.azure.com/${org}/${project}/_apis/test/runs/${run.id}/results?api-version=7.1`;
+					const resultsRes = await fetch(resultsUrl, {
+						headers: {
+							'Authorization': `Basic ${btoa(':' + pat)}`,
+							'Content-Type': 'application/json',
+						},
+					});
+
+					if (resultsRes.ok) {
+						const resultsData = await resultsRes.json();
+						const vals = resultsData.value || [];
+						if (runResultsCache) runResultsCache.set(run.id, vals);
+						return { runId: run.id, results: vals, run };
+					}
+				} catch (error) {
+					console.error(`Error fetching test results for run ${run.id}:`, error);
+				}
+				return null;
+			});
+			const batchResults = await Promise.all(batchPromises);
+			resultsForRuns.push(...batchResults.filter(r => r));
+		}
+
+		// Process results
+		for (const entry of resultsForRuns) {
+			if (!entry) continue;
+			const { runId, results, run } = entry;
+			let foundExpectedTestCase = false;
+			if (Array.isArray(results)) {
+				for (const result of results) {
+					if (result.testCase && result.testCase.id) {
+						const testCaseId = parseInt(result.testCase.id);
+						testCaseIds.add(testCaseId);
+
+						const currentCount = executionCounts.get(testCaseId) || 0;
+						executionCounts.set(testCaseId, currentCount + 1);
+
+						if (!testCaseExecutions.has(testCaseId)) {
+							testCaseExecutions.set(testCaseId, []);
+						}
+						testCaseExecutions.get(testCaseId)!.push({
+							outcome: result.outcome || 'Unknown',
+							completedDate: result.completedDate || result.startedDate || dateKey
+						});
+
+						if (expectedTestCaseIds && expectedTestCaseIds.has(testCaseId)) {
+							foundExpectedTestCase = true;
 						}
 					}
-					
-					// Only record this date if it had at least one expected test case execution
-					if (foundExpectedTestCase) {
-						executionDates.add(dateKey);
-					}
 				}
-			} catch (error) {
-				// Continue on error, just skip this run
-				console.error(`Error fetching test results for run ${run.id}:`, error);
+			}
+			if (foundExpectedTestCase) {
+				executionDates.add(dateKey);
 			}
 		}
 	}

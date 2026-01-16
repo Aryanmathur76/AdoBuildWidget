@@ -76,48 +76,49 @@
     let suiteId = $state('1310934');
     let minRoc = $state(800);
 
+    // Batch and parallelize API calls
     async function fetchData() {
         loading = true;
         error = null;
         data = null;
         loadingStages = [];
-        
+
         try {
-            const url = `/api/getMonthlyTestRunDates?planId=${planId}&suiteId=${suiteId}&minRoc=${minRoc}&stream=true`;
-            console.log('Fetching from:', url);
-            const response = await fetch(url);
-            
+            // Prepare all API calls
+            const monthlyUrl = `/api/getMonthlyTestRunDates?planId=${planId}&suiteId=${suiteId}&minRoc=${minRoc}&stream=true`;
+            const allTestCasesUrl = `/api/getAllTestCases?testPlanId=${planId}&suiteId=${suiteId}`;
+            const testPlanRunsUrl = `/api/test-plan-runs?testPlanId=${planId}&suiteId=${suiteId}`;
+
+            // Start non-streaming fetches in parallel
+            const allTestCasesPromise = fetch(allTestCasesUrl).then(r => r.ok ? r.json() : Promise.reject('Failed to fetch test cases'));
+            const testPlanRunsPromise = fetch(testPlanRunsUrl).then(r => r.ok ? r.json() : Promise.reject('Failed to fetch plan runs'));
+
+            // Start streaming fetch for main data
+            const response = await fetch(monthlyUrl);
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('API Error:', errorText);
-                throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+                throw new Error(`Failed to fetch: ${response.status} ${response.statusText} - ${errorText}`);
             }
-
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();
-            
-            if (!reader) {
-                throw new Error('Response body is not readable');
-            }
-
+            if (!reader) throw new Error('Response body is not readable');
             let buffer = '';
-            
+
+            // Await parallel fetches
+            const [allTestCases, testPlanRuns] = await Promise.all([allTestCasesPromise, testPlanRunsPromise]);
+
+            // Process streaming response
             while (true) {
                 const { done, value } = await reader.read();
-                
                 if (done) break;
-                
                 buffer += decoder.decode(value, { stream: true });
                 const lines = buffer.split('\n');
                 buffer = lines.pop() || '';
-                
                 for (const line of lines) {
                     if (!line.trim() || !line.startsWith('data: ')) continue;
-                    
                     const jsonStr = line.slice(6);
                     try {
                         const message = JSON.parse(jsonStr);
-                        
                         if (message.type === 'progress') {
                             const existingIndex = loadingStages.findIndex(s => s.stage === message.stage);
                             if (existingIndex >= 0) {
@@ -136,8 +137,12 @@
                                 });
                             }
                         } else if (message.type === 'complete') {
-                            data = message.data;
-                            console.log('API Response:', data);
+                            // Attach additional API data if needed
+                            data = {
+                                ...message.data,
+                                allTestCases,
+                                testPlanRuns
+                            };
                         } else if (message.type === 'error') {
                             throw new Error(message.error);
                         }
@@ -147,8 +152,7 @@
                 }
             }
         } catch (e: any) {
-            console.error('Fetch error:', e);
-            error = e.message;
+            error = e.message || String(e);
         } finally {
             loading = false;
         }
@@ -158,25 +162,9 @@
         fetchData();
     });
 
-    function formatDate(dateString: string | null): string {
-        if (!dateString) return 'N/A';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
 
-    function getPassRateColor(passRate: number): string {
-        if (passRate >= 95) return 'bg-green-500/20 text-green-400 border-green-500/30';
-        if (passRate >= 90) return 'bg-lime-500/20 text-lime-400 border-lime-500/30';
-        if (passRate >= 80) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-        if (passRate >= 70) return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
-        return 'bg-red-500/20 text-red-400 border-red-500/30';
-    }
-
-    function getBufferBadgeColor(bufferDays: number): string {
-        if (bufferDays === 0) return 'bg-green-500/20 text-green-400 border-green-500/30';
-        if (bufferDays <= 2) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-        return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
-    }
+    // Import utility functions
+    import { formatDate, getPassRateColor, getBufferBadgeColor } from '$lib/utils/testUtils';
 
 </script>
 
