@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { getAzureDevOpsEnvVars } from '$lib/utils';
+import type { TestSuite, TestCase } from '$lib/types/getAllTestCases';
+import { fetchAllSuites, fetchSuiteWithChildrenAndTestCases } from '$lib/utils/getAllTestCases';
 
 /**
  * GET /api/getAllTestCases?testPlanId=123&suiteId=456
@@ -50,52 +52,17 @@ export async function GET({ url }: { url: URL }) {
 		}
 
 		// Fetch all suites from the test plan once (with pagination)
-		const allSuites: TestSuite[] = [];
-		let continuationToken: string | null = null;
-
-		do {
-			let allSuitesUrl = `https://dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/testplan/Plans/${testPlanId}/suites?api-version=7.1`;
-			
-			if (continuationToken) {
-				allSuitesUrl += `&continuationToken=${encodeURIComponent(continuationToken)}`;
-			}
-
-			const allSuitesRes = await fetch(allSuitesUrl, {
-				headers: {
-					'Authorization': `Basic ${btoa(':' + AZURE_DEVOPS_PAT)}`,
-					'Content-Type': 'application/json',
-				},
-			});
-
-			if (!allSuitesRes.ok) {
-				return json({ 
-					error: 'Failed to fetch test suites', 
-					details: await allSuitesRes.text() 
-				}, { status: allSuitesRes.status });
-			}
-
-			const allSuitesData = await allSuitesRes.json();
-			
-			if (Array.isArray(allSuitesData.value)) {
-				allSuites.push(...allSuitesData.value);
-			}
-
-			// Check for continuation token in response headers
-			continuationToken = allSuitesRes.headers.get('x-ms-continuationtoken');
-			
-		} while (continuationToken);
+		let allSuites: TestSuite[] = [];
+		try {
+			allSuites = await fetchAllSuites({ organization: AZURE_DEVOPS_ORGANIZATION, project: AZURE_DEVOPS_PROJECT, pat: AZURE_DEVOPS_PAT }, testPlanId);
+		} catch (e: any) {
+			return json({ error: e.message || 'Failed to fetch test suites' }, { status: 500 });
+		}
 
 		console.log(`Fetched ${allSuites.length} total suites from test plan`);
 
 		// Recursively fetch the specific suite, all its child suites, and test cases
-		const suite = await fetchSuiteWithChildrenAndTestCases(
-			AZURE_DEVOPS_ORGANIZATION,
-			AZURE_DEVOPS_PROJECT,
-			AZURE_DEVOPS_PAT,
-			testPlanId,
-			suiteId,
-			allSuites
-		);
+		const suite = await fetchSuiteWithChildrenAndTestCases({ organization: AZURE_DEVOPS_ORGANIZATION, project: AZURE_DEVOPS_PROJECT, pat: AZURE_DEVOPS_PAT }, testPlanId, suiteId, allSuites);
 
 		if (!suite) {
 			return json({ 

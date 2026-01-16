@@ -1,16 +1,8 @@
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { getAzureDevOpsEnvVars } from '$lib/utils';
-
-/**
- * GET /api/getTestRunGraph?planId=1310927&suiteId=123
- * Returns daily aggregated test counts for a specific test plan.
- */
-
-interface DayData {
-	date: string;
-	totalTests: number;
-}
+import { calculateDerivatives, groupByWeekWindow, determineExecutionBoundaries, calculatePassRates, getMedianDate } from '$lib/utils/monthlyTestRuns';
+import type { DayData } from '$lib/types/monthlyTestRuns';
 
 export async function GET({ url }: { url: URL }) {
 	const streamMode = url.searchParams.get('stream') === 'true';
@@ -497,27 +489,7 @@ async function handleNonStreamingRequest({ url }: { url: URL }) {
 	}
 }
 
-/**
- * Calculate rate of change (derivatives) for each day
- */
-function calculateDerivatives(data: DayData[]) {
-	if (data.length < 2) {
-		return [];
-	}
 
-	const result = [];
-	for (let i = 1; i < data.length; i++) {
-		const change = data[i].totalTests - data[i - 1].totalTests;
-		result.push({
-			date: data[i].date,
-			change: change,
-			testsBefore: data[i - 1].totalTests,
-			testsAfter: data[i].totalTests
-		});
-	}
-
-	return result;
-}
 
 /**
  * Get unique test case IDs executed within a dynamically expanding buffer window around a specific date.
@@ -713,94 +685,7 @@ async function getTestCasesAroundDate(
 	return { testCaseIds, executionDates, executionCounts, testCaseExecutions };
 }
 
-/**
- * Determine the actual start and end dates for a monthly run based on execution dates
- */
-function determineExecutionBoundaries(
-	targetDate: string,
-	bufferUsed: number,
-	executionDates: Set<string>
-): { startDate: string | null; endDate: string | null; durationDays: number | null } {
-	if (executionDates.size === 0) {
-		return {
-			startDate: null,
-			endDate: null,
-			durationDays: null
-		};
-	}
-	
-	const sortedDates = Array.from(executionDates).sort();
-	const startDate = sortedDates[0];
-	const endDate = sortedDates[sortedDates.length - 1];
-	
-	const start = new Date(startDate);
-	const end = new Date(endDate);
-	const durationDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-	
-	return {
-		startDate,
-		endDate,
-		durationDays
-	};
-}
-
-/**
- * Calculate initial and final pass rates for a monthly run
- * Only considers test cases that were actually found/executed
- */
-function calculatePassRates(
-	foundTestCaseIds: Set<number>,
-	testCaseExecutions: Map<number, Array<{ outcome: string; completedDate: string }>>
-): {
-	initialPassRate: number;
-	finalPassRate: number;
-	initialPassedCount: number;
-	finalPassedCount: number;
-	totalTestsFound: number;
-} {
-	let initialPassedCount = 0;
-	let finalPassedCount = 0;
-	const totalTestsFound = foundTestCaseIds.size;
-	
-	for (const testCaseId of foundTestCaseIds) {
-		const executions = testCaseExecutions.get(testCaseId);
-		
-		if (executions && executions.length > 0) {
-			// Sort executions by completed date to get chronological order
-			const sortedExecutions = [...executions].sort((a, b) => 
-				a.completedDate.localeCompare(b.completedDate)
-			);
-			
-			// Check first execution (initial pass rate)
-			const firstExecution = sortedExecutions[0];
-			if (firstExecution.outcome === 'Passed') {
-				initialPassedCount++;
-			}
-			
-			// Check last execution (final pass rate)
-			const lastExecution = sortedExecutions[sortedExecutions.length - 1];
-			if (lastExecution.outcome === 'Passed') {
-				finalPassedCount++;
-			}
-		}
-	}
-	
-	const initialPassRate = totalTestsFound > 0 
-		? (initialPassedCount / totalTestsFound) * 100 
-		: 0;
-	
-	const finalPassRate = totalTestsFound > 0 
-		? (finalPassedCount / totalTestsFound) * 100 
-		: 0;
-	
-	return {
-		initialPassRate: Math.round(initialPassRate * 100) / 100, // Round to 2 decimal places
-		finalPassRate: Math.round(finalPassRate * 100) / 100,
-		initialPassedCount,
-		finalPassedCount,
-		totalTestsFound
-	};
-}
+ 
 
 /**
  * Fetch all test cases from a suite using the getAllTestCases API
@@ -905,59 +790,4 @@ async function fetchAllTestCasesFromSuite(
 	return allTestCases;
 }
 
-/**
- * Group consecutive dates within 2-week windows and return the median date from each group
- */
-function groupByWeekWindow(days: Array<{ date: string; change: number; testsBefore: number; testsAfter: number }>) {
-	if (days.length === 0) return [];
 
-	const result = [];
-	let currentGroup = [days[0]];
-
-	for (let i = 1; i < days.length; i++) {
-		const groupFirstDate = new Date(currentGroup[0].date);
-		const currDate = new Date(days[i].date);
-		const daysDiff = Math.abs((currDate.getTime() - groupFirstDate.getTime()) / (1000 * 60 * 60 * 24));
-
-		if (daysDiff <= 14) {
-			// Within 2 weeks of group start, add to current group
-			currentGroup.push(days[i]);
-		} else {
-			// Outside window, calculate median date of current group and start new group
-			result.push(getMedianDate(currentGroup));
-			currentGroup = [days[i]];
-		}
-	}
-
-	// Don't forget the last group
-	if (currentGroup.length > 0) {
-		result.push(getMedianDate(currentGroup));
-	}
-
-	return result;
-}
-
-/**
- * Calculate the median date from a group of days
- */
-function getMedianDate(group: Array<{ date: string; change: number; testsBefore: number; testsAfter: number }>) {
-	if (group.length === 1) return group[0];
-
-	const firstDate = new Date(group[0].date);
-	const lastDate = new Date(group[group.length - 1].date);
-	const medianTime = (firstDate.getTime() + lastDate.getTime()) / 2;
-
-	// Find the day in the group closest to the median time
-	let closestDay = group[0];
-	let minDiff = Math.abs(new Date(closestDay.date).getTime() - medianTime);
-
-	for (const day of group) {
-		const diff = Math.abs(new Date(day.date).getTime() - medianTime);
-		if (diff < minDiff) {
-			minDiff = diff;
-			closestDay = day;
-		}
-	}
-
-	return closestDay;
-}
