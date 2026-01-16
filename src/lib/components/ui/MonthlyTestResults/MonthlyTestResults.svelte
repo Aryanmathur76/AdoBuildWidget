@@ -71,10 +71,10 @@
     let expandedFlakyTests = $state<Record<string, boolean>>({});
     let loadingStages = $state<LoadingProgress[]>([]);
 
-    // Configuration - hardcoded defaults
+    // Configuration - presets
     let planId = $state('1310927');
     let suiteId = $state('1310934');
-    let minRoc = $state(800);
+    let preset = $state('PhysCR');
 
     // Batch and parallelize API calls
     async function fetchData() {
@@ -85,7 +85,7 @@
 
         try {
             // Prepare all API calls
-            const monthlyUrl = `/api/getMonthlyTestRunDates?planId=${planId}&suiteId=${suiteId}&minRoc=${minRoc}&stream=true`;
+            const monthlyUrl = `/api/getMonthlyTestRunDates?planId=${planId}&suiteId=${suiteId}&stream=true`;
             const allTestCasesUrl = `/api/getAllTestCases?testPlanId=${planId}&suiteId=${suiteId}`;
             const testPlanRunsUrl = `/api/test-plan-runs?testPlanId=${planId}&suiteId=${suiteId}`;
 
@@ -191,40 +191,21 @@
             <div class="font-semibold mb-3 text-sm">Configuration:</div>
             <div class="space-y-3">
                 <div>
-                    <label for="planId" class="text-xs text-muted-foreground block mb-1">Test Plan ID</label>
-                    <input 
-                        id="planId"
-                        type="text" 
-                        bind:value={planId}
-                        class="w-full px-2 py-1 text-sm bg-background border border-border rounded"
-                        placeholder="Enter Plan ID"
-                    />
-                </div>
-                <div>
-                    <label for="suiteId" class="text-xs text-muted-foreground block mb-1">Test Suite ID</label>
-                    <input 
-                        id="suiteId"
-                        type="text" 
-                        bind:value={suiteId}
-                        class="w-full px-2 py-1 text-sm bg-background border border-border rounded"
-                        placeholder="Enter Suite ID"
-                    />
-                </div>
-                <div>
-                    <label for="minRoc" class="text-xs text-muted-foreground block mb-1">Min Rate of Change</label>
-                    <input 
-                        id="minRoc"
-                        type="number" 
-                        bind:value={minRoc}
-                        class="w-full px-2 py-1 text-sm bg-background border border-border rounded"
-                        placeholder="Enter Min ROC"
-                    />
+                    <label for="preset" class="text-xs text-muted-foreground block mb-1">Preset</label>
+                    <select id="preset" bind:value={preset} class="w-full px-2 py-1 text-sm bg-background border border-border rounded">
+                        <option value="PhysCR">PhysCR (plan: 1310927, suite: 1310934)</option>
+                        <option value="VACR">VACR (plan: 1237539, suite: 1309779)</option>
+                    </select>
                 </div>
                 <button 
-                    onclick={fetchData}
+                    onclick={() => {
+                        if (preset === 'PhysCR') { planId = '1310927'; suiteId = '1310934'; }
+                        else { planId = '1237539'; suiteId = '1309779'; }
+                        fetchData();
+                    }}
                     class="w-full px-3 py-2 text-sm font-medium rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
-                    Load Data
+                    Apply Preset & Load
                 </button>
             </div>
         </div>

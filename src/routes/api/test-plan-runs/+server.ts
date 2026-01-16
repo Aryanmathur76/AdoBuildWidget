@@ -30,7 +30,7 @@ interface TestRunGroup {
     notExecutedTests: number;
 }
 
-export async function GET() {
+export async function GET({ url }: { url: URL }) {
     try {
         let AZURE_DEVOPS_ORGANIZATION, AZURE_DEVOPS_PROJECT, AZURE_DEVOPS_PAT;
         try {
@@ -39,9 +39,11 @@ export async function GET() {
             return json({ error: e.message || 'Missing Azure DevOps environment variables' }, { status: 500 });
         }
 
-        const testPlanId = publicEnv.PUBLIC_TEST_PLAN_ID;
+        // Allow overriding the testPlanId via query param for client requests
+        const queryPlanId = url.searchParams.get('testPlanId');
+        const testPlanId = queryPlanId || publicEnv.PUBLIC_TEST_PLAN_ID;
         if (!testPlanId) {
-            return json({ error: 'PUBLIC_TEST_PLAN_ID not configured' }, { status: 500 });
+            return json({ error: 'testPlanId not provided and PUBLIC_TEST_PLAN_ID not configured' }, { status: 400 });
         }
 
         // Fetch test runs for the last 12 months in 7-day windows

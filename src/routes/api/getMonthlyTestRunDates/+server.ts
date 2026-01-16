@@ -85,8 +85,9 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 
 		const planId = url.searchParams.get('planId');
 		const suiteId = url.searchParams.get('suiteId');
-		const minRocParam = url.searchParams.get('minRoc');
-		const minRoc = minRocParam ? parseFloat(minRocParam) : 0;
+
+		// minRoc will be computed after fetching expected test cases (25% of expected count)
+		let minRoc = 0;
 
 		const processingConcurrencyParam = url.searchParams.get('processingConcurrency');
 		const processingConcurrency = processingConcurrencyParam ? Math.max(1, parseInt(processingConcurrencyParam)) : 20;
@@ -109,6 +110,10 @@ async function getMonthlyTestData(url: URL, sendProgress?: (stage: string, messa
 			AZURE_DEVOPS_PAT
 		);
 		sendProgress?.('Fetching Test Cases', `Loaded ${expectedTestCases.length} expected test cases`, 100, true);
+
+		// Compute minRoc as 25% of expected test cases (rounded up)
+		minRoc = Math.max(1, Math.ceil(expectedTestCases.length * 0.25));
+		sendProgress?.('Fetching Test Cases', `Computed minRoc = ${minRoc} (25% of ${expectedTestCases.length})`, 100, true);
 
 		// Set of all valid test case IDs for the suite (and descendants)
 		const validTestCaseIds = new Set(expectedTestCases.map(tc => tc.workItem.id));
