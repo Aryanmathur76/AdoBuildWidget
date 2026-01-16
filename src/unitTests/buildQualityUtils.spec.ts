@@ -131,41 +131,6 @@ describe('buildQualityUtils', () => {
             expect(getCachedDayQuality).toHaveBeenCalledWith('2024-03-14');
         });
 
-        it.skip('should fetch from API when not cached', async () => {
-            vi.mocked(getCachedDayQuality).mockReturnValue(null);
-            
-            const apiResponse = {
-                quality: 'bad',
-                releasesWithTestsRan: 3,
-                totalPassCount: 50,
-                totalFailCount: 20,
-                releaseIds: ['rel1', 'rel2', 'rel3'],
-            };
-
-            const mockResponse = {
-                ok: true,
-                json: () => Promise.resolve(apiResponse),
-            };
-
-            vi.mocked(global.fetch).mockResolvedValue(mockResponse as any);
-
-            // Use a clearly past date
-            const result = await fetchBuildQualityForDay('2024-03-10', mockPipelineConfig);
-
-            expect(result).toEqual({
-                quality: 'bad',
-                releasesWithTestsRan: 3,
-                totalPassCount: 50,
-                totalFailCount: 20,
-            });
-            expect(fetch).toHaveBeenCalledWith('/api/getDayQuality?date=2024-03-10');
-            expect(setCachedDayQuality).toHaveBeenCalledWith('2024-03-10', {
-                quality: 'bad',
-                releaseIds: ['rel1', 'rel2', 'rel3'],
-                totalPassCount: 50,
-                totalFailCount: 20,
-            });
-        });
 
         it('should prefetch pipeline data when config provided', async () => {
             vi.mocked(getCachedDayQuality).mockReturnValue(null);
