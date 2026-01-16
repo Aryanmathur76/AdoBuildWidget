@@ -9,8 +9,18 @@ const mockTestCases = [{ id: 'tc1', name: 'Test 1', outcome: 'Failed' }];
 const date = '2025-10-30';
 const pipelineId = '123';
 
+let _logSpy: any;
+let _errorSpy: any;
+
 beforeEach(() => {
   vi.resetAllMocks();
+  _logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  _errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+});
+
+afterEach(() => {
+  _logSpy?.mockRestore?.();
+  _errorSpy?.mockRestore?.();
 });
 
 describe('pipelineDataService', () => {

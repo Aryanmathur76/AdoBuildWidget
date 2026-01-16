@@ -1,17 +1,27 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { GET } from '../routes/api/test-cases/+server';
 import * as utils from '$lib/utils';
 
 describe('test-cases API', () => {
+    let _logSpy: any;
+    let _errorSpy: any;
+
     beforeEach(() => {
         vi.clearAllMocks();
-        
+        _logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        _errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
         // Mock getAzureDevOpsEnvVars to avoid needing actual environment variables
         vi.spyOn(utils, 'getAzureDevOpsEnvVars').mockReturnValue({
             AZURE_DEVOPS_ORGANIZATION: 'TestOrg',
             AZURE_DEVOPS_PROJECT: 'TestProject',
             AZURE_DEVOPS_PAT: 'test-pat-token'
         });
+    });
+
+    afterEach(() => {
+        _logSpy?.mockRestore?.();
+        _errorSpy?.mockRestore?.();
     });
 
     describe('Input validation', () => {
