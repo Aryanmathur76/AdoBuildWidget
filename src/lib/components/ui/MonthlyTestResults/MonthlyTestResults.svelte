@@ -2,6 +2,7 @@
     import { onMount } from 'svelte';
     import { slide } from 'svelte/transition';
     import { Badge } from '$lib/components/ui/badge/index.js';
+    import { goto } from '$app/navigation';
 
     interface TestCase {
         testCaseId: number;
@@ -193,7 +194,7 @@
                 <span class="material-symbols-outlined" style="font-size: 1.2em;">settings</span>
             </button>
             <button
-                onclick={() => {}}
+                onclick={() => goto('/monthly-analytics')}
                 aria-label="Show Line Graph"
                 title="Line Graph"
                 class="px-2 py-1 text-xs rounded border border-border/50 hover:bg-accent/20 transition-colors flex items-center justify-center"
