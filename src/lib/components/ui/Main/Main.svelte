@@ -32,6 +32,20 @@
     let helpDialogOpen = $state(false);
     let todayQuality = $state<string>("unknown");
     let carouselApi = $state<CarouselAPI>();
+    const count = 5; // Hardcoded for 5 carousel items
+    let current = $state(0);
+    let visibleSlides = $state<number[]>([0, 1, 2]); // Default to first 3
+
+    $effect(() => {
+        if (carouselApi) {
+            current = carouselApi.selectedScrollSnap() + 1;
+            visibleSlides = Array.from({ length: 3 }, (_, i) => (current - 1) + i).filter(i => i >= 0 && i < count);
+            carouselApi.on("select", () => {
+                current = carouselApi!.selectedScrollSnap() + 1;
+                visibleSlides = Array.from({ length: 3 }, (_, i) => (current - 1) + i).filter(i => i >= 0 && i < count);
+            });
+        }
+    });
     let gradientColor = $derived.by(() => {
         const colors: Record<string, string> = {
             good: "from-lime-600/60",
@@ -238,35 +252,46 @@
         {:else}
         <!-- Desktop: Carousel Layout (No Sidebar) -->
         <div class="flex flex-col h-full">
-            <div class="flex items-center p-4 bg-transparent rounded-lg">
-                <CardTitle>
-                    <span class="inline-flex font-bold items-center gap-1">
-                        <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
-                        <span>DELTAV BUILD HEALTH</span>
-                    </span>
-                </CardTitle>
-                <Popover.Root>
-                    <Popover.Trigger class="hover:opacity-80 transition-opacity flex items-center gap-1 mx-2 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 cursor-help">
-                        <span class="text-sm font-semibold text-primary">{pipelineConfig?.pipelines.length || 0}</span>
-                        <span class="material-symbols-outlined text-primary" style="font-size: 1.1em;">science</span>
-                    </Popover.Trigger>
-                    <Popover.Content class="w-auto p-3">
-                        <div class="space-y-2">
-                            <h4 class="font-semibold text-sm">Test Pipelines</h4>
-                            <div class="space-y-1 max-h-64 overflow-y-auto">
-                                {#each pipelineConfig?.pipelines || [] as pipeline}
-                                    <div class="text-xs flex items-center gap-2 p-1.5 rounded hover:bg-muted/50">
-                                        <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1em;">
-                                            {pipeline.type === 'build' ? 'build' : 'rocket_launch'}
-                                        </span>
-                                        <span class="text-foreground flex-1">{pipeline.displayName}</span>
-                                    </div>
-                                {/each}
+            <div class="flex items-center justify-between p-4 bg-transparent rounded-lg">
+                <div class="flex items-center gap-2">
+                    <CardTitle>
+                        <span class="inline-flex font-bold items-center gap-1">
+                            <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
+                            <span>DELTAV BUILD HEALTH</span>
+                        </span>
+                    </CardTitle>
+                    <Popover.Root>
+                        <Popover.Trigger class="hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 cursor-help">
+                            <span class="text-sm font-semibold text-primary">{pipelineConfig?.pipelines.length || 0}</span>
+                            <span class="material-symbols-outlined text-primary" style="font-size: 1.1em;">science</span>
+                        </Popover.Trigger>
+                        <Popover.Content class="w-auto p-3">
+                            <div class="space-y-2">
+                                <h4 class="font-semibold text-sm">Test Pipelines</h4>
+                                <div class="space-y-1 max-h-64 overflow-y-auto">
+                                    {#each pipelineConfig?.pipelines || [] as pipeline}
+                                        <div class="text-xs flex items-center gap-2 p-1.5 rounded hover:bg-muted/50">
+                                            <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1em;">
+                                                {pipeline.type === 'build' ? 'build' : 'rocket_launch'}
+                                            </span>
+                                            <span class="text-foreground flex-1">{pipeline.displayName}</span>
+                                        </div>
+                                    {/each}
+                                </div>
                             </div>
-                        </div>
-                    </Popover.Content>
-                </Popover.Root>
-                <div class="ml-auto flex items-center gap-2">
+                        </Popover.Content>
+                    </Popover.Root>
+                </div>
+                {#if carouselApi && count > 0}
+                    <div class="flex items-center gap-3">
+                        {#each Array(count) as _, i (i)}
+                            <span class="inline-block w-3 h-3 border border-primary rounded-full transition-all duration-200"
+                                style="background:{visibleSlides.includes(i) ? 'var(--color-primary)' : 'var(--color-border)'}; opacity:{visibleSlides.includes(i) ? 1 : 0.4};">
+                            </span>
+                        {/each}
+                    </div>
+                {/if}
+                <div class="flex items-center gap-2">
                     <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
                         <span class="material-symbols-outlined" style="font-size: 1.25em;">{#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}</span>
                         <span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>
