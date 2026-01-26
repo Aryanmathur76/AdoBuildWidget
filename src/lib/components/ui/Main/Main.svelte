@@ -53,9 +53,16 @@
     $effect(() => {
         if (typeof window !== 'undefined') {
             const checkScreen = () => {
-                isDesktop = window.innerWidth >= 1024;
-                isMobile = window.innerWidth < 640;
-                isSmallView = window.innerWidth < 1024;
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+                const aspect = w / h;
+                const squareTolerance = 0.15; // adjust tolerance as needed
+                const isSquare = Math.abs(aspect - 1) <= squareTolerance;
+
+                // If aspect is close to square, force mobile view
+                isMobile = isSquare || w < 640;
+                isDesktop = !isMobile && w >= 1024;
+                isSmallView = isSquare || w < 1024;
             };
             checkScreen();
             window.addEventListener('resize', checkScreen);
