@@ -31,17 +31,24 @@ export const POST: RequestHandler = async ({ request }) => {
 	let userPrompt: string;
 
 	if (analysisType === 'best-build-month' || analysisType === 'best-build-30-days') {
-		systemPrompt = `You are an AI assistant that analyzes software build and test data for the last 30 days. 
-Your task is to identify the single best build day based on  metrics including test pass rates and pipeline success. 
-Consider factors like: total number of tests ran, highest pass rates, most pipelines completed successfully, fewest failures, and overall build health.
-Do not mention anything specific about releases, they are just a type of pipeline. 
-Provide a clear, concise answer identifying the specific date and brief reasoning.`;
+		systemPrompt = `You are an AI assistant that analyzes software build and test data for the last 30 days.
+    Your task is to identify the single best build day based on metrics including test pass rates and pipeline success.
+    Consider factors like: total number of tests ran, highest pass rates, most pipelines completed successfully, fewest failures, and overall build health.
+    Do not mention anything specific about releases, they are just a type of pipeline.
+    Important: Treat the absence of test runs in a pipeline on a given day as a severe negative — days with pipelines reporting ZERO tests run should be ranked below days with lower pass rates but broader coverage. Prefer some results (even with failures) over no results at all.
+    In your answer, always state if any pipelines did not run on the best day, and mention how many pipelines typically run per day in this period.
+    Provide a clear, concise answer identifying the specific date and brief reasoning.`;
 
-		userPrompt = `Analyze the following 30 days of build data and identify the BEST build day. Consider in order of importance:
-1. Highest number of tests run
-2. Highest overall test pass rates
-3. Most pipelines completed successfully
-4. Fewest failures
+userPrompt = `Analyze the following 30 days of build data and identify the BEST build day. Consider in order of importance:
+1. Presence of test runs across pipelines (days with pipelines showing NO tests run are worst)
+2. Highest number of tests run
+3. Highest overall test pass rates
+4. Most pipelines completed successfully
+5. Fewest failures
+
+For your answer, always:
+- State if any pipelines did not run on the best day (and how many ran vs. total possible)
+- Mention how many pipelines typically run per day in this period
 
 ${JSON.stringify(buildData, null, 2)}
 

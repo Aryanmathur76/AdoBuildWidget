@@ -95,7 +95,6 @@ export async function GET() {
             .sort((a: any, b: any) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
             .slice(0, 10);
 
-        console.log(`Found ${sprints.length} sprints`);
 
         // Process each pipeline
         const pipelineResults: Array<{
@@ -105,11 +104,9 @@ export async function GET() {
         }> = [];
 
         for (const pipeline of weeklyConfig.pipelines) {
-            console.log(`Processing pipeline: ${pipeline.displayName}`);
             const sprintResults: SprintTestResult[] = [];
 
             for (const sprint of sprints) {
-                console.log(`  Processing sprint: ${sprint.name} (${sprint.startDate} to ${sprint.finishDate})`);
                 
                 if (pipeline.type === 'release') {
                 // Query releases for this sprint date range
@@ -131,7 +128,6 @@ export async function GET() {
                             new Date(b.createdOn).getTime() - new Date(a.createdOn).getTime()
                         )[0];
 
-                        console.log(`  Found latest release: ${latestRelease.name} (ID: ${latestRelease.id})`);
 
                         // Fetch full release details to get environments
                         const releaseDetailsUrl = `https://vsrm.dev.azure.com/${AZURE_DEVOPS_ORGANIZATION}/${AZURE_DEVOPS_PROJECT}/_apis/release/releases/${latestRelease.id}?api-version=7.1-preview.8`;
@@ -198,7 +194,6 @@ export async function GET() {
                                 }
                             }
 
-                            console.log(`  Total tests: ${totalTests}, Passed: ${passedTests}, Failed: ${failedTests}`);
 
                             // Determine status
                             let status = 'unknown';
@@ -224,7 +219,6 @@ export async function GET() {
                             });
                         }
                     } else {
-                        console.log(`    No releases found for this sprint`);
                         // No release for this sprint
                         sprintResults.push({
                             sprintName: sprint.name,

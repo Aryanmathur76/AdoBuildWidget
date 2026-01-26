@@ -200,18 +200,60 @@
         const monthDates = getDatesInMonth(currentYear, currentMonth);
 
         try {
+            // Build a detailed structure: { [date]: { pipelines: { [pipelineId]: { ran, passCount, failCount, displayName } } } }
+            const buildData: Record<string, any> = {};
+            for (const date of monthDates) {
+                if (!dayBuildQuality[date] || !pipelineConfig?.pipelines) continue;
+                buildData[date] = { pipelines: {} };
+                for (const pipeline of pipelineConfig.pipelines) {
+                    const pipelineId = pipeline.id;
+                    let passCount = 0, failCount = 0, ran = false;
+                    let displayName = pipeline.displayName || pipelineId;
+                    // Match HeatmapButton: check both build and release types
+                    if (pipeline.type === "build" || pipeline.type === "build/release") {
+                        const buildDataObj = pipelineDataService && pipelineDataService.fetchBuildDataSilent
+                            ? await pipelineDataService.fetchBuildDataSilent(date, pipelineId.toString())
+                            : null;
+                        if (buildDataObj) {
+                            if (Array.isArray(buildDataObj)) {
+                                for (const build of buildDataObj) {
+                                    passCount += build.passedTestCount || 0;
+                                    failCount += build.failedTestCount || 0;
+                                }
+                            } else {
+                                passCount += buildDataObj.passedTestCount || 0;
+                                failCount += buildDataObj.failedTestCount || 0;
+                            }
+                        }
+                    }
+                    if (pipeline.type === "release" || pipeline.type === "build/release") {
+                        const releaseDataObj = pipelineDataService && pipelineDataService.fetchReleaseDataSilent
+                            ? await pipelineDataService.fetchReleaseDataSilent(date, pipelineId.toString())
+                            : null;
+                        if (releaseDataObj) {
+                            passCount += releaseDataObj.passedTestCount || 0;
+                            failCount += releaseDataObj.failedTestCount || 0;
+                        }
+                    }
+                    ran = (passCount + failCount) > 0;
+                    buildData[date].pipelines[pipelineId] = {
+                        ran,
+                        passCount,
+                        failCount,
+                        displayName
+                    };
+                }
+            }
+            const body = JSON.stringify({
+                buildData,
+                analysisType: "best-build-month"
+            });
+            console.log("AI Insights request body:", body);
+
             const response = await fetch("/api/ai-insights", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    buildData: monthDates
-                        .filter((date) => dayBuildQuality[date])
-                        .reduce((acc, date) => {
-                            acc[date] = dayBuildQuality[date];
-                            return acc;
-                        }, {} as Record<string, DayBuildQuality>),
-                    analysisType: "best-build-month"
-                }),
+                body
             });
 
             if (!response.ok) throw new Error(`API error: ${response.status}`);
