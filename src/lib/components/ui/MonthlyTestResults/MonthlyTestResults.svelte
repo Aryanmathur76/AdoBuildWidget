@@ -180,9 +180,11 @@
         </h3>
         <button 
             onclick={() => showConfig = !showConfig}
-            class="px-2 py-1 text-xs rounded border border-border/50 hover:bg-accent/20 transition-colors"
+            aria-label={showConfig ? 'Hide Config' : 'Show Config'}
+            title={showConfig ? 'Hide Config' : 'Show Config'}
+            class="px-2 py-1 text-xs rounded border border-border/50 hover:bg-accent/20 transition-colors flex items-center justify-center"
         >
-            {showConfig ? 'Hide' : 'Show'} Config
+            <span class="material-symbols-outlined" style="font-size: 1.2em;">settings</span>
         </button>
     </div>
 
