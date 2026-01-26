@@ -77,6 +77,9 @@
     let suiteId = $state('1310934');
     let preset = $state('PhysCR');
 
+    // Track open state for each run
+    let detailsOpen = $state<boolean[]>([]);
+
     // Batch and parallelize API calls
     async function fetchData() {
         loading = true;
@@ -283,7 +286,7 @@
         <div class="flex-1 overflow-auto space-y-3">
             {#each (data?.monthlyRuns || []) as run, index}
                 {@const passRateImprovement = run.passRates.finalPassRate - run.passRates.initialPassRate}
-                <details class="border rounded-lg bg-background/30 overflow-hidden">
+                <details class="border rounded-lg bg-background/30 overflow-hidden transition-colors hover:bg-accent/10" bind:open={detailsOpen[index]} ontoggle={() => detailsOpen[index] = !detailsOpen[index]}>
                     <summary class="px-4 py-3 hover:bg-background/50 cursor-pointer list-none">
                         <div class="flex items-center justify-between w-full">
                             <div class="flex items-center gap-3">
@@ -307,7 +310,8 @@
                             </div>
                         </div>
                     </summary>
-                    <div class="px-4 pb-4">
+                    {#if detailsOpen[index]}
+                        <div class="px-4 pb-4" in:slide={{ duration: 220 }} out:slide={{ duration: 180 }}>
                             <!-- Pass Rate Details -->
                             <div class="mb-4 p-3 bg-background/20 rounded">
                                 <h5 class="font-semibold text-sm mb-2 flex items-center gap-2">
@@ -462,7 +466,8 @@
                                     </div>
                                 </div>
                             {/if}
-                    </div>
+                        </div>
+                    {/if}
                 </details>
             {/each}
         </div>
