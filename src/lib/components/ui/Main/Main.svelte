@@ -245,7 +245,7 @@
                                     <Sidebar.MenuItem>
                                         <Sidebar.MenuButton onclick={() => { currentTab = "TestResults"; sidebar?.toggle(); }} class={currentTab === "TestResults" ? "bg-accent" : ""}>
                                             <span class="material-symbols-outlined" style="font-size: 1.5em;">calendar_month</span>
-                                            <span>Test Results</span>
+                                            <span>Monthly Test Run Analysis</span>
                                         </Sidebar.MenuButton>
                                     </Sidebar.MenuItem>
                                 </Sidebar.Menu>
