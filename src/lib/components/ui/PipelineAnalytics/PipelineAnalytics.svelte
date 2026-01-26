@@ -212,7 +212,7 @@
     }
 </script>
 
-<div class="h-full p-4 lg:p-4 lg:pb-0 flex flex-col gap-4">
+<div class="h-full p-4 lg:p-0 lg:pb-0 flex flex-col gap-4">
     <h3 class="text-lg font-semibold flex items-center gap-2">
         <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
         Daily Pipeline Analytics

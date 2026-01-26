@@ -173,7 +173,7 @@
 
 </script>
 
-<div class="h-full p-4 lg:p-5 lg:pb-0 lg:pt-0 flex flex-col gap-4">
+<div class="h-full p-4 lg:p-0 lg:pb-0 lg:pt-0 flex flex-col gap-4">
     <div class="flex items-center justify-between gap-2">
         <h3 class="text-lg font-semibold flex items-center gap-2">
             {#if loading}
