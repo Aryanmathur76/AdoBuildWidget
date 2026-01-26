@@ -227,19 +227,19 @@
                                     <Sidebar.MenuItem>
                                         <Sidebar.MenuButton onclick={() => { currentTab = "Monthly"; sidebar?.toggle(); }} class={currentTab === "Monthly" ? "bg-accent" : ""}>
                                             <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
-                                            <span>Monthly View</span>
+                                            <span>Daily Tests - Monthly</span>
                                         </Sidebar.MenuButton>
                                     </Sidebar.MenuItem>
                                     <Sidebar.MenuItem>
                                         <Sidebar.MenuButton onclick={() => { currentTab = "Weekly"; sidebar?.toggle(); }} class={currentTab === "Weekly" ? "bg-accent" : ""}>
                                             <span class="material-symbols-outlined" style="font-size: 1.5em;">view_week</span>
-                                            <span>Weekly View</span>
+                                            <span>Daily Tests - Weekly</span>
                                         </Sidebar.MenuButton>
                                     </Sidebar.MenuItem>
                                     <Sidebar.MenuItem>
                                         <Sidebar.MenuButton onclick={() => { currentTab = "Analytics"; sidebar?.toggle(); }} class={currentTab === "Analytics" ? "bg-accent" : ""}>
                                             <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
-                                            <span>Pipeline Analytics</span>
+                                            <span>Daily Pipeline Analytics</span>
                                         </Sidebar.MenuButton>
                                     </Sidebar.MenuItem>
                                     <Sidebar.MenuItem>
