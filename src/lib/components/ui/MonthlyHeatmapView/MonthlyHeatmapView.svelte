@@ -279,7 +279,7 @@
     <div class="flex items-center justify-between mb-3">
         <h3 class="text-lg font-semibold flex items-center gap-2">
             <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
-            Monthly View
+            Daily Tests - Monthly
         </h3>
         <button onclick={() => {
             analyzeBestBuild();

@@ -99,7 +99,7 @@
         <CardContent class="p-4 xl:pb-0 pt-0 flex flex-col h-full">
             <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
                 <span class="material-symbols-outlined" style="font-size: 1.5em;">view_week</span>
-                Weekly View
+                Daily Tests - Weekly
             </h3>
             <!-- Day labels and buttons row -->
             <div class="mb-4">
