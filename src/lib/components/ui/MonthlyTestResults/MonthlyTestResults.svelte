@@ -3,6 +3,7 @@
     import { slide } from 'svelte/transition';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import { goto } from '$app/navigation';
+    import { env } from '$env/dynamic/public';
 
     interface TestCase {
         testCaseId: number;
@@ -74,9 +75,15 @@
     let loadingStages = $state<LoadingProgress[]>([]);
 
     // Configuration - presets
-    let planId = $state('1310927');
-    let suiteId = $state('1310934');
-    let preset = $state('PhysCR');
+    type PresetEntry = { planId: string; suiteId: string };
+    // Start empty — presets must come from PUBLIC_MONTHLY_TEST_PRESETS
+    let planId = $state('');
+    let suiteId = $state('');
+    let preset = $state('');
+    // Map of preset name -> { planId, suiteId }
+    let presetMap = $state<Record<string, PresetEntry>>({});
+    // Derived list of preset names for the dropdown
+    let presetNames = $derived.by(() => Object.keys(presetMap));
 
     // Track open state for each run
     let detailsOpen = $state<boolean[]>([]);
@@ -164,7 +171,38 @@
     }
 
     onMount(() => {
-        fetchData();
+        try {
+            if (env.PUBLIC_MONTHLY_TEST_PRESETS) {
+                const parsed = JSON.parse(env.PUBLIC_MONTHLY_TEST_PRESETS) as Record<string, PresetEntry>;
+                // Validate parsed shape
+                const valid: Record<string, PresetEntry> = {};
+                for (const [k, v] of Object.entries(parsed)) {
+                    if (v && typeof v.planId === 'string' && typeof v.suiteId === 'string') {
+                        valid[k] = v;
+                    }
+                }
+                if (Object.keys(valid).length > 0) presetMap = valid;
+            }
+        } catch (e) {
+            console.warn('Failed to parse PUBLIC_MONTHLY_TEST_PRESETS:', e);
+        }
+
+        // Ensure presets were provided via env and set initial plan/suite, otherwise do not auto-load
+        const keys = Object.keys(presetMap);
+        if (keys.length > 0) {
+            if (!preset || !presetMap[preset]) {
+                preset = keys[0];
+            }
+            const initial = presetMap[preset];
+            if (initial) {
+                planId = initial.planId;
+                suiteId = initial.suiteId;
+            }
+            fetchData();
+        } else {
+            // No presets provided; leave loading=false and show no-data state
+            loading = false;
+        }
     });
 
 
@@ -211,14 +249,18 @@
                 <div>
                     <label for="preset" class="text-xs text-muted-foreground block mb-1">Preset</label>
                     <select id="preset" bind:value={preset} class="w-full px-2 py-1 text-sm bg-background border border-border rounded">
-                        <option value="PhysCR">PhysCR (plan: 1310927, suite: 1310934)</option>
-                        <option value="VACR">VACR (plan: 1237539, suite: 1309779)</option>
+                        {#each presetNames as name}
+                            <option value={name}>{name} (plan: {presetMap[name].planId}, suite: {presetMap[name].suiteId})</option>
+                        {/each}
                     </select>
                 </div>
                 <button
                     onclick={() => {
-                        if (preset === 'PhysCR') { planId = '1310927'; suiteId = '1310934'; }
-                        else { planId = '1237539'; suiteId = '1309779'; }
+                        const selected = presetMap[preset];
+                        if (selected) {
+                            planId = selected.planId;
+                            suiteId = selected.suiteId;
+                        }
                         showConfig = false;
                         fetchData();
                     }}
