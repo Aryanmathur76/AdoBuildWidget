@@ -252,7 +252,7 @@
         {:else}
         <!-- Desktop: Carousel Layout (No Sidebar) -->
         <div class="flex flex-col h-full">
-            <div class="flex items-center justify-between p-4 bg-transparent rounded-lg">
+            <div class="relative flex items-center justify-between p-4 bg-transparent rounded-lg">
                 <div class="flex items-center gap-2">
                     <CardTitle>
                         <span class="inline-flex font-bold items-center gap-1">
@@ -283,9 +283,9 @@
                     </Popover.Root>
                 </div>
                 {#if carouselApi && count > 0}
-                    <div class="flex items-center gap-3">
+                    <div class="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 pointer-events-none">
                         {#each Array(count) as _, i (i)}
-                            <span class="inline-block w-3 h-3 border border-primary rounded-full transition-all duration-200"
+                            <span class="inline-block w-3 h-3 border border-primary rounded-full transition-all duration-200 pointer-events-auto"
                                 style="background:{visibleSlides.includes(i) ? 'var(--color-primary)' : 'var(--color-border)'}; opacity:{visibleSlides.includes(i) ? 1 : 0.4};">
                             </span>
                         {/each}
