@@ -116,26 +116,6 @@
     } catch (e) {
         console.warn("Failed to parse pipeline config:", e);
     }
-
-    // Scroll carousel hint on desktop after a short delay
-    $effect(() => {
-        if (typeof window !== 'undefined' && !isMobile && carouselApi) {
-            const timer = setTimeout(() => {
-                // Scroll carousel slightly to the right to show it can move
-                if (carouselApi) {
-                    carouselApi.scrollTo(1);
-                }
-                
-                // Scroll back
-                setTimeout(() => {
-                    if (carouselApi) {
-                        carouselApi.scrollTo(0);
-                    }
-                }, 800);
-            }, 1000);
-            return () => clearTimeout(timer);
-        }
-    });
 </script>
 
 <div class="w-full h-screen max-h-screen overflow-hidden" transition:slide={{ duration: 300 }}>
