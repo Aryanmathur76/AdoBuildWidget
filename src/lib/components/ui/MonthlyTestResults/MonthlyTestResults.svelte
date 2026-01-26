@@ -286,189 +286,190 @@
         <div class="flex-1 overflow-auto space-y-3">
             {#each (data?.monthlyRuns || []) as run, index}
                 {@const passRateImprovement = run.passRates.finalPassRate - run.passRates.initialPassRate}
-                <details class="border rounded-lg bg-background/30 overflow-hidden transition-colors hover:bg-accent/10" bind:open={detailsOpen[index]} ontoggle={() => detailsOpen[index] = !detailsOpen[index]}>
-                    <summary class="px-4 py-3 hover:bg-background/50 cursor-pointer list-none">
-                        <div class="flex items-center justify-between w-full">
-                            <div class="flex items-center gap-3">
-                                <span class="material-symbols-outlined text-primary">rocket_launch</span>
-                                <div class="text-left">
-                                    <div class="font-semibold">Run #{index + 1} - {formatDate(run.date)}</div>
-                                    <div class="text-xs text-muted-foreground">
-                                        {run.runBoundaries.startDate && run.runBoundaries.endDate 
-                                            ? `${formatDate(run.runBoundaries.startDate)} - ${formatDate(run.runBoundaries.endDate)} (${run.runBoundaries.durationDays} days)`
-                                            : 'No execution data'}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <Badge class={getPassRateColor(run.passRates.finalPassRate)}>
-                                    {run.passRates.finalPassRate.toFixed(1)}%
-                                </Badge>
-                                <Badge class="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                                    {run.foundTestCases.length} / {data?.testCaseSummary.expectedCount} cases found
-                                </Badge>
-                            </div>
-                        </div>
-                    </summary>
-                    {#if detailsOpen[index]}
-                        <div class="px-4 pb-4" in:slide={{ duration: 220 }} out:slide={{ duration: 180 }}>
-                            <!-- Pass Rate Details -->
-                            <div class="mb-4 p-3 bg-background/20 rounded">
-                                <h5 class="font-semibold text-sm mb-2 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-sm">done_all</span>
-                                    Pass Rates
-                                </h5>
-                                <div class="grid grid-cols-2 gap-3 text-sm">
-                                    <div>
-                                        <div class="text-muted-foreground text-xs">Initial Pass Rate</div>
-                                        <div class="font-semibold text-lg">{run.passRates.initialPassRate.toFixed(1)}%</div>
-                                        <div class="text-xs text-muted-foreground">{run.passRates.initialPassedCount}/{run.passRates.totalTestsFound} passed first time</div>
-                                    </div>
-                                    <div>
-                                        <div class="text-muted-foreground text-xs">Final Pass Rate</div>
-                                        <div class="font-semibold text-lg">{run.passRates.finalPassRate.toFixed(1)}%</div>
-                                        <div class="text-xs text-muted-foreground">{run.passRates.finalPassedCount}/{run.passRates.totalTestsFound} passed eventually</div>
-                                    </div>
-                                </div>
-                                {#if passRateImprovement > 0}
-                                    <div class="mt-2 p-2 bg-muted/20 rounded border border-border/50">
-                                        <div class="text-xs text-muted-foreground flex items-center gap-1">
-                                            <span class="material-symbols-outlined" style="font-size: 1em;">info</span>
-                                            <span>+{passRateImprovement.toFixed(1)}% improvement from retries</span>
+                <div class="border rounded-lg bg-background/30 overflow-hidden transition-colors hover:bg-accent/10">
+                    <details class="group" bind:open={detailsOpen[index]} ontoggle={() => detailsOpen[index] = !detailsOpen[index]}>
+                        <summary class="px-4 py-3 hover:bg-background/50 cursor-pointer list-none">
+                            <div class="flex items-center justify-between w-full">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-primary">rocket_launch</span>
+                                    <div class="text-left">
+                                        <div class="font-semibold">Run #{index + 1} - {formatDate(run.date)}</div>
+                                        <div class="text-xs text-muted-foreground">
+                                            {run.runBoundaries.startDate && run.runBoundaries.endDate 
+                                                ? `${formatDate(run.runBoundaries.startDate)} - ${formatDate(run.runBoundaries.endDate)} (${run.runBoundaries.durationDays} days)`
+                                                : 'No execution data'}
                                         </div>
                                     </div>
-                                {/if}
-                            </div>
-
-                            <!-- Test Coverage -->
-                            <div class="mb-4 p-3 bg-background/20 rounded">
-                                <h5 class="font-semibold text-sm mb-2 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-sm">fact_check</span>
-                                    Test Coverage
-                                </h5>
-                                <div class="grid grid-cols-3 gap-2 text-xs">
-                                    <div class="p-2 bg-green-500/10 rounded text-center">
-                                        <div class="text-green-400">Found</div>
-                                        <div class="font-semibold text-lg text-green-400">{run.testCaseCount}</div>
-                                    </div>
-                                    <div class="p-2 bg-red-500/10 rounded text-center">
-                                        <div class="text-red-400">Not Found</div>
-                                        <div class="font-semibold text-lg text-red-400">{run.notFoundTestCases.length}</div>
-                                    </div>
-                                    <div class="p-2 bg-blue-500/10 rounded text-center">
-                                        <div class="text-blue-400">Not in Plan</div>
-                                        <div class="font-semibold text-lg text-blue-400">{run.casesRunThatAreNotInTestPlan.length}</div>
-                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <Badge class={getPassRateColor(run.passRates.finalPassRate)}>
+                                        {run.passRates.finalPassRate.toFixed(1)}%
+                                    </Badge>
+                                    <Badge class="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                                        {run.foundTestCases.length} / {data?.testCaseSummary.expectedCount} cases found
+                                    </Badge>
                                 </div>
                             </div>
-
-                            <!-- Flaky Tests -->
-                            {#if run.flakyTestCount > 0}
-                                <div class="mb-4 p-3 bg-orange-500/10 border border-orange-500/20 rounded">
-                                    <h5 class="font-semibold text-sm mb-2 flex items-center gap-2 text-orange-400">
-                                        <span class="material-symbols-outlined text-sm">warning</span>
-                                        Flaky Tests ({run.flakyTestCount})
-                                    </h5>
-                                    <div class="space-y-1 max-h-40 overflow-y-auto">
-                                        {#each (expandedFlakyTests[run.date] ? run.flakyTests : run.flakyTests.slice(0, 10)) as flaky}
-                                            <div class="text-xs p-2 bg-background/30 rounded flex items-center justify-between">
-                                                <span class="truncate flex-1" title={flaky.testCaseName}>
-                                                    <span class="text-muted-foreground">#{flaky.testCaseId}</span> - {flaky.testCaseName}
-                                                </span>
-                                                <Badge class="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs ml-2">
-                                                    {flaky.executionCount}x
-                                                </Badge>
-                                            </div>
-                                        {/each}
-                                        {#if run.flakyTests.length > 10 && !expandedFlakyTests[run.date]}
-                                            <button 
-                                                class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
-                                                onclick={() => expandedFlakyTests[run.date] = true}
-                                            >
-                                                ... and {run.flakyTests.length - 10} more (click to expand)
-                                            </button>
-                                        {/if}
-                                        {#if expandedFlakyTests[run.date]}
-                                            <button 
-                                                class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
-                                                onclick={() => expandedFlakyTests[run.date] = false}
-                                            >
-                                                Show less
-                                            </button>
-                                        {/if}
-                                    </div>
+                        </summary>
+                    </details>
+                    {#if detailsOpen[index]}
+                        <div class="px-4 pb-4" in:slide={{ duration: 220 }} out:slide={{ duration: 180 }}>
+                        <!-- Pass Rate Details -->
+                        <div class="mb-4 p-3 bg-background/20 rounded">
+                            <h5 class="font-semibold text-sm mb-2 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-sm">done_all</span>
+                                Pass Rates
+                            </h5>
+                            <div class="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                    <div class="text-muted-foreground text-xs">Initial Pass Rate</div>
+                                    <div class="font-semibold text-lg">{run.passRates.initialPassRate.toFixed(1)}%</div>
+                                    <div class="text-xs text-muted-foreground">{run.passRates.initialPassedCount}/{run.passRates.totalTestsFound} passed first time</div>
                                 </div>
-                            {/if}
-
-
-                            <!-- Not Found Tests (Expandable) -->
-                            {#if run.notFoundTestCases.length > 0}
-                                <div class="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded">
-                                    <h5 class="font-semibold text-sm mb-2 flex items-center gap-2 text-red-400">
-                                        <span class="material-symbols-outlined text-sm">error</span>
-                                        Not Found Tests ({run.notFoundTestCases.length})
-                                    </h5>
-                                    <div class="space-y-1 max-h-40 overflow-y-auto">
-                                        {#each (expandedFlakyTests[run.date + '-notfound'] ? run.notFoundTestCases : run.notFoundTestCases.slice(0, 10)) as test}
-                                            <div class="text-xs p-2 bg-background/30 rounded">
-                                                <span class="text-muted-foreground">#{test.testCaseId}</span> - {test.testCaseName}
-                                            </div>
-                                        {/each}
-                                        {#if run.notFoundTestCases.length > 10 && !expandedFlakyTests[run.date + '-notfound']}
-                                            <button 
-                                                class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
-                                                onclick={() => expandedFlakyTests[run.date + '-notfound'] = true}
-                                            >
-                                                ... and {run.notFoundTestCases.length - 10} more (click to expand)
-                                            </button>
-                                        {/if}
-                                        {#if expandedFlakyTests[run.date + '-notfound']}
-                                            <button 
-                                                class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
-                                                onclick={() => expandedFlakyTests[run.date + '-notfound'] = false}
-                                            >
-                                                Show less
-                                            </button>
-                                        {/if}
-                                    </div>
+                                <div>
+                                    <div class="text-muted-foreground text-xs">Final Pass Rate</div>
+                                    <div class="font-semibold text-lg">{run.passRates.finalPassRate.toFixed(1)}%</div>
+                                    <div class="text-xs text-muted-foreground">{run.passRates.finalPassedCount}/{run.passRates.totalTestsFound} passed eventually</div>
                                 </div>
-                            {/if}
-
-                            <!-- Cases Not in Plan (Expandable) -->
-                            {#if run.casesRunThatAreNotInTestPlan.length > 0}
-                                <div class="p-3 bg-blue-500/10 border border-blue-500/20 rounded mb-4">
-                                    <h5 class="font-semibold text-sm mb-2 flex items-center gap-2 text-blue-400">
-                                        <span class="material-symbols-outlined text-sm">info</span>
-                                        Tests Not in Plan ({run.casesRunThatAreNotInTestPlan.length})
-                                    </h5>
-                                    <div class="space-y-1 max-h-40 overflow-y-auto">
-                                        {#each (expandedFlakyTests[run.date + '-notinplan'] ? run.casesRunThatAreNotInTestPlan : run.casesRunThatAreNotInTestPlan.slice(0, 10)) as test}
-                                            <div class="text-xs p-2 bg-background/30 rounded">
-                                                <span class="text-muted-foreground">#{test.testCaseId}</span> - {test.testCaseName}
-                                            </div>
-                                        {/each}
-                                        {#if run.casesRunThatAreNotInTestPlan.length > 10 && !expandedFlakyTests[run.date + '-notinplan']}
-                                            <button 
-                                                class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
-                                                onclick={() => expandedFlakyTests[run.date + '-notinplan'] = true}
-                                            >
-                                                ... and {run.casesRunThatAreNotInTestPlan.length - 10} more (click to expand)
-                                            </button>
-                                        {/if}
-                                        {#if expandedFlakyTests[run.date + '-notinplan']}
-                                            <button 
-                                                class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
-                                                onclick={() => expandedFlakyTests[run.date + '-notinplan'] = false}
-                                            >
-                                                Show less
-                                            </button>
-                                        {/if}
+                            </div>
+                            {#if passRateImprovement > 0}
+                                <div class="mt-2 p-2 bg-muted/20 rounded border border-border/50">
+                                    <div class="text-xs text-muted-foreground flex items-center gap-1">
+                                        <span class="material-symbols-outlined" style="font-size: 1em;">info</span>
+                                        <span>+{passRateImprovement.toFixed(1)}% improvement from retries</span>
                                     </div>
                                 </div>
                             {/if}
                         </div>
-                    {/if}
-                </details>
+
+                        <!-- Test Coverage -->
+                        <div class="mb-4 p-3 bg-background/20 rounded">
+                            <h5 class="font-semibold text-sm mb-2 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-sm">fact_check</span>
+                                Test Coverage
+                            </h5>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <div class="p-2 bg-green-500/10 rounded text-center">
+                                    <div class="text-green-400">Found</div>
+                                    <div class="font-semibold text-lg text-green-400">{run.testCaseCount}</div>
+                                </div>
+                                <div class="p-2 bg-red-500/10 rounded text-center">
+                                    <div class="text-red-400">Not Found</div>
+                                    <div class="font-semibold text-lg text-red-400">{run.notFoundTestCases.length}</div>
+                                </div>
+                                <div class="p-2 bg-blue-500/10 rounded text-center">
+                                    <div class="text-blue-400">Not in Plan</div>
+                                    <div class="font-semibold text-lg text-blue-400">{run.casesRunThatAreNotInTestPlan.length}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Flaky Tests -->
+                        {#if run.flakyTestCount > 0}
+                            <div class="mb-4 p-3 bg-orange-500/10 border border-orange-500/20 rounded">
+                                <h5 class="font-semibold text-sm mb-2 flex items-center gap-2 text-orange-400">
+                                    <span class="material-symbols-outlined text-sm">warning</span>
+                                    Flaky Tests ({run.flakyTestCount})
+                                </h5>
+                                <div class="space-y-1 max-h-40 overflow-y-auto">
+                                    {#each (expandedFlakyTests[run.date] ? run.flakyTests : run.flakyTests.slice(0, 10)) as flaky}
+                                        <div class="text-xs p-2 bg-background/30 rounded flex items-center justify-between">
+                                            <span class="truncate flex-1" title={flaky.testCaseName}>
+                                                <span class="text-muted-foreground">#{flaky.testCaseId}</span> - {flaky.testCaseName}
+                                            </span>
+                                            <Badge class="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs ml-2">
+                                                {flaky.executionCount}x
+                                            </Badge>
+                                        </div>
+                                    {/each}
+                                    {#if run.flakyTests.length > 10 && !expandedFlakyTests[run.date]}
+                                        <button 
+                                            class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
+                                            onclick={() => expandedFlakyTests[run.date] = true}
+                                        >
+                                            ... and {run.flakyTests.length - 10} more (click to expand)
+                                        </button>
+                                    {/if}
+                                    {#if expandedFlakyTests[run.date]}
+                                        <button 
+                                            class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
+                                            onclick={() => expandedFlakyTests[run.date] = false}
+                                        >
+                                            Show less
+                                        </button>
+                                    {/if}
+                                </div>
+                            </div>
+                        {/if}
+
+                        <!-- Not Found Tests (Expandable) -->
+                        {#if run.notFoundTestCases.length > 0}
+                            <div class="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded">
+                                <h5 class="font-semibold text-sm mb-2 flex items-center gap-2 text-red-400">
+                                    <span class="material-symbols-outlined text-sm">error</span>
+                                    Not Found Tests ({run.notFoundTestCases.length})
+                                </h5>
+                                <div class="space-y-1 max-h-40 overflow-y-auto">
+                                    {#each (expandedFlakyTests[run.date + '-notfound'] ? run.notFoundTestCases : run.notFoundTestCases.slice(0, 10)) as test}
+                                        <div class="text-xs p-2 bg-background/30 rounded">
+                                            <span class="text-muted-foreground">#{test.testCaseId}</span> - {test.testCaseName}
+                                        </div>
+                                    {/each}
+                                    {#if run.notFoundTestCases.length > 10 && !expandedFlakyTests[run.date + '-notfound']}
+                                        <button 
+                                            class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
+                                            onclick={() => expandedFlakyTests[run.date + '-notfound'] = true}
+                                        >
+                                            ... and {run.notFoundTestCases.length - 10} more (click to expand)
+                                        </button>
+                                    {/if}
+                                    {#if expandedFlakyTests[run.date + '-notfound']}
+                                        <button 
+                                            class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
+                                            onclick={() => expandedFlakyTests[run.date + '-notfound'] = false}
+                                        >
+                                            Show less
+                                        </button>
+                                    {/if}
+                                </div>
+                            </div>
+                        {/if}
+
+                        <!-- Cases Not in Plan (Expandable) -->
+                        {#if run.casesRunThatAreNotInTestPlan.length > 0}
+                            <div class="p-3 bg-blue-500/10 border border-blue-500/20 rounded mb-4">
+                                <h5 class="font-semibold text-sm mb-2 flex items-center gap-2 text-blue-400">
+                                    <span class="material-symbols-outlined text-sm">info</span>
+                                    Tests Not in Plan ({run.casesRunThatAreNotInTestPlan.length})
+                                </h5>
+                                <div class="space-y-1 max-h-40 overflow-y-auto">
+                                    {#each (expandedFlakyTests[run.date + '-notinplan'] ? run.casesRunThatAreNotInTestPlan : run.casesRunThatAreNotInTestPlan.slice(0, 10)) as test}
+                                        <div class="text-xs p-2 bg-background/30 rounded">
+                                            <span class="text-muted-foreground">#{test.testCaseId}</span> - {test.testCaseName}
+                                        </div>
+                                    {/each}
+                                    {#if run.casesRunThatAreNotInTestPlan.length > 10 && !expandedFlakyTests[run.date + '-notinplan']}
+                                        <button 
+                                            class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
+                                            onclick={() => expandedFlakyTests[run.date + '-notinplan'] = true}
+                                        >
+                                            ... and {run.casesRunThatAreNotInTestPlan.length - 10} more (click to expand)
+                                        </button>
+                                    {/if}
+                                    {#if expandedFlakyTests[run.date + '-notinplan']}
+                                        <button 
+                                            class="w-full text-xs text-muted-foreground hover:text-foreground text-center py-1 transition-colors cursor-pointer"
+                                            onclick={() => expandedFlakyTests[run.date + '-notinplan'] = false}
+                                        >
+                                            Show less
+                                        </button>
+                                    {/if}
+                                </div>
+                            </div>
+                        {/if}
+                    </div>
+                {/if}
+                </div>
             {/each}
         </div>
     {/if}
