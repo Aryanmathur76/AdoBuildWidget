@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import { slide } from 'svelte/transition';
     import { Badge } from '$lib/components/ui/badge/index.js';
 
     interface TestCase {
@@ -178,18 +179,29 @@
             {/if}
             Monthly Test Run Analysis
         </h3>
-        <button 
-            onclick={() => showConfig = !showConfig}
-            aria-label={showConfig ? 'Hide Config' : 'Show Config'}
-            title={showConfig ? 'Hide Config' : 'Show Config'}
-            class="px-2 py-1 text-xs rounded border border-border/50 hover:bg-accent/20 transition-colors flex items-center justify-center"
-        >
-            <span class="material-symbols-outlined" style="font-size: 1.2em;">settings</span>
-        </button>
+
+        <div class="flex items-center gap-2">
+            <button 
+                onclick={() => showConfig = !showConfig}
+                aria-label={showConfig ? 'Hide Config' : 'Show Config'}
+                title={showConfig ? 'Hide Config' : 'Show Config'}
+                class="px-2 py-1 text-xs rounded border border-border/50 hover:bg-accent/20 transition-colors flex items-center justify-center"
+            >
+                <span class="material-symbols-outlined" style="font-size: 1.2em;">settings</span>
+            </button>
+            <button
+                onclick={() => {}}
+                aria-label="Show Line Graph"
+                title="Line Graph"
+                class="px-2 py-1 text-xs rounded border border-border/50 hover:bg-accent/20 transition-colors flex items-center justify-center"
+            >
+                <span class="material-symbols-outlined" style="font-size: 1.2em;">show_chart</span>
+            </button>
+        </div>
     </div>
 
     {#if showConfig}
-        <div class="mb-4 p-3 bg-muted/30 rounded border border-border/50">
+        <div in:slide={{ duration: 220 }} out:slide={{ duration: 180 }} class="mb-4 p-3 bg-muted/30 rounded border border-border/50">
             <div class="font-semibold mb-3 text-sm">Configuration:</div>
             <div class="space-y-3">
                 <div>
@@ -199,10 +211,11 @@
                         <option value="VACR">VACR (plan: 1237539, suite: 1309779)</option>
                     </select>
                 </div>
-                <button 
+                <button
                     onclick={() => {
                         if (preset === 'PhysCR') { planId = '1310927'; suiteId = '1310934'; }
                         else { planId = '1237539'; suiteId = '1309779'; }
+                        showConfig = false;
                         fetchData();
                     }}
                     class="w-full px-3 py-2 text-sm font-medium rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
