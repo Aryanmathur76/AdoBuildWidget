@@ -1,7 +1,4 @@
-import {
-    getCachedDayQuality,
-    setCachedDayQuality,
-} from "$lib/stores/pipelineCache.js";
+// Cache functions removed
 import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
 
 /**
@@ -79,16 +76,7 @@ export async function fetchBuildQualityForDay(
         return { quality: "unknown" };
     }
 
-    // Check cache first
-    const cached = getCachedDayQuality(dateStr);
-    if (cached) {
-        return {
-            quality: cached.quality,
-            releasesWithTestsRan: cached.releaseIds?.length || 0,
-            totalPassCount: cached.totalPassCount,
-            totalFailCount: cached.totalFailCount,
-        };
-    }
+    // Cache removed: always fetch live data
 
     try {
         const res = await fetch(`/api/getDayQuality?date=${dateStr}`);
@@ -101,13 +89,7 @@ export async function fetchBuildQualityForDay(
                 totalFailCount: data.totalFailCount,
             };
 
-            // Cache the result
-            setCachedDayQuality(dateStr, {
-                quality: data.quality,
-                releaseIds: data.releaseIds || [],
-                totalPassCount: data.totalPassCount || 0,
-                totalFailCount: data.totalFailCount || 0,
-            });
+            // Cache removed: do nothing
 
             // Optional: Prefetch pipeline data for this day to improve navigation performance
             if (pipelineConfig?.pipelines) {
@@ -141,25 +123,13 @@ export async function fetchBuildQualitiesForDates(
 ): Promise<Record<string, DayBuildQuality>> {
     const results: Record<string, DayBuildQuality> = {};
     
-    // Filter out dates that are already cached or in the future
+    // Filter out future dates only
     const datesToFetch = dates.filter(dateStr => {
         const [year, month, day] = dateStr.split("-").map(Number);
         if (isFutureDay(year, month - 1, day)) {
             results[dateStr] = { quality: "unknown" };
             return false;
         }
-        
-        const cached = getCachedDayQuality(dateStr);
-        if (cached) {
-            results[dateStr] = {
-                quality: cached.quality,
-                releasesWithTestsRan: cached.releaseIds?.length || 0,
-                totalPassCount: cached.totalPassCount,
-                totalFailCount: cached.totalFailCount,
-            };
-            return false;
-        }
-        
         return true;
     });
 

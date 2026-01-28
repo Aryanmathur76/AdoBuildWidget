@@ -1,9 +1,4 @@
-import { 
-    getCachedPipelineData, 
-    setCachedPipelineData, 
-    getCachedTestCases, 
-    setCachedTestCases 
-} from './pipelineCache.js';
+// Removed cache imports
 
 export interface PipelineDataService {
     fetchReleaseData: (date: string, pipelineId: string) => Promise<any>;
@@ -43,11 +38,7 @@ class PipelineDataServiceImpl implements PipelineDataService {
     }
     // Silent version of fetchReleaseData that doesn't log 404s as errors
     async fetchReleaseDataSilent(date: string, pipelineId: string): Promise<any | null> {
-        // Check cache first
-        const cached = getCachedPipelineData(date, pipelineId);
-        if (cached?.releaseData) {
-            return cached.releaseData;
-        }
+
 
         try {
             const response = await fetch(`/api/constructRelease?date=${date}&releaseDefinitionId=${pipelineId}`);
@@ -58,13 +49,6 @@ class PipelineDataServiceImpl implements PipelineDataService {
                 if (data === null) {
                     return null;
                 }
-                
-                // Update cache
-                const existingCache = getCachedPipelineData(date, pipelineId) || {};
-                setCachedPipelineData(date, pipelineId, {
-                    ...existingCache,
-                    releaseData: data
-                });
                 
                 return data;
             } else {
@@ -79,23 +63,12 @@ class PipelineDataServiceImpl implements PipelineDataService {
 
     // Silent version of fetchBuildData that doesn't log 404s as errors
     async fetchBuildDataSilent(date: string, pipelineId: string): Promise<any | null> {
-        // Check cache first
-        const cached = getCachedPipelineData(date, pipelineId);
-        if (cached?.buildData) {
-            return cached.buildData;
-        }
+
 
         try {
             const response = await fetch(`/api/constructBuild?date=${date}&buildDefinitionId=${pipelineId}`);
             if (response.ok) {
                 const data = await response.json();
-                
-                // Update cache
-                const existingCache = getCachedPipelineData(date, pipelineId) || {};
-                setCachedPipelineData(date, pipelineId, {
-                    ...existingCache,
-                    buildData: data
-                });
                 
                 return data;
             } else if (response.status === 404) {
@@ -112,11 +85,7 @@ class PipelineDataServiceImpl implements PipelineDataService {
     }
 
     async fetchReleaseData(date: string, pipelineId: string): Promise<any> {
-        // Check cache first
-        const cached = getCachedPipelineData(date, pipelineId);
-        if (cached?.releaseData) {
-            return cached.releaseData;
-        }
+
 
         try {
             const response = await fetch(`/api/constructRelease?date=${date}&releaseDefinitionId=${pipelineId}`);
@@ -127,13 +96,6 @@ class PipelineDataServiceImpl implements PipelineDataService {
                 if (data === null) {
                     throw new Error(`No release data found for pipeline ${pipelineId} on ${date}. This might indicate no releases were created on this date.`);
                 }
-                
-                // Update cache
-                const existingCache = getCachedPipelineData(date, pipelineId) || {};
-                setCachedPipelineData(date, pipelineId, {
-                    ...existingCache,
-                    releaseData: data
-                });
                 
                 return data;
             } else {
@@ -146,23 +108,12 @@ class PipelineDataServiceImpl implements PipelineDataService {
     }
 
     async fetchBuildData(date: string, pipelineId: string): Promise<any> {
-        // Check cache first
-        const cached = getCachedPipelineData(date, pipelineId);
-        if (cached?.buildData) {
-            return cached.buildData;
-        }
+
 
         try {
             const response = await fetch(`/api/constructBuild?date=${date}&buildDefinitionId=${pipelineId}`);
             if (response.ok) {
                 const data = await response.json();
-                
-                // Update cache
-                const existingCache = getCachedPipelineData(date, pipelineId) || {};
-                setCachedPipelineData(date, pipelineId, {
-                    ...existingCache,
-                    buildData: data
-                });
                 
                 return data;
             } else if (response.status === 404) {
@@ -177,20 +128,13 @@ class PipelineDataServiceImpl implements PipelineDataService {
     }
 
     async fetchTestCases(releaseId: string): Promise<any[]> {
-        // Check cache first
-        const cached = getCachedTestCases(releaseId);
-        if (cached) {
-            return cached.testCases;
-        }
+
 
         try {
             const response = await fetch(`/api/test-cases?releaseId=${releaseId}`);
             if (response.ok) {
                 const data = await response.json();
                 const testCases = data.testCases || [];
-                
-                // Cache the result
-                setCachedTestCases(releaseId, testCases);
                 
                 return testCases;
             } else {
@@ -206,39 +150,31 @@ class PipelineDataServiceImpl implements PipelineDataService {
         // This method can be called by the heatmap to prefetch data
         // that might be needed when users click on individual days
         const prefetchPromises = pipelineIds.map(async (pipelineId) => {
-            const cached = getCachedPipelineData(date, pipelineId);
-            
-            // Only prefetch if not already cached
-            if (!cached?.releaseData && !cached?.buildData) {
-                // If we have pipeline config, only fetch the appropriate type
-                if (pipelineConfig?.pipelines) {
-                    const pipeline = pipelineConfig.pipelines.find((p: any) => p.id.toString() === pipelineId);
-                    if (pipeline) {
-                        if (pipeline.type === 'build') {
-                            await this.fetchBuildDataSilent(date, pipelineId);
-                        } else if (pipeline.type === 'release') {
-                            await this.fetchReleaseDataSilent(date, pipelineId);
-                        } else if (pipeline.type === 'build/release') {
-                            // This pipeline supports both types
-                            await Promise.all([
-                                this.fetchReleaseDataSilent(date, pipelineId),
-                                this.fetchBuildDataSilent(date, pipelineId)
-                            ]);
-                        }
-                    } else {
-                        // Pipeline not found in config, try both (fallback to old behavior)
+            // Always prefetch, no cache check
+            if (pipelineConfig?.pipelines) {
+                const pipeline = pipelineConfig.pipelines.find((p: any) => p.id.toString() === pipelineId);
+                if (pipeline) {
+                    if (pipeline.type === 'build') {
+                        await this.fetchBuildDataSilent(date, pipelineId);
+                    } else if (pipeline.type === 'release') {
+                        await this.fetchReleaseDataSilent(date, pipelineId);
+                    } else if (pipeline.type === 'build/release') {
                         await Promise.all([
                             this.fetchReleaseDataSilent(date, pipelineId),
                             this.fetchBuildDataSilent(date, pipelineId)
                         ]);
                     }
                 } else {
-                    // No config provided, try both (fallback to old behavior)
                     await Promise.all([
                         this.fetchReleaseDataSilent(date, pipelineId),
                         this.fetchBuildDataSilent(date, pipelineId)
                     ]);
                 }
+            } else {
+                await Promise.all([
+                    this.fetchReleaseDataSilent(date, pipelineId),
+                    this.fetchBuildDataSilent(date, pipelineId)
+                ]);
             }
         });
 

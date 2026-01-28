@@ -27,7 +27,6 @@ vi.mock('$lib/stores/pipelineDataService.js', () => ({
 }));
 
 // Import mocked functions
-import { getCachedDayQuality, setCachedDayQuality } from '$lib/stores/pipelineCache.js';
 import { pipelineDataService } from '$lib/stores/pipelineDataService.js';
 
 describe('buildQualityUtils', () => {
