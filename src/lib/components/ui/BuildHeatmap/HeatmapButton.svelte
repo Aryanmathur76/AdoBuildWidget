@@ -7,6 +7,7 @@
     getTestFailColor,
     getTestNoDataColor,
     getTestInProgressColor,
+    getTestInterruptedColor
   } from "$lib/constants/colors.js";
   import { getTestQuality } from "$lib/constants/thresholds.js";
   import { Skeleton } from "$lib/components/ui/skeleton/index.js";
@@ -19,7 +20,7 @@
     if (status === "inProgress") {
       return getTestInProgressColor(); // Blue for in-progress
     } else if (status === "interrupted") {
-      return 'bg-orange-600'; // Orange for interrupted
+      return getTestInterruptedColor(); // Orange for interrupted
     } else if (status === "future" || totalTests === 0) {
       return "bg-gray-400";
     } else if (status === "no-data") {
@@ -326,14 +327,20 @@
                       {@const totalTests = pipeline.passCount + pipeline.failCount}
                       {@const passPercentage = (pipeline.passCount / totalTests) * 100}
                       <div class="h-full flex">
+                      {#if pipeline.status === "inProgress"}
+                        <div class={getTestInProgressColor()} style="width: 100%"></div>
+                      {:else if pipeline.status === "interrupted"}
+                        <div class={getTestInterruptedColor()} style="width: 100%"></div>
+                      {:else}
                         <div class={getTestPassColor()} style="width: {passPercentage}%"></div>
                         <div class={getTestFailColor()} style="width: {100 - passPercentage}%"></div>
+                      {/if}
                       </div>
                       <div class="absolute inset-0 flex items-center justify-center">
                         <span class="text-xs text-white drop-shadow-md">Pass: {pipeline.passCount} Fail: {pipeline.failCount}</span>
                       </div>
                     {:else}
-                      <div class="h-full w-full flex items-center justify-center {pipeline.status === 'interrupted' ? 'bg-orange-500' : pipeline.status === 'inProgress' ? getTestInProgressColor() : 'bg-gray-400'}">
+                      <div class="h-full w-full flex items-center justify-center {pipeline.status === 'interrupted' ? getTestInterruptedColor() : pipeline.status === 'inProgress' ? getTestInProgressColor() : 'bg-gray-400'}">
                         {#if pipeline.status === "inProgress"}
                           <span class="text-xs text-white">In Progress</span>
                         {:else if pipeline.status === "interrupted"}

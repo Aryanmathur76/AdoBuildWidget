@@ -94,7 +94,8 @@ export const TEST_RESULT_COLORS = {
   pass: "bg-lime-600",
   fail: "bg-red-800",
   noData: "bg-zinc-400",
-  inProgress: "bg-sky-500"
+  inProgress: "bg-sky-500",
+  interrupted: "bg-orange-500"
 } as const;
 
 /**
@@ -123,4 +124,8 @@ export function getTestNoDataColor(): string {
  */
 export function getTestInProgressColor(): string {
   return TEST_RESULT_COLORS.inProgress;
+}
+
+export function getTestInterruptedColor(): string {
+  return TEST_RESULT_COLORS.interrupted;
 }
