@@ -14,11 +14,6 @@ import {
     type WeeklyStats,
 } from '$lib/utils/buildQualityUtils.js';
 
-// Mock the store imports
-vi.mock('$lib/stores/pipelineCache.js', () => ({
-    getCachedDayQuality: vi.fn(),
-    setCachedDayQuality: vi.fn(),
-}));
 
 vi.mock('$lib/stores/pipelineDataService.js', () => ({
     pipelineDataService: {
@@ -108,32 +103,10 @@ describe('buildQualityUtils', () => {
             expect(result).toEqual({ quality: 'unknown' });
         });
 
-        it('should return cached data when available', async () => {
-            const cachedData = {
-                quality: 'good',
-                releaseIds: ['rel1', 'rel2'],
-                totalPassCount: 100,
-                totalFailCount: 5,
-                timestamp: Date.now(),
-            };
-            
-            vi.mocked(getCachedDayQuality).mockReturnValue(cachedData);
-
-            const result = await fetchBuildQualityForDay('2024-03-14');
-            
-            expect(result).toEqual({
-                quality: 'good',
-                releasesWithTestsRan: 2,
-                totalPassCount: 100,
-                totalFailCount: 5,
-            });
-            expect(getCachedDayQuality).toHaveBeenCalledWith('2024-03-14');
-        });
+        // Cache logic removed: skip test for cached data
 
 
         it('should prefetch pipeline data when config provided', async () => {
-            vi.mocked(getCachedDayQuality).mockReturnValue(null);
-            
             const mockResponse = {
                 ok: true,
                 json: () => Promise.resolve({ quality: 'good' }),
@@ -151,8 +124,6 @@ describe('buildQualityUtils', () => {
         });
 
         it('should handle API errors gracefully', async () => {
-            vi.mocked(getCachedDayQuality).mockReturnValue(null);
-            
             vi.mocked(global.fetch).mockResolvedValue({
                 ok: false,
             } as any);
@@ -162,7 +133,6 @@ describe('buildQualityUtils', () => {
         });
 
         it('should handle fetch exceptions', async () => {
-            vi.mocked(getCachedDayQuality).mockReturnValue(null);
             vi.mocked(global.fetch).mockRejectedValue(new Error('Network error'));
 
             const result = await fetchBuildQualityForDay('2024-03-14');
@@ -178,8 +148,6 @@ describe('buildQualityUtils', () => {
 
         it('should filter out future dates', async () => {
             const dates = ['2024-03-14', '2024-03-16', '2024-03-13'];
-            
-            vi.mocked(getCachedDayQuality).mockReturnValue(null);
             vi.mocked(global.fetch).mockResolvedValue({
                 ok: true,
                 json: vi.fn().mockResolvedValue({ quality: 'good' }),
@@ -191,41 +159,10 @@ describe('buildQualityUtils', () => {
             expect(fetch).toHaveBeenCalledTimes(2); // Only for non-future dates
         });
 
-        it('should use cached data when available', async () => {
-            const dates = ['2024-03-14', '2024-03-13'];
-            const cachedData = {
-                quality: 'good',
-                releaseIds: ['rel1'],
-                totalPassCount: 100,
-                totalFailCount: 0,
-                timestamp: Date.now(),
-            };
-
-            vi.mocked(getCachedDayQuality)
-                .mockReturnValueOnce(cachedData)
-                .mockReturnValueOnce(null);
-
-            const mockResponse = {
-                ok: true,
-                json: () => Promise.resolve({ quality: 'bad' }),
-            };
-            vi.mocked(global.fetch).mockResolvedValue(mockResponse as any);
-
-            const result = await fetchBuildQualitiesForDates(dates);
-
-            expect(result['2024-03-14']).toEqual({
-                quality: 'good',
-                releasesWithTestsRan: 1,
-                totalPassCount: 100,
-                totalFailCount: 0,
-            });
-            expect(fetch).toHaveBeenCalledTimes(1); // Only for uncached date
-        });
+        // Cache logic removed: skip test for cached data
 
         it('should respect concurrency limit', async () => {
             const dates = Array.from({ length: 25 }, (_, i) => `2024-03-${String(i + 1).padStart(2, '0')}`);
-            
-            vi.mocked(getCachedDayQuality).mockReturnValue(null);
             const mockResponse = {
                 ok: true,
                 json: () => Promise.resolve({ quality: 'good' }),
