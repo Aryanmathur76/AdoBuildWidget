@@ -1,4 +1,3 @@
-
 import Redis from 'ioredis';
 
 const redisOptions: any = {
@@ -8,10 +7,14 @@ const redisOptions: any = {
 
 if (process.env.REDIS_PASSWORD) {
   redisOptions.password = process.env.REDIS_PASSWORD;
+  // Azure Redis requires username (typically 'default')
+  redisOptions.username = process.env.REDIS_USERNAME || 'default';
 }
 
 if (process.env.REDIS_TLS === 'true') {
-  redisOptions.tls = {};
+  redisOptions.tls = {
+    servername: process.env.REDIS_HOST || '127.0.0.1'
+  };
 }
 
 const redis = new Redis(redisOptions);
