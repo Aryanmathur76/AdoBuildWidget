@@ -1,19 +1,21 @@
 import Redis from 'ioredis';
+import { env } from '$env/dynamic/private';
+
 
 const redisOptions: any = {
-  host: process.env.REDIS_HOST || '127.0.0.1',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+  host: env.REDIS_HOST || '127.0.0.1',
+  port: parseInt(env.REDIS_PORT || '6379', 10),
 };
 
-if (process.env.REDIS_PASSWORD) {
-  redisOptions.password = process.env.REDIS_PASSWORD;
+if (env.REDIS_PASSWORD) {
+  redisOptions.password = env.REDIS_PASSWORD;
   // Azure Redis requires username (typically 'default')
-  redisOptions.username = process.env.REDIS_USERNAME || 'default';
+  // Do NOT set username for Azure Managed Redis
 }
 
-if (process.env.REDIS_TLS === 'true') {
+if (env.REDIS_TLS === 'true') {
   redisOptions.tls = {
-    servername: process.env.REDIS_HOST || '127.0.0.1'
+    servername: env.REDIS_HOST || '127.0.0.1'
   };
 }
 
