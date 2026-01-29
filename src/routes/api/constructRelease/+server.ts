@@ -8,46 +8,48 @@ import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { getAzureDevOpsEnvVars } from '$lib/utils';
 import type { Release } from '$lib/types/release';
-import {getLatestRelease, getReleasePipelineStatus, calculateReleaseCompletionTime} from '$lib/utils/getReleasePipelineStatus';
+
+import { getLatestRelease, getReleasePipelineStatus, calculateReleaseCompletionTime } from '$lib/utils/getReleasePipelineStatus';
+import { getOrSetDailyTestCache } from '$lib/utils/dailyTestCache';
 
 export async function GET({ url }: { url: URL }) {
-
     const date = url.searchParams.get('date');
     const releaseDefinitionId = url.searchParams.get('releaseDefinitionId');
 
-    //#region Input validation
-
+    // Input validation
     if (!date || typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         return json({ error: 'Invalid or missing date (YYYY-MM-DD required)' }, { status: 400 });
     }
-
     if (!releaseDefinitionId || typeof releaseDefinitionId !== 'string' || !/^\d+$/.test(releaseDefinitionId)) {
         return json({ error: 'Missing or invalid releaseDefinitionId (numeric string required)' }, { status: 400 });
     }
 
-    let organization, project, pat;
-    try {
-        const envVars = getAzureDevOpsEnvVars(env);
-        organization = envVars.AZURE_DEVOPS_ORGANIZATION;
-        project = envVars.AZURE_DEVOPS_PROJECT;
-        pat = envVars.AZURE_DEVOPS_PAT;
-    } 
-    catch (e: any) {
-        return json({ error: 'Missing Azure DevOps environment variables' }, { status: 500 });
-    }
+    // Use a cache key based on date and releaseDefinitionId
+    const cacheKey = `release:${date}:${releaseDefinitionId}`;
 
-    if (!organization || !project || !pat) {
-        return json({ error: 'Missing Azure DevOps environment variables' }, { status: 500 });
-    }
+    // Always return a Response object
+    const data = await getOrSetDailyTestCache(cacheKey, async () => {
+        let organization, project, pat;
+        try {
+            const envVars = getAzureDevOpsEnvVars(env);
+            organization = envVars.AZURE_DEVOPS_ORGANIZATION;
+            project = envVars.AZURE_DEVOPS_PROJECT;
+            pat = envVars.AZURE_DEVOPS_PAT;
+        } catch (e: any) {
+            return { error: 'Missing Azure DevOps environment variables' };
+        }
+        if (!organization || !project || !pat) {
+            return { error: 'Missing Azure DevOps environment variables' };
+        }
 
-    //#endregion
+        // ...existing code...
 
-    //#region First step is to get the correct release ID given the date and definition ID
-    let releaseId: number;
-    try {
-        const minCreatedTime = `${date}T00:00:00Z`;
-        const maxCreatedTime = `${date}T23:59:59Z`;
-        const releasesUrl = `https://vsrm.dev.azure.com/${organization}/${project}/_apis/release/releases?definitionId=${releaseDefinitionId}&minCreatedTime=${encodeURIComponent(minCreatedTime)}&maxCreatedTime=${encodeURIComponent(maxCreatedTime)}&$top=10&api-version=7.1-preview.8`;
+        //#region First step is to get the correct release ID given the date and definition ID
+        let releaseId: number;
+        try {
+            const minCreatedTime = `${date}T00:00:00Z`;
+            const maxCreatedTime = `${date}T23:59:59Z`;
+            const releasesUrl = `https://vsrm.dev.azure.com/${organization}/${project}/_apis/release/releases?definitionId=${releaseDefinitionId}&minCreatedTime=${encodeURIComponent(minCreatedTime)}&maxCreatedTime=${encodeURIComponent(maxCreatedTime)}&$top=10&api-version=7.1-preview.8`;
 
         const releasesResponse = await fetch(releasesUrl, {
             headers: {
@@ -56,7 +58,7 @@ export async function GET({ url }: { url: URL }) {
         });
 
         if (!releasesResponse.ok) {
-            return json({ error: 'Failed to fetch releases' }, { status: releasesResponse.status });
+            return { error: 'Failed to fetch releases' };
         }
 
         const releasesData = await releasesResponse.json();
@@ -64,19 +66,19 @@ export async function GET({ url }: { url: URL }) {
 
         if (!releases || releases.length === 0) {
             // Return empty/null response instead of 404 when no releases found
-            return json(null, { status: 200 });
+            return null;
         }
 
         // Find the release with the latest creation date
         const latestRelease = getLatestRelease(releases);
         if (!latestRelease?.id) {
             // Return empty/null response instead of 404 when no valid release found
-            return json(null, { status: 200 });
+            return null;
         }
         releaseId = latestRelease.id;
 
     } catch (e: any) {
-        return json({ error: 'Error fetching releases: ' + (e.message || 'Unknown error') }, { status: 500 });
+        return { error: 'Error fetching releases: ' + (e.message || 'Unknown error') };
     }
     //#endregion
 
@@ -89,7 +91,7 @@ export async function GET({ url }: { url: URL }) {
     });
 
     if (!releaseDetailsResponse.ok) {
-        return json({ error: 'Failed to fetch release details' }, { status: releaseDetailsResponse.status });
+        return { error: 'Failed to fetch release details' };
     }
 
     const releaseDetails = await releaseDetailsResponse.json();
@@ -183,5 +185,7 @@ export async function GET({ url }: { url: URL }) {
     release.link = `https://dev.azure.com/${organization}/${project}/_releaseProgress?_a=release-pipeline-progress&releaseId=${release.id}`;
     //#endregion
 
-    return json(release);
+        return release;
+    }, 3600);
+    return json(data);
 }

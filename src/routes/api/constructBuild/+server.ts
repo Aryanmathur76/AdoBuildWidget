@@ -8,45 +8,49 @@ import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { getAzureDevOpsEnvVars } from '$lib/utils';
 import type { Build } from '$lib/types/build';
-import {getBuildPipelineStatus} from '$lib/utils/getBuildPipelineStatus';
+
+import { getBuildPipelineStatus } from '$lib/utils/getBuildPipelineStatus';
+import { getOrSetDailyTestCache } from '$lib/utils/dailyTestCache';
 
 export async function GET({ url }: { url: URL }) {
-
     const date = url.searchParams.get('date');
     const buildDefinitionId = url.searchParams.get('buildDefinitionId');
 
-    //#region Input validation
+    // Input validation
     if (!date || typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         return json({ error: 'Invalid or missing date (YYYY-MM-DD required)' }, { status: 400 });
     }
-
     if (!buildDefinitionId || typeof buildDefinitionId !== 'string' || !/^\d+$/.test(buildDefinitionId)) {
         return json({ error: 'Missing or invalid buildDefinitionId (numeric string required)' }, { status: 400 });
     }
 
-    let organization, project, pat;
-    try {
-        const envVars = getAzureDevOpsEnvVars(env);
-        organization = envVars.AZURE_DEVOPS_ORGANIZATION;
-        project = envVars.AZURE_DEVOPS_PROJECT;
-        pat = envVars.AZURE_DEVOPS_PAT;
-    } 
-    catch (e: any) {
-        return json({ error: 'Missing Azure DevOps environment variables' }, { status: 500 });
-    }
+    // Use a cache key based on date and buildDefinitionId
+    const cacheKey = `build:${date}:${buildDefinitionId}`;
 
-    if (!organization || !project || !pat) {
-        return json({ error: 'Missing Azure DevOps environment variables' }, { status: 500 });
-    }
-    //#endregion
+    // Always return a Response object
+    const data = await getOrSetDailyTestCache(cacheKey, async () => {
+        let organization, project, pat;
+        try {
+            const envVars = getAzureDevOpsEnvVars(env);
+            organization = envVars.AZURE_DEVOPS_ORGANIZATION;
+            project = envVars.AZURE_DEVOPS_PROJECT;
+            pat = envVars.AZURE_DEVOPS_PAT;
+        } catch (e: any) {
+            return { error: 'Missing Azure DevOps environment variables' };
+        }
+        if (!organization || !project || !pat) {
+            return { error: 'Missing Azure DevOps environment variables' };
+        }
 
-    //#region First step is to get the correct build ID given the date and definition ID
-    let buildId: number;
-    try {
-        // Convert Central Time date to UTC range for API query
-        // Use proper timezone handling to account for CDT/CST automatically
-        const centralDateStart = new Date(date + 'T00:00:00');
-        const centralDateEnd = new Date(date + 'T23:59:59');
+        // ...existing code...
+
+        //#region First step is to get the correct build ID given the date and definition ID
+        let buildId: number;
+        try {
+            // Convert Central Time date to UTC range for API query
+            // Use proper timezone handling to account for CDT/CST automatically
+            const centralDateStart = new Date(date + 'T00:00:00');
+            const centralDateEnd = new Date(date + 'T23:59:59');
         
         // Convert Central Time to UTC (this handles DST automatically)
         // Note: We'll create a broader search range since timezone conversion can be tricky
@@ -150,11 +154,11 @@ export async function GET({ url }: { url: URL }) {
         // The build with the latest startTime on that day is the one we want
         const latestBuild = builds[0];
         if (!latestBuild) {
-            return json({ buildId: null, message: 'No build found for this day' });
+            return { buildId: null, message: 'No build found for this day' };
         }
         buildId = latestBuild.id;
     } catch (error) {
-        return json({ error: 'Failed to fetch build ID' }, { status: 500 });
+        return { error: 'Failed to fetch build ID' };
     }
     //#endregion
 
@@ -175,10 +179,10 @@ export async function GET({ url }: { url: URL }) {
 
         buildDetails = await res.json();
         if (!buildDetails) {
-            return json({ error: 'No build details found' }, { status: 404 });
+            return { error: 'No build details found' };
         }
     } catch (error) {
-        return json({ error: 'Failed to fetch build details' }, { status: 500 });
+        return { error: 'Failed to fetch build details' };
     }
 
     //Construct a build object with CST time logging
@@ -229,7 +233,7 @@ export async function GET({ url }: { url: URL }) {
             testResults = data.value || [];
         }
     } catch (error) {
-        return json({ error: 'Failed to fetch test results' }, { status: 500 });
+        return { error: 'Failed to fetch test results' };
     }
     //#endregion
 
@@ -255,5 +259,7 @@ export async function GET({ url }: { url: URL }) {
     }
 
     //#endregion
-    return json(buildsToReturn);
+        return buildsToReturn;
+    }, 3600);
+    return json(data);
 }
