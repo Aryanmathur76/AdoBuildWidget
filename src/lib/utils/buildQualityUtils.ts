@@ -119,7 +119,7 @@ export async function fetchBuildQualityForDay(
 export async function fetchBuildQualitiesForDates(
     dates: string[],
     pipelineConfig?: PipelineConfig | null,
-    concurrency: number = 10
+    concurrency: number = 100
 ): Promise<Record<string, DayBuildQuality>> {
     const results: Record<string, DayBuildQuality> = {};
     

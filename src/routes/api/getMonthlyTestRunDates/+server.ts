@@ -589,7 +589,7 @@ async function getTestCasesAroundDate(
 	pat: string,
 	expectedTestCaseIds?: Set<number>,
 	runResultsCache?: Map<number, any[]>,
-	concurrency: number = 20
+	concurrency: number = 100
 ): Promise<{ 
 	testCaseIds: Set<number>; 
 	executionDates: Set<string>; 
