@@ -55,10 +55,6 @@ export async function GET({ url }: { url: URL }) {
             const maxCreatedTime = endDate.toISOString();
             const releasesUrl = `https://vsrm.dev.azure.com/${organization}/${project}/_apis/release/releases?definitionId=${releaseDefinitionId}&minCreatedTime=${encodeURIComponent(minCreatedTime)}&maxCreatedTime=${encodeURIComponent(maxCreatedTime)}&$top=100&api-version=7.1-preview.8`;
 
-            console.log(`[constructRelease] Querying releases for CST date: ${date}`);
-            console.log(`[constructRelease] minCreatedTime (UTC): ${minCreatedTime}`);
-            console.log(`[constructRelease] maxCreatedTime (UTC): ${maxCreatedTime}`);
-
         const releasesResponse = await fetch(releasesUrl, {
             headers: {
                 'Authorization': `Basic ${Buffer.from(`:${pat}`).toString('base64')}`
@@ -66,19 +62,13 @@ export async function GET({ url }: { url: URL }) {
         });
 
         if (!releasesResponse.ok) {
-            console.log(`[constructRelease] Failed to fetch releases: ${releasesResponse.status}`);
             return { error: 'Failed to fetch releases' };
         }
 
         const releasesData = await releasesResponse.json();
         const releases = releasesData.value;
         
-        console.log(`[constructRelease] Releases found: ${releases?.length || 0}`);
         if (releases && releases.length > 0) {
-            releases.forEach((rel: any, idx: number) => {
-                console.log(`[constructRelease] Release ${idx}: id=${rel.id}, createdOn=${rel.createdOn}, modifiedOn=${rel.modifiedOn}`);
-            });
-            
             // Filter releases to find the one closest to the requested date (in CST)
             const cstDateStart = new Date(`${date}T00:00:00Z`).getTime() - 6 * 60 * 60 * 1000;
             const cstDateEnd = new Date(`${date}T23:59:59Z`).getTime() + 24 * 60 * 60 * 1000 - 6 * 60 * 60 * 1000;
@@ -88,7 +78,6 @@ export async function GET({ url }: { url: URL }) {
                 return createdTime >= cstDateStart && createdTime <= cstDateEnd;
             });
             
-            console.log(`[constructRelease] Releases on target CST date: ${releasesOnTargetDate.length}`);
             if (releasesOnTargetDate.length > 0) {
                 releases.splice(0, releases.length, ...releasesOnTargetDate);
             }
@@ -96,7 +85,6 @@ export async function GET({ url }: { url: URL }) {
 
         if (!releases || releases.length === 0) {
             // Return empty/null response instead of 404 when no releases found
-            console.log(`[constructRelease] No releases found, returning null`);
             return null;
         }
 
@@ -104,10 +92,8 @@ export async function GET({ url }: { url: URL }) {
         const latestRelease = getLatestRelease(releases);
         if (!latestRelease?.id) {
             // Return empty/null response instead of 404 when no valid release found
-            console.log(`[constructRelease] No valid release found, returning null`);
             return null;
         }
-        console.log(`[constructRelease] Selected release: ${latestRelease.id}`);
         releaseId = latestRelease.id;
 
     } catch (e: any) {

@@ -56,11 +56,7 @@ export async function GET({ url }: { url: URL }) {
             const minTime = startDate.toISOString();
             const maxTime = endDate.toISOString();
         
-            console.log(`[constructBuild] Querying builds for CST date: ${date}`);
-            console.log(`[constructBuild] minTime (UTC): ${minTime}`);
-            console.log(`[constructBuild] maxTime (UTC): ${maxTime}`);
-            
-        const branchName = 'refs/heads/trunk'; // or your desired branch
+            const branchName = 'refs/heads/trunk'; // or your desired branch
         const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds?definitions=${buildDefinitionId}&minTime=${encodeURIComponent(minTime)}&maxTime=${encodeURIComponent(maxTime)}&queryOrder=finishTimeDescending&$top=100&branchName=${encodeURIComponent(branchName)}&api-version=7.1`;
 
         const res = await fetch(apiUrl, {
@@ -71,7 +67,6 @@ export async function GET({ url }: { url: URL }) {
         });
 
         if (!res.ok) {
-            console.log(`[constructBuild] Failed to fetch builds: ${res.status} ${res.statusText}`);
             throw new Error(`Failed to fetch builds: ${res.status} ${res.statusText}`);
         }
 
