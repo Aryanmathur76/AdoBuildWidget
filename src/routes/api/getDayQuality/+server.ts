@@ -32,26 +32,36 @@ async function fetchReleasePipeline(baseUrl: string, pipelineId: string, date: s
   failCount: number
 }> {
   try {
-    const response = await fetch(`${baseUrl}/api/constructRelease?date=${date}&releaseDefinitionId=${pipelineId}`);
+    const url = `${baseUrl}/api/constructRelease?date=${date}&releaseDefinitionId=${pipelineId}`;
+    console.log(`[getDayQuality] Fetching release pipeline ${pipelineId} for date ${date}:`, url);
+    
+    const response = await fetch(url);
+    console.log(`[getDayQuality] Release response status:`, response.status, response.statusText);
+    
     if (!response.ok) {
+      console.log(`[getDayQuality] Release fetch not ok, returning unknown`);
       return { id: pipelineId, status: 'unknown', passCount: 0, failCount: 0 };
     }
     
     const releaseData = await response.json();
+    console.log(`[getDayQuality] Release data received:`, releaseData);
     
     // Handle null response (no releases found for this date)
     if (releaseData === null) {
+      console.log(`[getDayQuality] Release data is null, returning unknown`);
       return { id: pipelineId, status: 'unknown', passCount: 0, failCount: 0 };
     }
     
-    return {
+    const result = {
       id: pipelineId,
       status: releaseData.status || 'unknown',
       passCount: releaseData.passedTestCount ?? 0,
       failCount: releaseData.failedTestCount ?? 0
     };
+    console.log(`[getDayQuality] Release result:`, result);
+    return result;
   } catch (error) {
-    console.error(`Error fetching release pipeline ${pipelineId}:`, error);
+    console.error(`[getDayQuality] Error fetching release pipeline ${pipelineId}:`, error);
     return { id: pipelineId, status: 'unknown', passCount: 0, failCount: 0 };
   }
 }
@@ -64,26 +74,36 @@ async function fetchBuildPipeline(baseUrl: string, pipelineId: string, date: str
   failCount: number
 }[]> {
   try {
-    const response = await fetch(`${baseUrl}/api/constructBuild?date=${date}&buildDefinitionId=${pipelineId}`);
+    const url = `${baseUrl}/api/constructBuild?date=${date}&buildDefinitionId=${pipelineId}`;
+    console.log(`[getDayQuality] Fetching build pipeline ${pipelineId} for date ${date}:`, url);
+    
+    const response = await fetch(url);
+    console.log(`[getDayQuality] Build response status:`, response.status, response.statusText);
+    
     if (!response.ok) {
+      console.log(`[getDayQuality] Build fetch not ok, returning unknown`);
       return [{ id: pipelineId, status: 'unknown', passCount: 0, failCount: 0 }];
     }
     
     const buildDataArray = await response.json();
+    console.log(`[getDayQuality] Build data received:`, buildDataArray);
     
     // constructBuild returns an array of builds
     if (!Array.isArray(buildDataArray) || buildDataArray.length === 0) {
+      console.log(`[getDayQuality] Build data array is empty, returning unknown`);
       return [{ id: pipelineId, status: 'unknown', passCount: 0, failCount: 0 }];
     }
     
-    return buildDataArray.map(buildData => ({
+    const results = buildDataArray.map(buildData => ({
       id: pipelineId,
       status: buildData.status || 'unknown',
       passCount: buildData.passedTestCount ?? 0,
       failCount: buildData.failedTestCount ?? 0
     }));
+    console.log(`[getDayQuality] Build results:`, results);
+    return results;
   } catch (error) {
-    console.error(`Error fetching build pipeline ${pipelineId}:`, error);
+    console.error(`[getDayQuality] Error fetching build pipeline ${pipelineId}:`, error);
     return [{ id: pipelineId, status: 'unknown', passCount: 0, failCount: 0 }];
   }
 }
@@ -92,16 +112,20 @@ async function fetchBuildPipeline(baseUrl: string, pipelineId: string, date: str
 export async function GET({ url, request }: { url: URL, request: Request }) {
   try {
     const date = url.searchParams.get('date');
+    console.log(`[getDayQuality] GET request for date:`, date);
     
     if (!date || typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      console.log(`[getDayQuality] Invalid date format`);
       return errorJson('Invalid date format. Expected YYYY-MM-DD', 400);
     }
 
     // Check cache and return early if not expired
     const cached = checkCache(date);
     if (cached) {
+      console.log(`[getDayQuality] Cache hit for date`, date);
       return json(cached);
     }
+    console.log(`[getDayQuality] Cache miss for date`, date);
 
     // Initialize variables for this request
     const pipelineIds: string[] = [];
@@ -111,24 +135,29 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
 
     // Load pipelines from env variable AZURE_PIPELINE_CONFIG
     let pipelineConfig = getPipelineConfig(env.PUBLIC_AZURE_PIPELINE_CONFIG);
+    console.log(`[getDayQuality] Pipeline config:`, pipelineConfig);
     
     // Dynamically determine the base URL for local api call
     let baseUrl = `http://${request.headers.get('host')}`;
+    console.log(`[getDayQuality] Base URL:`, baseUrl);
 
     // Process all pipelines
     for (const pipeline of pipelineConfig.pipelines) {
+      console.log(`[getDayQuality] Processing pipeline:`, pipeline.id, pipeline.type);
       pipelineIds.push(pipeline.id);
       
       if (pipeline.type === 'build') {
         const buildResults = await fetchBuildPipeline(baseUrl, pipeline.id, date);
         
         for (const buildResult of buildResults) {
+          console.log(`[getDayQuality] Build result status:`, buildResult.status);
           statuses.push(buildResult.status);
           totalPassCount += buildResult.passCount;
           totalFailCount += buildResult.failCount;
         }
       } else if (pipeline.type === 'release') {
         const releaseResult = await fetchReleasePipeline(baseUrl, pipeline.id, date);
+        console.log(`[getDayQuality] Release result status:`, releaseResult.status);
         
         statuses.push(releaseResult.status);
         totalPassCount += releaseResult.passCount;
@@ -137,7 +166,9 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
     }
 
     // Determine overall quality
+    console.log(`[getDayQuality] Statuses:`, statuses);
     const result = determineOverallDayQuality(statuses);
+    console.log(`[getDayQuality] Overall quality result:`, result);
     
     const response = { 
       date, 
@@ -146,6 +177,7 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
       totalPassCount, 
       totalFailCount 
     };
+    console.log(`[getDayQuality] Final response:`, response);
     
     // Update cache
     cache[date] = { result: response, timestamp: Date.now() };

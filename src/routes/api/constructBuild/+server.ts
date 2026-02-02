@@ -47,23 +47,21 @@ export async function GET({ url }: { url: URL }) {
         //#region First step is to get the correct build ID given the date and definition ID
         let buildId: number;
         try {
-            // Convert Central Time date to UTC range for API query
-            // Use proper timezone handling to account for CDT/CST automatically
-            const centralDateStart = new Date(date + 'T00:00:00');
-            const centralDateEnd = new Date(date + 'T23:59:59');
+            // Account for timezone offset - expand search to cover UTC range for the CST date
+            // CST is UTC-6, so a day in CST spans from 6:00 UTC of that day to 6:00 UTC of next day
+            const queryDate = new Date(`${date}T00:00:00Z`);
+            const startDate = new Date(queryDate.getTime() - 6 * 60 * 60 * 1000); // Start 6 hours earlier (previous day in CST)
+            const endDate = new Date(queryDate.getTime() + 30 * 60 * 60 * 1000); // End 30 hours later (covers whole CST day + buffer)
+            
+            const minTime = startDate.toISOString();
+            const maxTime = endDate.toISOString();
         
-        // Convert Central Time to UTC (this handles DST automatically)
-        // Note: We'll create a broader search range since timezone conversion can be tricky
-        
-        // Convert to UTC for the API query - expand range to catch builds that might span timezone boundaries
-        const searchStartDate = new Date(centralDateStart);
-        searchStartDate.setDate(searchStartDate.getDate() - 1); // Look back 1 day to catch any timezone edge cases
-        
-        const minTime = searchStartDate.toISOString();
-        const maxTime = new Date(centralDateEnd.getTime() + 24 * 60 * 60 * 1000).toISOString(); // Add 1 day forward
-        
+            console.log(`[constructBuild] Querying builds for CST date: ${date}`);
+            console.log(`[constructBuild] minTime (UTC): ${minTime}`);
+            console.log(`[constructBuild] maxTime (UTC): ${maxTime}`);
+            
         const branchName = 'refs/heads/trunk'; // or your desired branch
-        const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds?definitions=${buildDefinitionId}&minTime=${encodeURIComponent(minTime)}&maxTime=${encodeURIComponent(maxTime)}&queryOrder=finishTimeDescending&$top=50&branchName=${encodeURIComponent(branchName)}&api-version=7.1`;
+        const apiUrl = `https://dev.azure.com/${organization}/${project}/_apis/build/builds?definitions=${buildDefinitionId}&minTime=${encodeURIComponent(minTime)}&maxTime=${encodeURIComponent(maxTime)}&queryOrder=finishTimeDescending&$top=100&branchName=${encodeURIComponent(branchName)}&api-version=7.1`;
 
         const res = await fetch(apiUrl, {
             headers: {
@@ -73,6 +71,7 @@ export async function GET({ url }: { url: URL }) {
         });
 
         if (!res.ok) {
+            console.log(`[constructBuild] Failed to fetch builds: ${res.status} ${res.statusText}`);
             throw new Error(`Failed to fetch builds: ${res.status} ${res.statusText}`);
         }
 
