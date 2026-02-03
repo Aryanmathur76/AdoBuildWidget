@@ -31,6 +31,7 @@
     );
     let helpDialogOpen = $state(false);
     let todayQuality = $state<string>("unknown");
+    let mobileMenuOpen = $state(false);
     let carouselApi = $state<CarouselAPI>();
     const count = 5; // Hardcoded for 5 carousel items
     let current = $state(0);
@@ -140,14 +141,14 @@
             <Sidebar.Provider>
                 <Sidebar.Inset class="h-full">
                     <Tabs.Root bind:value={currentTab} class="h-full flex flex-col">
-                    <!-- Collapsible header - shows arrow handle, expands on hover -->
-                    <div class="group relative">
+                    <!-- Collapsible header - shows arrow handle, expands on click/hover -->
+                    <div class="relative">
                         <!-- Small arrow handle always visible -->
-                        <div class="flex justify-center cursor-pointer bg-background/30 group-hover:bg-transparent transition-colors">
-                            <span class="material-symbols-outlined text-muted-foreground group-hover:opacity-0 transition-opacity" style="font-size: 1.25em;">expand_more</span>
+                        <div onclick={() => mobileMenuOpen = !mobileMenuOpen} class="flex justify-center cursor-pointer bg-background/30 hover:bg-transparent transition-colors">
+                            <span class="material-symbols-outlined text-muted-foreground hover:opacity-0 transition-opacity" style="font-size: 1.25em;">expand_more</span>
                         </div>
-                        <!-- Full header - hidden by default, shown on hover -->
-                        <div class="absolute top-0 left-0 right-0 opacity-0 -translate-y-full group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 ease-out bg-gradient-to-b from-background/95 to-background/80 backdrop-blur-sm z-50 shadow-lg">
+                        <!-- Full header - hidden by default, shown on click or hover -->
+                        <div class="absolute top-0 left-0 right-0 transition-all duration-200 ease-out bg-gradient-to-b from-background/95 to-background/80 backdrop-blur-sm z-50 shadow-lg" style={`opacity: ${mobileMenuOpen ? 1 : 0}; pointer-events: ${mobileMenuOpen ? 'auto' : 'none'}; transform: translateY(${mobileMenuOpen ? 0 : '-100%'});`}>
                             <div class="flex items-center justify-between px-4 pt-3 pb-2">
                                 <div class="flex items-center gap-2">
                                     <CardTitle>
@@ -196,7 +197,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex-1 min-h-0 overflow-hidden">
+                    <div class="flex-1 min-h-0 overflow-hidden" onclick={() => mobileMenuOpen = false}>
                         <Tabs.Content value="Monthly" class="h-full overflow-auto">
                             <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} isMainView={true} />
                         </Tabs.Content>
