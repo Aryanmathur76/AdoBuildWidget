@@ -27,18 +27,7 @@
     export let completedDate: string | null = null;
     export let date: string | null = null;
 
-    let chartCycleInterval: ReturnType<typeof setInterval> | null = null;
-    let chartAltMode = false;
-
     import { onMount, onDestroy } from "svelte";
-    onMount(() => {
-        chartCycleInterval = setInterval(() => {
-            chartAltMode = !chartAltMode;
-        }, 5000);
-    });
-    onDestroy(() => {
-        if (chartCycleInterval) clearInterval(chartCycleInterval);
-    });
 
     let dialogOpen = false;
     let isLoading = false;
@@ -245,57 +234,25 @@
                             props={{ pie: { motion: "tween" } }}
                         >
                             {#snippet aboveMarks()}
-                                {#if chartAltMode}
-                                    <g
-                                        in:fade={{ duration: 200 }}
-                                        out:fade={{ duration: 200 }}
-                                    >
-                                        <Text
-                                            value={`${passCount ?? 0}/${(passCount ?? 0) + (failCount ?? 0)}`}
-                                            textAnchor="middle"
-                                            verticalAnchor="middle"
-                                            class="fill-foreground text-xs! font-bold"
-                                            dy={-8}
-                                        />
-                                        <Text
-                                            value="Passed"
-                                            textAnchor="middle"
-                                            verticalAnchor="middle"
-                                            class="fill-muted-foreground! text-xs! text-muted-foreground"
-                                            dy={4}
-                                        />
-                                    </g>
-                                {:else}
-                                    <g
-                                        in:fade={{ duration: 200 }}
-                                        out:fade={{ duration: 200 }}
-                                    >
-                                        <Text
-                                            value={(() => {
-                                                const total =
-                                                    (passCount ?? 0) +
-                                                    (failCount ?? 0);
-                                                if (total === 0) return "0%";
-                                                const percent = Math.round(
-                                                    ((passCount ?? 0) / total) *
-                                                        100,
-                                                );
-                                                return `${percent}%`;
-                                            })()}
-                                            textAnchor="middle"
-                                            verticalAnchor="middle"
-                                            class="fill-foreground text-xs! font-bold"
-                                            dy={-8}
-                                        />
-                                        <Text
-                                            value="Pass Rate"
-                                            textAnchor="middle"
-                                            verticalAnchor="middle"
-                                            class="fill-muted-foreground! text-xs! text-muted-foreground"
-                                            dy={4}
-                                        />
-                                    </g>
-                                {/if}
+                                <g
+                                    in:fade={{ duration: 200 }}
+                                    out:fade={{ duration: 200 }}
+                                >
+                                    <Text
+                                        value={`${passCount ?? 0}/${(passCount ?? 0) + (failCount ?? 0)}`}
+                                        textAnchor="middle"
+                                        verticalAnchor="middle"
+                                        class="fill-foreground text-xs! font-bold"
+                                        dy={-8}
+                                    />
+                                    <Text
+                                        value="Passed"
+                                        textAnchor="middle"
+                                        verticalAnchor="middle"
+                                        class="fill-muted-foreground! text-xs! text-muted-foreground"
+                                        dy={4}
+                                    />
+                                </g>
                             {/snippet}
                             {#snippet tooltip()}
                                 <!-- Tooltip disabled -->
