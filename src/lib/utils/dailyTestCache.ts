@@ -6,7 +6,7 @@ import redis from '$lib/utils/redisClient';
  * @param {Function} fetchFn - Function to fetch data if not in cache
  * @param {number} ttlSeconds - Time to live for cache in seconds
  */
-export async function getOrSetDailyTestCache(key: string, fetchFn: () => Promise<any>, ttlSeconds = 3600) {
+export async function getOrSetDailyTestCache(key: string, fetchFn: () => Promise<any>, ttlSeconds = 600) {
   try {
     console.log(`[Redis] Attempting to get key: ${key}`);
     const cached = await redis.get(key);
