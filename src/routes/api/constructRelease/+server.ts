@@ -139,7 +139,7 @@ export async function GET({ url }: { url: URL }) {
         const minLastUpdatedDate = releaseCreationDate.toISOString();
         const maxLastUpdatedDate = maxDate.toISOString();
         const testRunUrl = `https://dev.azure.com/${organization}/${project}/_apis/test/runs?releaseIds=${releaseId}&minLastUpdatedDate=${encodeURIComponent(minLastUpdatedDate)}&maxLastUpdatedDate=${encodeURIComponent(maxLastUpdatedDate)}&api-version=7.1`;
-        if(releaseId === 78128){
+        if(releaseId === 80543){
         }
         const testRunResponse = await fetch(testRunUrl, {
             headers: {
@@ -157,30 +157,50 @@ export async function GET({ url }: { url: URL }) {
                     const envId = run.release?.environmentId;
                     const environment = releaseDetails.environments?.find((env: any) => env.id === envId);
                     const stageName = environment?.name || '';
-                    return stageName.toLowerCase().includes('tests') || stageName.toLowerCase().includes('checks');
+                    const matches = stageName.toLowerCase().includes('tests') || stageName.toLowerCase().includes('checks');
+                    return matches;
                 });
 
 
-                // Deduplicate test runs by name, keeping only the latest run for each unique test run name
-                // This allows multiple test suites (different names) in the same environment to all be counted
-                const uniqueRuns: Record<string, any> = {};
+                // Group runs by environment and find the latest attempt for each
+                const runsByEnvironment: Record<number, any[]> = {};
                 for (const run of filteredRuns) {
-                    const runName = run.name;
-                    if (!runName) continue;
-                    
-                    // If we haven't seen this run name, or this run is newer, keep it
-                    if (!uniqueRuns[runName] || new Date(run.createdDate) > new Date(uniqueRuns[runName].createdDate)) {
-                        uniqueRuns[runName] = run;
+                    const envId = run.release?.environmentId;
+                    if (!envId) continue;
+                    if (!runsByEnvironment[envId]) {
+                        runsByEnvironment[envId] = [];
                     }
+                    runsByEnvironment[envId].push(run);
                 }
 
+                // Keep only runs from the latest attempt within each environment
+                // This allows all test runs from the latest deployment attempt per environment to be counted
+                const uniqueRuns: any[] = [];
+                for (const envId in runsByEnvironment) {
+                    const runsForEnv = runsByEnvironment[envId];
+                    
+                    // Find max attempt for this environment
+                    let maxAttempt = -1;
+                    for (const run of runsForEnv) {
+                        const attempt = run.release?.attempt ?? -1;
+                        if (attempt > maxAttempt) {
+                            maxAttempt = attempt;
+                        }
+                    }
+                    
+                    // Add all runs from the latest attempt of this environment
+                    for (const run of runsForEnv) {
+                        if ((run.release?.attempt ?? -1) === maxAttempt) {
+                            uniqueRuns.push(run);
+                        }
+                    }
+                }
             
-                // Aggregate test results from all unique test runs
+                // Aggregate test results from all runs in the latest attempt per environment
                 let passCount = 0;
                 let failCount = 0;
 
-                for (const runName in uniqueRuns) {
-                    const run = uniqueRuns[runName];
+                for (const run of uniqueRuns) {
                     passCount += run.passedTests ?? 0;
                     failCount += (run.failedTests ?? 0) + (run.unanalyzedTests ?? 0);
                 }

@@ -58,8 +58,6 @@ export async function GET({ url }: { url: URL }) {
 			return json({ error: e.message || 'Failed to fetch test suites' }, { status: 500 });
 		}
 
-		console.log(`Fetched ${allSuites.length} total suites from test plan`);
-
 		// Recursively fetch the specific suite, all its child suites, and test cases
 		const suite = await fetchSuiteWithChildrenAndTestCases({ organization: AZURE_DEVOPS_ORGANIZATION, project: AZURE_DEVOPS_PROJECT, pat: AZURE_DEVOPS_PAT }, testPlanId, suiteId, allSuites);
 

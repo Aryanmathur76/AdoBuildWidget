@@ -73,8 +73,6 @@ export async function GET({ url }: { url: URL }) {
         const data = await res.json();
         var allBuilds = data.value as any[];
 
-        console.log(allBuilds);
-
         //Filter to only scheduled builds
         allBuilds = allBuilds.filter(build => {
             return build.reason === 'schedule';
