@@ -177,9 +177,9 @@
                     <!-- Collapsible header - shows arrow handle, expands on click/hover -->
                     <div class="relative">
                         <!-- Small arrow handle always visible -->
-                        <div onclick={() => mobileMenuOpen = !mobileMenuOpen} class="flex justify-center cursor-pointer bg-background/30 hover:bg-transparent transition-colors">
-                            <span class="material-symbols-outlined text-muted-foreground hover:opacity-0 transition-opacity" style="font-size: 1.25em;">expand_more</span>
-                        </div>
+                        <button type="button" onclick={() => mobileMenuOpen = !mobileMenuOpen} class="flex justify-center cursor-pointer bg-background/30 hover:bg-transparent transition-colors w-full" aria-label="Toggle menu">
+                            <span class="material-symbols-outlined text-muted-foreground hover:opacity-0 transition-opacity" style="font-size: 1.25em;" aria-hidden="true">expand_more</span>
+                        </button>
                         <!-- Full header - hidden by default, shown on click or hover -->
                         <div class="absolute top-0 left-0 right-0 transition-all duration-200 ease-out bg-gradient-to-b from-background/95 to-background/80 backdrop-blur-sm z-50 shadow-lg" style={`opacity: ${mobileMenuOpen ? 1 : 0}; pointer-events: ${mobileMenuOpen ? 'auto' : 'none'}; transform: translateY(${mobileMenuOpen ? 0 : '-100%'});`}>
                             <div class="flex items-center justify-between px-4 pt-3 pb-2">
@@ -217,7 +217,10 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex-1 min-h-0 overflow-hidden" onclick={() => mobileMenuOpen = false}>
+                    {#if mobileMenuOpen}
+                        <div class="absolute inset-0 z-40" role="presentation" onclick={() => mobileMenuOpen = false}></div>
+                    {/if}
+                    <main class="flex-1 min-h-0 overflow-hidden">
                         <Tabs.Content value="Monthly" class="h-full overflow-auto">
                             <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} isMainView={true} />
                         </Tabs.Content>
@@ -230,7 +233,7 @@
                         <Tabs.Content value="TestResults" class="h-full overflow-auto p-1">
                             <MonthlyTestResults />
                         </Tabs.Content>
-                    </div>
+                    </main>
                 </Tabs.Root>
                 </Sidebar.Inset>
                 <Sidebar.Root side="right" collapsible="offcanvas" class="bg-background/80 backdrop-blur-md">
