@@ -255,11 +255,13 @@
                                 <span class="hidden sm:inline">Pass:</span>
                                 {passCount}
                             </span>
-                            <span class="text-red-800 dark:text-red-700 font-medium">
-                                <span class="sm:hidden">F:</span>
-                                <span class="hidden sm:inline">Fail:</span>
-                                {failCount ?? 0}
-                            </span>
+                            {#if failCount && failCount > 0}
+                                <span class="text-red-800 dark:text-red-700 font-medium">
+                                    <span class="sm:hidden">F:</span>
+                                    <span class="hidden sm:inline">Fail:</span>
+                                    {failCount}
+                                </span>
+                            {/if}
                             {#if notRunCount && notRunCount > 0}
                                 <span class="text-muted-foreground font-medium">
                                     <span class="sm:hidden">N:</span>
@@ -269,7 +271,7 @@
                             {/if}
                         </div>
                         <span class="text-muted-foreground font-medium">
-                            {passPercentage}%<span class="hidden sm:inline"> Pass Rate</span>
+                            {passPercentage}% <span class="hidden sm:inline"> Pass Rate</span>
                         </span>
                     </div>
                 </div>

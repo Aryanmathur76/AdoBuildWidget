@@ -375,7 +375,7 @@
                         {/if}
                         </div>
                         <div class="absolute inset-0 flex items-center justify-center">
-                          <span class="text-xs text-white drop-shadow-md">P:{pipeline.passCount} F:{pipeline.failCount}{#if pipeline.notRunCount > 0}&nbsp;N:{pipeline.notRunCount}{/if}</span>
+                          <span class="text-xs text-white drop-shadow-md">P:{pipeline.passCount}{#if pipeline.failCount > 0}&nbsp;F:{pipeline.failCount}{/if}{#if pipeline.notRunCount > 0}&nbsp;N:{pipeline.notRunCount}{/if}</span>
                         </div>
                       {:else}
                         <div class="h-full w-full flex items-center justify-center {pipeline.status === 'interrupted' ? getTestInterruptedColor() : pipeline.status === 'inProgress' ? getTestInProgressColor() : 'bg-gray-400'}">
@@ -413,7 +413,7 @@
                               <div class="bg-gray-400" style="width: {adjustedNotRunPercentage}%"></div>
                             </div>
                             <div class="absolute inset-0 flex items-center justify-center">
-                              <span class="text-xs text-white drop-shadow-md">P:{testRun.passCount} F:{testRun.failCount}{#if testRun.notRunCount > 0}&nbsp;N:{testRun.notRunCount}{/if}</span>
+                              <span class="text-xs text-white drop-shadow-md">P:{testRun.passCount}{#if testRun.failCount > 0}&nbsp;F:{testRun.failCount}{/if}{#if testRun.notRunCount > 0}&nbsp;N:{testRun.notRunCount}{/if}</span>
                             </div>
                           {:else}
                             <div class="h-full w-full bg-gray-400 flex items-center justify-center">
