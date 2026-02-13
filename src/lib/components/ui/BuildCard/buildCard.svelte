@@ -223,58 +223,58 @@
                 
                 <div class="flex-shrink-0 flex flex-col gap-2">
                     <!-- Progress bar -->
-                    <div class="flex h-6 w-[300px] overflow-hidden rounded-md border border-border bg-muted">
+                    <div class="flex h-6 w-[200px] sm:w-[300px] overflow-hidden rounded-md border border-border bg-muted">
                         {#if passWidth > 0}
                             <div
                                 class="{getTestPassColor()} flex items-center justify-center text-xs font-medium text-white"
                                 style="width: {passWidth}%"
                                 title="Passed: {passCount}"
-                            >
-                                {#if passWidth > 15}
-                                    {passCount}
-                                {/if}
-                            </div>
+                            ></div>
                         {/if}
                         {#if failWidth > 0}
                             <div
                                 class="{getTestFailColor()} flex items-center justify-center text-xs font-medium text-white"
                                 style="width: {failWidth}%"
                                 title="Failed: {failCount}"
-                            >
-                                {#if failWidth > 15}
-                                    {failCount}
-                                {/if}
-                            </div>
+                            ></div>
                         {/if}
                         {#if notRunWidth > 0}
                             <div
                                 class="{getTestNoDataColor()} flex items-center justify-center text-xs font-medium text-white"
                                 style="width: {notRunWidth}%"
                                 title="Not Run: {notRunCount}"
-                            >
-                                {#if notRunWidth > 15}
-                                    {notRunCount}
-                                {/if}
-                            </div>
+                            ></div>
                         {/if}
                     </div>
                     
                     <!-- Stats row -->
-                    <div class="flex items-center justify-between text-xs w-[300px]">
+                    <div class="flex items-center justify-between text-xs w-[200px] sm:w-[300px]">
                         <div class="flex items-center gap-3">
-                            <span class="text-lime-600 dark:text-lime-500 font-medium">Pass: {passCount}</span>
-                            <span class="text-red-800 dark:text-red-700 font-medium">Fail: {failCount ?? 0}</span>
+                            <span class="text-lime-600 dark:text-lime-500 font-medium">
+                                <span class="sm:hidden">P:</span>
+                                <span class="hidden sm:inline">Pass:</span>
+                                {passCount}
+                            </span>
+                            <span class="text-red-800 dark:text-red-700 font-medium">
+                                <span class="sm:hidden">F:</span>
+                                <span class="hidden sm:inline">Fail:</span>
+                                {failCount ?? 0}
+                            </span>
                             {#if notRunCount && notRunCount > 0}
-                                <span class="text-muted-foreground font-medium">Not Run: {notRunCount}</span>
+                                <span class="text-muted-foreground font-medium">
+                                    <span class="sm:hidden">N:</span>
+                                    <span class="hidden sm:inline">Not Run:</span>
+                                    {notRunCount}
+                                </span>
                             {/if}
                         </div>
                         <span class="text-muted-foreground font-medium">
-                            {passPercentage}% Pass Rate
+                            {passPercentage}%<span class="hidden sm:inline"> Pass Rate</span>
                         </span>
                     </div>
                 </div>
             {:else}
-                <div class="flex-shrink-0 flex items-center justify-center w-[300px]">
+                <div class="flex-shrink-0 flex items-center justify-center w-[200px] sm:w-[300px]">
                     <span class="text-xs text-muted-foreground">No test data</span>
                 </div>
             {/if}

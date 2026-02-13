@@ -359,7 +359,7 @@
                         {@const totalTests = pipeline.passCount + pipeline.failCount + pipeline.notRunCount}
                         {@const rawFailPercentage = (pipeline.failCount / totalTests) * 100}
                         {@const rawNotRunPercentage = (pipeline.notRunCount / totalTests) * 100}
-                        {@const minSegmentPercent = 10}
+                        {@const minSegmentPercent = 5}
                         {@const adjustedFailPercentage = pipeline.failCount > 0 && rawFailPercentage < minSegmentPercent ? minSegmentPercent : rawFailPercentage}
                         {@const adjustedNotRunPercentage = pipeline.notRunCount > 0 && rawNotRunPercentage < minSegmentPercent ? minSegmentPercent : rawNotRunPercentage}
                         {@const adjustedPassPercentage = Math.max(0, 100 - adjustedFailPercentage - adjustedNotRunPercentage)}
@@ -403,7 +403,7 @@
                             {@const totalTests = testRun.passCount + testRun.failCount + testRun.notRunCount}
                             {@const rawFailPercentage = (testRun.failCount / totalTests) * 100}
                             {@const rawNotRunPercentage = (testRun.notRunCount / totalTests) * 100}
-                            {@const minSegmentPercent = 10}
+                            {@const minSegmentPercent = 5}
                             {@const adjustedFailPercentage = testRun.failCount > 0 && rawFailPercentage < minSegmentPercent ? minSegmentPercent : rawFailPercentage}
                             {@const adjustedNotRunPercentage = testRun.notRunCount > 0 && rawNotRunPercentage < minSegmentPercent ? minSegmentPercent : rawNotRunPercentage}
                             {@const adjustedPassPercentage = Math.max(0, 100 - adjustedFailPercentage - adjustedNotRunPercentage)}
