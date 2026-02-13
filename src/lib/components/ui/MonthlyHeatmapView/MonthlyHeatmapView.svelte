@@ -76,6 +76,7 @@
                 disabled: isFutureDay(currentYear, currentMonth, day),
                 totalPassCount: buildQuality.totalPassCount,
                 totalFailCount: buildQuality.totalFailCount,
+                totalNotRunCount: buildQuality.totalNotRunCount,
                 releasesWithTestsRan: buildQuality.releasesWithTestsRan,
             };
         }),

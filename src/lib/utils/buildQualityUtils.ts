@@ -50,6 +50,7 @@ export type DayBuildQuality = {
     releasesWithTestsRan?: number;
     totalPassCount?: number;
     totalFailCount?: number;
+    totalNotRunCount?: number;
 };
 
 /**
@@ -87,6 +88,7 @@ export async function fetchBuildQualityForDay(
                 releasesWithTestsRan: data.releasesWithTestsRan,
                 totalPassCount: data.totalPassCount,
                 totalFailCount: data.totalFailCount,
+                totalNotRunCount: data.totalNotRunCount,
             };
 
             // Cache removed: do nothing
@@ -264,6 +266,7 @@ export function calculateWeeklyStats(
         quality?: string;
         totalPassCount?: number;
         totalFailCount?: number;
+        totalNotRunCount?: number;
         releasesWithTestsRan?: number;
     }>,
     dayBuildQuality: Record<string, DayBuildQuality>

@@ -271,7 +271,7 @@
                             {/if}
                         </div>
                         <span class="text-muted-foreground font-medium">
-                            {passPercentage}% <span class="hidden sm:inline"> Pass Rate</span>
+                            {passPercentage}%<span class="hidden sm:inline"> Pass Rate</span> · {totalTests} tests
                         </span>
                     </div>
                 </div>

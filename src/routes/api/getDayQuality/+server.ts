@@ -29,30 +29,32 @@ async function fetchReleasePipeline(baseUrl: string, pipelineId: string, date: s
   id: string,
   status: string,
   passCount: number,
-  failCount: number
+  failCount: number,
+  notRunCount: number
 }> {
   try {
     const response = await fetch(`${baseUrl}/api/constructRelease?date=${date}&releaseDefinitionId=${pipelineId}`);
     if (!response.ok) {
-      return { id: pipelineId, status: 'unknown', passCount: 0, failCount: 0 };
+      return { id: pipelineId, status: 'unknown', passCount: 0, failCount: 0, notRunCount: 0 };
     }
     
     const releaseData = await response.json();
     
     // Handle null response (no releases found for this date)
     if (releaseData === null) {
-      return { id: pipelineId, status: 'unknown', passCount: 0, failCount: 0 };
+      return { id: pipelineId, status: 'unknown', passCount: 0, failCount: 0, notRunCount: 0 };
     }
     
     return {
       id: pipelineId,
       status: releaseData.status || 'unknown',
       passCount: releaseData.passedTestCount ?? 0,
-      failCount: releaseData.failedTestCount ?? 0
+      failCount: releaseData.failedTestCount ?? 0,
+      notRunCount: releaseData.notRunTestCount ?? 0
     };
   } catch (error) {
     console.error(`Error fetching release pipeline ${pipelineId}:`, error);
-    return { id: pipelineId, status: 'unknown', passCount: 0, failCount: 0 };
+    return { id: pipelineId, status: 'unknown', passCount: 0, failCount: 0, notRunCount: 0 };
   }
 }
 
@@ -61,30 +63,32 @@ async function fetchBuildPipeline(baseUrl: string, pipelineId: string, date: str
   id: string,
   status: string,
   passCount: number,
-  failCount: number
+  failCount: number,
+  notRunCount: number
 }[]> {
   try {
     const response = await fetch(`${baseUrl}/api/constructBuild?date=${date}&buildDefinitionId=${pipelineId}`);
     if (!response.ok) {
-      return [{ id: pipelineId, status: 'unknown', passCount: 0, failCount: 0 }];
+      return [{ id: pipelineId, status: 'unknown', passCount: 0, failCount: 0, notRunCount: 0 }];
     }
     
     const buildDataArray = await response.json();
     
     // constructBuild returns an array of builds
     if (!Array.isArray(buildDataArray) || buildDataArray.length === 0) {
-      return [{ id: pipelineId, status: 'unknown', passCount: 0, failCount: 0 }];
+      return [{ id: pipelineId, status: 'unknown', passCount: 0, failCount: 0, notRunCount: 0 }];
     }
     
     return buildDataArray.map(buildData => ({
       id: pipelineId,
       status: buildData.status || 'unknown',
       passCount: buildData.passedTestCount ?? 0,
-      failCount: buildData.failedTestCount ?? 0
+      failCount: buildData.failedTestCount ?? 0,
+      notRunCount: buildData.notRunTestCount ?? 0
     }));
   } catch (error) {
     console.error(`Error fetching build pipeline ${pipelineId}:`, error);
-    return [{ id: pipelineId, status: 'unknown', passCount: 0, failCount: 0 }];
+    return [{ id: pipelineId, status: 'unknown', passCount: 0, failCount: 0, notRunCount: 0 }];
   }
 }
 
@@ -107,6 +111,7 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
     const pipelineIds: string[] = [];
     let totalPassCount = 0;
     let totalFailCount = 0;
+    let totalNotRunCount = 0;
     const statuses: string[] = [];
 
     // Load pipelines from env variable AZURE_PIPELINE_CONFIG
@@ -126,6 +131,7 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
           statuses.push(buildResult.status);
           totalPassCount += buildResult.passCount;
           totalFailCount += buildResult.failCount;
+          totalNotRunCount += buildResult.notRunCount;
         }
       } else if (pipeline.type === 'release') {
         const releaseResult = await fetchReleasePipeline(baseUrl, pipeline.id, date);
@@ -133,6 +139,7 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
         statuses.push(releaseResult.status);
         totalPassCount += releaseResult.passCount;
         totalFailCount += releaseResult.failCount;
+        totalNotRunCount += releaseResult.notRunCount;
       }
     }
 
@@ -144,7 +151,8 @@ export async function GET({ url, request }: { url: URL, request: Request }) {
       pipelineIds, 
       quality: result, 
       totalPassCount, 
-      totalFailCount 
+      totalFailCount,
+      totalNotRunCount
     };
     
     // Update cache

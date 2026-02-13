@@ -431,7 +431,7 @@
           {#if dayObj.totalPassCount !== undefined || dayObj.totalFailCount !== undefined}
             <div class="border-t pt-2 flex justify-between items-center">
               <p class="text-xs font-medium text-muted-foreground">Build ID: {formatBuildId(dayObj.dateStr)}</p>
-              <p class="text-xs text-muted-foreground">Total: {(dayObj.totalPassCount || 0) + (dayObj.totalFailCount || 0)} (Pass: {dayObj.totalPassCount || 0}, Fail: {dayObj.totalFailCount || 0})</p>
+              <p class="text-xs text-muted-foreground">Total: {(dayObj.totalPassCount || 0) + (dayObj.totalFailCount || 0) + (dayObj.totalNotRunCount || 0)} (P: {dayObj.totalPassCount || 0}{#if (dayObj.totalFailCount || 0) > 0}, F: {dayObj.totalFailCount}{/if}{#if (dayObj.totalNotRunCount || 0) > 0}, N: {dayObj.totalNotRunCount}{/if})</p>
             </div>
           {:else}
             <div class="border-t pt-2">
