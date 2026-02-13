@@ -17,6 +17,7 @@
     import type { PipelineConfig } from "$lib/utils/buildQualityUtils.js";
     import { getTestPassColor, getTestFailColor, BUILD_STATUS_COLORS } from "$lib/constants/colors.js";
     import TrashIcon from "@lucide/svelte/icons/trash-2";
+    import Loader2 from "@lucide/svelte/icons/loader-2";
     import { toast } from "svelte-sonner";
     import { Toaster } from "$lib/components/ui/sonner";
 
@@ -196,7 +197,11 @@
                                         title="Clear cache and refresh"
                                         class="hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        <TrashIcon size={20} class="text-primary" />
+                                        {#if isClearingCache}
+                                            <Loader2 size={20} class="text-primary animate-spin" />
+                                        {:else}
+                                            <TrashIcon size={20} class="text-primary" />
+                                        {/if}
                                     </button>
                                 </div>
                                 <div class="flex items-center gap-2">
@@ -290,7 +295,11 @@
                         title="Clear cache and refresh"
                         class="hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <TrashIcon size={20} class="text-primary" />
+                        {#if isClearingCache}
+                            <Loader2 size={20} class="text-primary animate-spin" />
+                        {:else}
+                            <TrashIcon size={20} class="text-primary" />
+                        {/if}
                     </button>
                 </div>
                 {#if carouselApi && count > 0}
