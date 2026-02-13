@@ -17,6 +17,9 @@
     import { env } from "$env/dynamic/public";
     import type { PipelineConfig } from "$lib/utils/buildQualityUtils.js";
     import { getTestPassColor, getTestFailColor, BUILD_STATUS_COLORS } from "$lib/constants/colors.js";
+    import TrashIcon from "@lucide/svelte/icons/trash-2";
+    import { toast } from "svelte-sonner";
+    import { Toaster } from "$lib/components/ui/sonner";
 
     // State
     let currentTab = $state(
@@ -33,6 +36,7 @@
     let todayQuality = $state<string>("unknown");
     let mobileMenuOpen = $state(false);
     let carouselApi = $state<CarouselAPI>();
+    let isClearingCache = $state(false);
     const count = 5; // Hardcoded for 5 carousel items
     let current = $state(0);
     let visibleSlides = $state<number[]>([0, 1, 2]); // Default to first 3
@@ -131,9 +135,39 @@
     } catch (e) {
         console.warn("Failed to parse pipeline config:", e);
     }
+
+    async function clearCache() {
+        isClearingCache = true;
+        try {
+            const response = await fetch('/api/cache/flush', {
+                method: 'POST'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                toast.loading('Cache cleared successfully - The site is about to refresh...');
+                // Refresh page after 2 seconds
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                toast.error(`Failed to clear cache: ${result.error}`);
+            }
+        } catch (error) {
+            toast.error(`Error clearing cache: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+            isClearingCache = false;
+        }
+    }
 </script>
 
 <div class="w-full h-screen max-h-screen overflow-hidden" transition:slide={{ duration: 300 }}>
+    <Toaster position="top-center" richColors />
     <Card class={`py-0 border-0 shadow-none h-full rounded-none flex flex-col bg-gradient-to-b ${gradientColor} to-background`}>
         {#if isMobile}
         <!-- Mobile: Tabs Interface with Sidebar -->
@@ -268,17 +302,14 @@
                         </Popover.Trigger>
                         <Popover.Content class="w-auto p-3">
                             <div class="space-y-2">
-                                <h4 class="font-semibold text-sm">Test Pipelines</h4>
-                                <div class="space-y-1 max-h-64 overflow-y-auto">
-                                    {#each pipelineConfig?.pipelines || [] as pipeline}
-                                        <div class="text-xs flex items-center gap-2 p-1.5 rounded hover:bg-muted/50">
-                                            <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1em;">
-                                                {pipeline.type === 'build' ? 'build' : 'rocket_launch'}
-                                            </span>
-                                            <span class="text-foreground flex-1">{pipeline.displayName}</span>
-                                        </div>
-                                    {/each}
-                                </div>
+                                <button
+                                    onclick={clearCache}
+                                    disabled={isClearingCache}
+                                    class="flex items-center gap-2 px-4 py-2 rounded border border-input bg-background hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full justify-center"
+                                >
+                                    <TrashIcon size={18} />
+                                    <span class="text-sm font-medium">{isClearingCache ? 'Clearing...' : 'Clear Cache'}</span>
+                                </button>
                             </div>
                         </Popover.Content>
                     </Popover.Root>
