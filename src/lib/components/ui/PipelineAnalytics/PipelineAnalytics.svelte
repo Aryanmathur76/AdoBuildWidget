@@ -28,6 +28,7 @@
     const chartConfig = {
         passed: { label: "Passed", color: "var(--chart-1)" },
         failed: { label: "Failed", color: "var(--chart-2)" },
+        notRun: { label: "Not Run", color: "var(--muted)" },
         label: { color: "var(--background)" },
     } satisfies Chart.ChartConfig;
 
@@ -40,6 +41,7 @@
             date: string;
             passed: number | null;
             failed: number | null;
+            notRun: number | null;
         }>;
         loading: boolean;
         context?: ChartContextValue;
@@ -60,6 +62,7 @@
                     date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                     passed: null,
                     failed: null,
+                    notRun: null,
                 })),
                 loading: true,
             }));
@@ -85,7 +88,7 @@
         if (pipeline.type === 'build') {
             // For build pipelines, we need to track test runs separately
             // Map from testRunName to chart data
-            const testRunCharts = new Map<string, Array<{ date: string; passed: number | null; failed: number | null }>>();
+            const testRunCharts = new Map<string, Array<{ date: string; passed: number | null; failed: number | null; notRun: number | null }>>();
             
             for (let dayIndex = 0; dayIndex < last7Days.length; dayIndex++) {
                 const date = last7Days[dayIndex];
@@ -107,15 +110,17 @@
                                 testRunCharts.set(testRunName, last7Days.slice(0, dayIndex).map(d => ({
                                     date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                                     passed: null,
-                                    failed: null
+                                    failed: null,
+                                    notRun: null
                                 })));
                             }
                             
-                            const hasData = (build.passedTestCount || 0) > 0 || (build.failedTestCount || 0) > 0;
+                            const hasData = (build.passedTestCount || 0) > 0 || (build.failedTestCount || 0) > 0 || (build.notRunTestCount || 0) > 0;
                             testRunCharts.get(testRunName)!.push({
                                 date: formattedDate,
                                 passed: hasData ? (build.passedTestCount || 0) : null,
-                                failed: hasData ? (build.failedTestCount || 0) : null
+                                failed: hasData ? (build.failedTestCount || 0) : null,
+                                notRun: hasData ? (build.notRunTestCount || 0) : null
                             });
                         }
                     } else if (data) {
@@ -126,15 +131,17 @@
                                 testRunCharts.set(testRunName, last7Days.slice(0, dayIndex).map(d => ({
                                     date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                                     passed: null,
-                                    failed: null
+                                    failed: null,
+                                    notRun: null
                                 })));
                             }
                             
-                            const hasData = (data.passedTestCount || 0) > 0 || (data.failedTestCount || 0) > 0;
+                            const hasData = (data.passedTestCount || 0) > 0 || (data.failedTestCount || 0) > 0 || (data.notRunTestCount || 0) > 0;
                             testRunCharts.get(testRunName)!.push({
                                 date: formattedDate,
                                 passed: hasData ? (data.passedTestCount || 0) : null,
-                                failed: hasData ? (data.failedTestCount || 0) : null
+                                failed: hasData ? (data.failedTestCount || 0) : null,
+                                notRun: hasData ? (data.notRunTestCount || 0) : null
                             });
                         }
                     }
@@ -145,7 +152,7 @@
                 // Fill nulls for test runs that didn't have data this day
                 for (const [testRunName, chartData] of testRunCharts.entries()) {
                     if (chartData.length <= dayIndex) {
-                        chartData.push({ date: formattedDate, passed: null, failed: null });
+                        chartData.push({ date: formattedDate, passed: null, failed: null, notRun: null });
                     }
                 }
             }
@@ -168,7 +175,7 @@
             
         } else {
             // Release pipelines - simple aggregation
-            const chartData: Array<{ date: string; passed: number | null; failed: number | null }> = [];
+            const chartData: Array<{ date: string; passed: number | null; failed: number | null; notRun: number | null }> = [];
             
             for (let dayIndex = 0; dayIndex < last7Days.length; dayIndex++) {
                 const date = last7Days[dayIndex];
@@ -178,18 +185,19 @@
                 try {
                     const data = await pipelineDataService.fetchReleaseDataSilent(dateStr, pipeline.id);
                     if (data) {
-                        const hasData = (data.passedTestCount || 0) > 0 || (data.failedTestCount || 0) > 0;
+                        const hasData = (data.passedTestCount || 0) > 0 || (data.failedTestCount || 0) > 0 || (data.notRunTestCount || 0) > 0;
                         chartData.push({ 
                             date: formattedDate, 
                             passed: hasData ? (data.passedTestCount || 0) : null, 
-                            failed: hasData ? (data.failedTestCount || 0) : null 
+                            failed: hasData ? (data.failedTestCount || 0) : null,
+                            notRun: hasData ? (data.notRunTestCount || 0) : null
                         });
                     } else {
-                        chartData.push({ date: formattedDate, passed: null, failed: null });
+                        chartData.push({ date: formattedDate, passed: null, failed: null, notRun: null });
                     }
                 } catch (error) {
                     console.error(`Error fetching data for ${pipeline.displayName} on ${dateStr}:`, error);
-                    chartData.push({ date: formattedDate, passed: null, failed: null });
+                    chartData.push({ date: formattedDate, passed: null, failed: null, notRun: null });
                 }
             }
             
@@ -203,12 +211,13 @@
         }
     }
 
-    function calculateTotals(data: Array<{ passed: number | null; failed: number | null }>) {
+    function calculateTotals(data: Array<{ passed: number | null; failed: number | null; notRun: number | null }>) {
         const totalPassed = data.reduce((sum, d) => sum + (d.passed || 0), 0);
         const totalFailed = data.reduce((sum, d) => sum + (d.failed || 0), 0);
-        const total = totalPassed + totalFailed;
+        const totalNotRun = data.reduce((sum, d) => sum + (d.notRun || 0), 0);
+        const total = totalPassed + totalFailed + totalNotRun;
         const passRate = total > 0 ? Math.round((totalPassed / total) * 100) : 0;
-        return { totalPassed, totalFailed, total, passRate };
+        return { totalPassed, totalFailed, totalNotRun, total, passRate };
     }
 </script>
 
@@ -249,6 +258,7 @@
                                     series={[
                                         { key: "passed", label: "Passed", color: chartConfig.passed.color, props: { rounded: "none" } },
                                         { key: "failed", label: "Failed", color: chartConfig.failed.color, props: { rounded: "none" } },
+                                        { key: "notRun", label: "Not Run", color: chartConfig.notRun.color, props: { rounded: "none" } },
                                     ]}
                                     seriesLayout="stack"
                                     props={{
@@ -296,8 +306,13 @@
                                         Pass Rate: {totals.passRate}% ({totals.totalPassed}/{totals.total} tests)
                                     </div>
                                     <div class="text-muted-foreground flex items-center gap-2 leading-none mb-4">
-                                        {#if totals.totalFailed > 0}
-                                            {totals.totalFailed} failed test{totals.totalFailed !== 1 ? 's' : ''} in the last 7 days
+                                        {#if totals.totalFailed > 0 || totals.totalNotRun > 0}
+                                            {#if totals.totalFailed > 0}
+                                                {totals.totalFailed} failed{#if totals.totalNotRun > 0}, {totals.totalNotRun} not run{/if}
+                                            {:else}
+                                                {totals.totalNotRun} not run
+                                            {/if}
+                                            in the last 7 days
                                         {:else}
                                             All tests passed in the last 7 days
                                         {/if}
