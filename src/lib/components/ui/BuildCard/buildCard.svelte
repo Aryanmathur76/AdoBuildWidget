@@ -20,6 +20,7 @@
     import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
 
     export let pipelineName: string = "PipelineName";
+    export let pipelineGroup: string | null = null; // Pipeline group name for display in dialogs
     export let link: string | null = null;
     export let status: string | null = null;
     export let passCount: number | null = null;
@@ -127,6 +128,14 @@
             <Dialog bind:open={dialogOpen}>
                 {#if dialogOpen}
                     <DialogContent>
+                        <DialogTitle>
+                            <div class="flex flex-col gap-1">
+                                {#if pipelineGroup}
+                                    <div class="text-sm font-medium text-muted-foreground">{pipelineGroup}</div>
+                                {/if}
+                                <div class="text-lg font-semibold">{pipelineName}</div>
+                            </div>
+                        </DialogTitle>
                         <DialogDescription>
                             <div class="py-2">
                                 {#if passCount !== null && failCount !== null && passCount + failCount > 0 && pipelineId && date}

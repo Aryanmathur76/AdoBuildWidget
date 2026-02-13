@@ -63,6 +63,11 @@
     status: string;
     passCount: number;
     failCount: number;
+    testRuns?: Array<{
+      testRunName: string;
+      passCount: number;
+      failCount: number;
+    }>;
   }>>([]);
   let loadingPipelines = $state(false);
   let hoverTimeout: ReturnType<typeof setTimeout> | null = $state(null);
@@ -111,6 +116,11 @@
       status: string;
       passCount: number;
       failCount: number;
+      testRuns?: Array<{
+        testRunName: string;
+        passCount: number;
+        failCount: number;
+      }>;
     }> = [];
 
     try {
@@ -122,21 +132,25 @@
             pipeline.id,
           );
           if (data) {
-            // Build API might return array of builds
+            // Build API might return array of builds (test runs)
             if (Array.isArray(data)) {
-              data.forEach((build: any, index: number) => {
-                results.push({
-                  id: `${pipeline.id}-${index}`,
-                  name:
-                    build.name ||
-                    build.testRunName ||
-                    pipeline.displayName ||
-                    `Build ${pipeline.id}`,
-                  type: "build",
-                  status: build.status || "unknown",
-                  passCount: build.passedTestCount || 0,
-                  failCount: build.failedTestCount || 0,
-                });
+              const testRuns = data.map((build: any) => ({
+                testRunName: build.testRunName || build.name || 'Test Run',
+                passCount: build.passedTestCount || 0,
+                failCount: build.failedTestCount || 0,
+              }));
+              
+              const totalPass = testRuns.reduce((sum, tr) => sum + tr.passCount, 0);
+              const totalFail = testRuns.reduce((sum, tr) => sum + tr.failCount, 0);
+              
+              results.push({
+                id: pipeline.id,
+                name: pipeline.displayName,
+                type: "build",
+                status: data[0]?.status || "unknown",
+                passCount: totalPass,
+                failCount: totalFail,
+                testRuns: testRuns,
               });
             } else {
               results.push({
@@ -146,6 +160,11 @@
                 status: data.status || "unknown",
                 passCount: data.passedTestCount || 0,
                 failCount: data.failedTestCount || 0,
+                testRuns: [{
+                  testRunName: data.testRunName || pipeline.displayName,
+                  passCount: data.passedTestCount || 0,
+                  failCount: data.failedTestCount || 0,
+                }]
               });
             }
           } else {
@@ -315,43 +334,60 @@
             <Skeleton class="h-6 w-full" />
           </div>
         {:else if pipelineData.length > 0}
-          <div class="space-y-1">
+          <div class="space-y-2">
             {#each pipelineData as pipeline (pipeline.id)}
-              <div class="flex items-center justify-between gap-2 py-1">
-                <div class="flex-shrink-0">
-                  <span class="inline-block text-xs px-2 py-0.5 rounded {getPipelineBadgeColor(pipeline.status)}">{pipeline.name}</span>
-                </div>
-                <div class="flex items-center gap-1.5 flex-shrink-0">
-                  <div class="w-40 h-4 bg-zinc-200 rounded overflow-hidden relative">
-                    {#if pipeline.passCount + pipeline.failCount > 0}
-                      {@const totalTests = pipeline.passCount + pipeline.failCount}
-                      {@const passPercentage = (pipeline.passCount / totalTests) * 100}
-                      <div class="h-full flex">
-                      {#if pipeline.status === "inProgress"}
-                        <div class={getTestInProgressColor()} style="width: 100%"></div>
-                      {:else if pipeline.status === "interrupted"}
-                        <div class={getTestInterruptedColor()} style="width: 100%"></div>
-                      {:else}
-                        <div class={getTestPassColor()} style="width: {passPercentage}%"></div>
-                        <div class={getTestFailColor()} style="width: {100 - passPercentage}%"></div>
-                      {/if}
-                      </div>
-                      <div class="absolute inset-0 flex items-center justify-center">
-                        <span class="text-xs text-white drop-shadow-md">Pass: {pipeline.passCount} Fail: {pipeline.failCount}</span>
-                      </div>
-                    {:else}
-                      <div class="h-full w-full flex items-center justify-center {pipeline.status === 'interrupted' ? getTestInterruptedColor() : pipeline.status === 'inProgress' ? getTestInProgressColor() : 'bg-gray-400'}">
+              <div>
+                <div class="flex items-center justify-between gap-2 py-1">
+                  <div class="flex-shrink-0">
+                    <span class="inline-block text-xs px-2 py-0.5 rounded {getPipelineBadgeColor(pipeline.status)}">{pipeline.name}</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <div class="w-40 h-4 bg-zinc-200 rounded overflow-hidden relative">
+                      {#if pipeline.passCount + pipeline.failCount > 0}
+                        {@const totalTests = pipeline.passCount + pipeline.failCount}
+                        {@const passPercentage = (pipeline.passCount / totalTests) * 100}
+                        <div class="h-full flex">
                         {#if pipeline.status === "inProgress"}
-                          <span class="text-xs text-white">In Progress</span>
+                          <div class={getTestInProgressColor()} style="width: 100%"></div>
                         {:else if pipeline.status === "interrupted"}
-                          <span class="text-xs text-white">Interrupted</span>
+                          <div class={getTestInterruptedColor()} style="width: 100%"></div>
                         {:else}
-                          <span class="text-xs text-white">No Tests</span>
+                          <div class={getTestPassColor()} style="width: {passPercentage}%"></div>
+                          <div class={getTestFailColor()} style="width: {100 - passPercentage}%"></div>
                         {/if}
-                      </div>
-                    {/if}
+                        </div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                          <span class="text-xs text-white drop-shadow-md">Pass: {pipeline.passCount} Fail: {pipeline.failCount}</span>
+                        </div>
+                      {:else}
+                        <div class="h-full w-full flex items-center justify-center {pipeline.status === 'interrupted' ? getTestInterruptedColor() : pipeline.status === 'inProgress' ? getTestInProgressColor() : 'bg-gray-400'}">
+                          {#if pipeline.status === "inProgress"}
+                            <span class="text-xs text-white">In Progress</span>
+                          {:else if pipeline.status === "interrupted"}
+                            <span class="text-xs text-white">Interrupted</span>
+                          {:else}
+                            <span class="text-xs text-white">No Tests</span>
+                          {/if}
+                        </div>
+                      {/if}
+                    </div>
                   </div>
                 </div>
+                
+                <!-- Show test runs for build pipelines -->
+                {#if pipeline.type === "build" && pipeline.testRuns && pipeline.testRuns.length > 0}
+                  <div class="ml-4 mt-1 space-y-0.5">
+                    {#each pipeline.testRuns as testRun}
+                      <div class="text-xs text-muted-foreground flex justify-between">
+                        <span>{testRun.testRunName}</span>
+                        <div class="flex gap-2">
+                          <span class="text-green-600">✓{testRun.passCount}</span>
+                          <span class="text-red-600">✗{testRun.failCount}</span>
+                        </div>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
               </div>
             {/each}
           </div>

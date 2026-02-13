@@ -195,6 +195,7 @@ export async function GET({ url }: { url: URL }) {
     const build: Build = {
         id: buildDetails.id,
         name: buildDetails.name,
+        pipelineName: buildDetails.definition?.name || 'Unknown Pipeline', // Add pipeline name for grouping
         status: buildDetails.status, // Use actual Azure DevOps status instead of hardcoding 'unknown'
         result: buildDetails.result,
         startTime: buildDetails.startTime,

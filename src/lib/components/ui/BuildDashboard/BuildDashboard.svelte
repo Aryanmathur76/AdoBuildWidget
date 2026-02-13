@@ -103,15 +103,21 @@
                         } else {
                             buildDetails.name = buildDetails.testRunName;
                         }
+                        // Store the pipeline name for grouping
+                        buildDetails.pipelineName = pipeline.displayName;
                         buildPipelines.push(buildDetails);
                     });
                 } else {
-                    buildPipelines.push(createErrorPipeline(pipeline.id, pipeline.displayName));
+                    const errorBuild = createErrorPipeline(pipeline.id, pipeline.displayName);
+                    errorBuild.pipelineName = pipeline.displayName;
+                    buildPipelines.push(errorBuild);
                 }
             } catch (error) {
                 console.error(`Error fetching build details for pipeline ID ${pipeline.id}:`, error);
                 // Add error placeholder
-                buildPipelines.push(createErrorPipeline(pipeline.id, pipeline.displayName));
+                const errorBuild = createErrorPipeline(pipeline.id, pipeline.displayName);
+                errorBuild.pipelineName = pipeline.displayName;
+                buildPipelines.push(errorBuild);
             }
         }
     }
@@ -193,21 +199,38 @@
                             />
                         </div>
                     {/each}
-                    {#each buildPipelines as pipeline, index}
-                        <div in:fade={{ delay: (releasePipelines.length * 100) + (index * 100), duration: 300 }}>
-                            <BuildCard
-                                pipelineName={pipeline.name}
-                                link={pipeline.link}
-                                status={pipeline.status}
-                                passCount={pipeline.passedTestCount}
-                                failCount={pipeline.failedTestCount}
-                                pipelineType="build"
-                                pipelineId={pipeline.id}
-                                completedDate={pipeline.completedTime}
-                                date={selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString() : null}
-                            />
-                        </div>
-                    {/each}
+                    {#key buildPipelines}
+                        {#each Object.entries(buildPipelines.reduce((groups, build) => {
+                            const pipelineName = build.pipelineName || 'Unknown Pipeline';
+                            if (!groups[pipelineName]) {
+                                groups[pipelineName] = [];
+                            }
+                            groups[pipelineName].push(build);
+                            return groups;
+                        }, {} as Record<string, any>)) as [pipelineName, builds], groupIndex}
+                            <div class="space-y-2">
+                                <h3 class="text-md font-semibold text-foreground">{pipelineName}</h3>
+                                <div class="space-y-2 ml-2">
+                                    {#each builds as build, index}
+                                        <div in:fade={{ delay: (releasePipelines.length * 100) + (groupIndex * 50) + (index * 50), duration: 300 }}>
+                                            <BuildCard
+                                                pipelineName={build.testRunName || 'Build'}
+                                                pipelineGroup={pipelineName}
+                                                link={build.link}
+                                                status={build.status}
+                                                passCount={build.passedTestCount}
+                                                failCount={build.failedTestCount}
+                                                pipelineType="build"
+                                                pipelineId={build.id}
+                                                completedDate={build.completedTime}
+                                                date={selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString() : null}
+                                            />
+                                        </div>
+                                    {/each}
+                                </div>
+                            </div>
+                        {/each}
+                    {/key}
                 </div>
             </Card.Content>
         </ScrollArea>

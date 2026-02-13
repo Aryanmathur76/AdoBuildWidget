@@ -1,6 +1,7 @@
 export interface Build {
   id: number;
   name: string;
+  pipelineName?: string;
   status: string;
   result: string;
   startTime: string;
