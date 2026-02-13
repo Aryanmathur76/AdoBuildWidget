@@ -376,13 +376,26 @@
                 
                 <!-- Show test runs for build pipelines -->
                 {#if pipeline.type === "build" && pipeline.testRuns && pipeline.testRuns.length > 0}
-                  <div class="ml-4 mt-1 space-y-0.5">
+                  <div class="ml-4 mt-1 space-y-1">
                     {#each pipeline.testRuns as testRun}
-                      <div class="text-xs text-muted-foreground flex justify-between">
-                        <span>{testRun.testRunName}</span>
-                        <div class="flex gap-2">
-                          <span class="text-green-600">✓{testRun.passCount}</span>
-                          <span class="text-red-600">✗{testRun.failCount}</span>
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs text-muted-foreground truncate flex-shrink-0 max-w-[80px]">{testRun.testRunName}</span>
+                        <div class="w-32 h-4 bg-zinc-200 rounded overflow-hidden relative flex-shrink-0">
+                          {#if testRun.passCount + testRun.failCount > 0}
+                            {@const totalTests = testRun.passCount + testRun.failCount}
+                            {@const passPercentage = (testRun.passCount / totalTests) * 100}
+                            <div class="h-full flex">
+                              <div class={getTestPassColor()} style="width: {passPercentage}%"></div>
+                              <div class={getTestFailColor()} style="width: {100 - passPercentage}%"></div>
+                            </div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                              <span class="text-xs text-white drop-shadow-md">P:{testRun.passCount} F:{testRun.failCount}</span>
+                            </div>
+                          {:else}
+                            <div class="h-full w-full bg-gray-400 flex items-center justify-center">
+                              <span class="text-xs text-white">No Data</span>
+                            </div>
+                          {/if}
                         </div>
                       </div>
                     {/each}
