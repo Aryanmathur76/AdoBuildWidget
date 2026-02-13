@@ -1,5 +1,4 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
-import { REDIS_HOST, REDIS_PORT, REDIS_PASSWORD } from '$env/static/private';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -7,9 +6,9 @@ const execAsync = promisify(exec);
 
 export const POST: RequestHandler = async () => {
   try {
-    const host = REDIS_HOST || '10.12.127.84';
-    const port = REDIS_PORT || '10000';
-    const password = REDIS_PASSWORD;
+    const host = process.env.REDIS_HOST || '10.12.127.84';
+    const port = process.env.REDIS_PORT || '10000';
+    const password = process.env.REDIS_PASSWORD;
 
     if (!password) {
       throw new Error('REDIS_PASSWORD environment variable is not set');
