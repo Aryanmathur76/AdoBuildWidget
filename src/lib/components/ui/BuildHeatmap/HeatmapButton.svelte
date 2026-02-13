@@ -135,7 +135,7 @@
             // Build API might return array of builds (test runs)
             if (Array.isArray(data)) {
               const testRuns = data.map((build: any) => ({
-                testRunName: build.testRunName || build.name || 'Test Run',
+                testRunName: build.testRunName || build.name || 'No Test Runs',
                 passCount: build.passedTestCount || 0,
                 failCount: build.failedTestCount || 0,
               }));
