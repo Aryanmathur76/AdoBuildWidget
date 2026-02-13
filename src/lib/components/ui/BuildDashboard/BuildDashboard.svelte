@@ -192,6 +192,7 @@
                                 status={pipeline.status}
                                 passCount={pipeline.passedTestCount}
                                 failCount={pipeline.failedTestCount}
+                                notRunCount={pipeline.notRunTestCount}
                                 pipelineType="release"
                                 pipelineId={pipeline.id}
                                 completedDate={pipeline.completedTime}
@@ -220,6 +221,7 @@
                                                 status={build.status}
                                                 passCount={build.passedTestCount}
                                                 failCount={build.failedTestCount}
+                                                notRunCount={build.notRunTestCount}
                                                 pipelineType="build"
                                                 pipelineId={build.id}
                                                 completedDate={build.completedTime}

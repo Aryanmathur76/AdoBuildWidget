@@ -18,6 +18,7 @@
     } from "$lib/components/ui/dialog";
     import TestChart from "$lib/components/ui/TestChart/testChart.svelte";
     import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
+    import { getTestPassColor, getTestFailColor, getTestNoDataColor } from "$lib/constants/colors";
 
     export let pipelineName: string = "PipelineName";
     export let pipelineGroup: string | null = null; // Pipeline group name for display in dialogs
@@ -25,6 +26,7 @@
     export let status: string | null = null;
     export let passCount: number | null = null;
     export let failCount: number | null = null;
+    export let notRunCount: number | null = null;
     export let completedDate: string | null = null;
     export let date: string | null = null;
 
@@ -114,6 +116,7 @@
     const chartConfig = {
         pass: { label: "Pass", color: "var(--chart-1)" },
         fail: { label: "Fail", color: "var(--chart-2)" },
+        notRun: { label: "Not Run", color: "hsl(var(--muted))" },
     } satisfies Chart.ChartConfig;
 </script>
 
@@ -211,69 +214,70 @@
                     <slot />
                 </div>
             </div>
-            <div
-                class="flex-shrink-0 flex items-center justify-center"
-                style="min-width: 80px; min-height: 80px;"
-            >
+            {#if passCount !== null && failCount !== null && passCount + failCount > 0}
+                {@const totalTests = passCount + (failCount ?? 0) + (notRunCount ?? 0)}
+                {@const passPercentage = totalTests > 0 ? Math.round((passCount / totalTests) * 100) : 0}
+                {@const passWidth = totalTests > 0 ? (passCount / totalTests) * 100 : 0}
+                {@const failWidth = totalTests > 0 ? ((failCount ?? 0) / totalTests) * 100 : 0}
+                {@const notRunWidth = totalTests > 0 ? ((notRunCount ?? 0) / totalTests) * 100 : 0}
                 
-
-                {#if passCount !== null && failCount !== null && passCount + failCount > 0}
-                    <Chart.Container
-                        config={chartConfig}
-                        style="width: 85px; height: 85px;"
-                    >
-                        <PieChart
-                            data={[
-                                {
-                                    result: "pass",
-                                    value: passCount,
-                                    color: chartConfig.pass.color,
-                                },
-                                {
-                                    result: "fail",
-                                    value: failCount,
-                                    color: chartConfig.fail.color,
-                                },
-                            ]}
-                            key="result"
-                            value="value"
-                            c="color"
-                            innerRadius={40}
-                            padding={5}
-                            props={{ pie: { motion: "tween" } }}
-                        >
-                            {#snippet aboveMarks()}
-                                <g
-                                    in:fade={{ duration: 200 }}
-                                    out:fade={{ duration: 200 }}
-                                >
-                                    <Text
-                                        value={`${passCount ?? 0}/${(passCount ?? 0) + (failCount ?? 0)}`}
-                                        textAnchor="middle"
-                                        verticalAnchor="middle"
-                                        class="fill-foreground text-xs! font-bold"
-                                        dy={-8}
-                                    />
-                                    <Text
-                                        value="Passed"
-                                        textAnchor="middle"
-                                        verticalAnchor="middle"
-                                        class="fill-muted-foreground! text-xs! text-muted-foreground"
-                                        dy={4}
-                                    />
-                                </g>
-                            {/snippet}
-                            {#snippet tooltip()}
-                                <!-- Tooltip disabled -->
-                            {/snippet}
-                        </PieChart>
-                    </Chart.Container>
-                {:else}
-                    <span class="text-xs text-muted-foreground"
-                        >No test data</span
-                    >
-                {/if}
-            </div>
+                <div class="flex-shrink-0 flex flex-col gap-2">
+                    <!-- Progress bar -->
+                    <div class="flex h-6 w-[300px] overflow-hidden rounded-md border border-border bg-muted">
+                        {#if passWidth > 0}
+                            <div
+                                class="{getTestPassColor()} flex items-center justify-center text-xs font-medium text-white"
+                                style="width: {passWidth}%"
+                                title="Passed: {passCount}"
+                            >
+                                {#if passWidth > 15}
+                                    {passCount}
+                                {/if}
+                            </div>
+                        {/if}
+                        {#if failWidth > 0}
+                            <div
+                                class="{getTestFailColor()} flex items-center justify-center text-xs font-medium text-white"
+                                style="width: {failWidth}%"
+                                title="Failed: {failCount}"
+                            >
+                                {#if failWidth > 15}
+                                    {failCount}
+                                {/if}
+                            </div>
+                        {/if}
+                        {#if notRunWidth > 0}
+                            <div
+                                class="{getTestNoDataColor()} flex items-center justify-center text-xs font-medium text-white"
+                                style="width: {notRunWidth}%"
+                                title="Not Run: {notRunCount}"
+                            >
+                                {#if notRunWidth > 15}
+                                    {notRunCount}
+                                {/if}
+                            </div>
+                        {/if}
+                    </div>
+                    
+                    <!-- Stats row -->
+                    <div class="flex items-center justify-between text-xs w-[300px]">
+                        <div class="flex items-center gap-3">
+                            <span class="text-lime-600 dark:text-lime-500 font-medium">Pass: {passCount}</span>
+                            <span class="text-red-800 dark:text-red-700 font-medium">Fail: {failCount ?? 0}</span>
+                            {#if notRunCount && notRunCount > 0}
+                                <span class="text-muted-foreground font-medium">Not Run: {notRunCount}</span>
+                            {/if}
+                        </div>
+                        <span class="text-muted-foreground font-medium">
+                            {passPercentage}% Pass Rate
+                        </span>
+                    </div>
+                </div>
+            {:else}
+                <div class="flex-shrink-0 flex items-center justify-center w-[300px]">
+                    <span class="text-xs text-muted-foreground">No test data</span>
+                </div>
+            {/if}
         </div>
     </Card.Content>
 </Card.Root>

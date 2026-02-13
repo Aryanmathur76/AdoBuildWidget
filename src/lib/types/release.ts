@@ -7,6 +7,7 @@ export interface Release {
   completedTime?: string;
   envs: any[];
   passedTestCount?: number;
+  notRunTestCount?: number;
   failedTestCount?: number;
   failedTestCases?: any[];
   link?: string;
