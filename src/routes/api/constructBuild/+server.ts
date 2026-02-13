@@ -251,7 +251,8 @@ export async function GET({ url }: { url: URL }) {
             const buildCopy: Build = { ...build }; // Shallow copy of build details
             buildCopy.testRunName = testRun.name;
             buildCopy.passedTestCount = testRun.passedTests;
-            buildCopy.failedTestCount = testRun.totalTests - testRun.passedTests;
+            buildCopy.notRunTestCount = (testRun.notApplicableTests || 0)
+            buildCopy.failedTestCount = testRun.totalTests - testRun.passedTests - (buildCopy.notRunTestCount ?? 0);
             buildCopy.status = await getBuildPipelineStatus(buildCopy);
             buildCopy.link = `https://dev.azure.com/${organization}/${project}/_build?definitionId=${buildDefinitionId}&view=mine&_a=summary&buildId=${build.id}`;
             buildsToReturn.push(buildCopy);

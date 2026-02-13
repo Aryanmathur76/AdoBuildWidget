@@ -63,10 +63,12 @@
     status: string;
     passCount: number;
     failCount: number;
+    notRunCount: number;
     testRuns?: Array<{
       testRunName: string;
       passCount: number;
       failCount: number;
+      notRunCount: number;
     }>;
   }>>([]);
   let loadingPipelines = $state(false);
@@ -116,10 +118,12 @@
       status: string;
       passCount: number;
       failCount: number;
+      notRunCount: number;
       testRuns?: Array<{
         testRunName: string;
         passCount: number;
         failCount: number;
+        notRunCount: number;
       }>;
     }> = [];
 
@@ -138,10 +142,12 @@
                 testRunName: build.testRunName || build.name || 'No Test Runs',
                 passCount: build.passedTestCount || 0,
                 failCount: build.failedTestCount || 0,
+                notRunCount: build.notRunTestCount || 0,
               }));
               
               const totalPass = testRuns.reduce((sum, tr) => sum + tr.passCount, 0);
               const totalFail = testRuns.reduce((sum, tr) => sum + tr.failCount, 0);
+              const totalNotRun = testRuns.reduce((sum, tr) => sum + tr.notRunCount, 0);
               
               results.push({
                 id: pipeline.id,
@@ -150,6 +156,7 @@
                 status: data[0]?.status || "unknown",
                 passCount: totalPass,
                 failCount: totalFail,
+                notRunCount: totalNotRun,
                 testRuns: testRuns,
               });
             } else {
@@ -160,10 +167,12 @@
                 status: data.status || "unknown",
                 passCount: data.passedTestCount || 0,
                 failCount: data.failedTestCount || 0,
+                notRunCount: data.notRunTestCount || 0,
                 testRuns: [{
                   testRunName: data.testRunName || pipeline.displayName,
                   passCount: data.passedTestCount || 0,
                   failCount: data.failedTestCount || 0,
+                  notRunCount: data.notRunTestCount || 0,
                 }]
               });
             }
@@ -176,6 +185,7 @@
               status: "no-data",
               passCount: 0,
               failCount: 0,
+              notRunCount: 0,
             });
           }
         } else if (pipeline.type === "release") {
@@ -192,6 +202,7 @@
               status: data.status || "unknown",
               passCount: data.passedTestCount || 0,
               failCount: data.failedTestCount || 0,
+              notRunCount: data.notRunTestCount || 0,
             });
           } else {
             // No release data found for this date - show placeholder
@@ -202,6 +213,7 @@
               status: "no-data",
               passCount: 0,
               failCount: 0,
+              notRunCount: 0,
             });
           }
         }
@@ -300,7 +312,7 @@
           </div>
           <div class="h-3/4 flex items-end justify-center w-full gap-0.5 px-1 pt-1">
             {#each pipelineData as pipeline (pipeline.id)}
-              {@const totalTests = pipeline.passCount + pipeline.failCount}
+              {@const totalTests = pipeline.passCount + pipeline.failCount + pipeline.notRunCount}
               {@const passRate = totalTests > 0 ? (pipeline.passCount / totalTests) * 100 : 0}
               {@const barHeight = totalTests > 0 ? Math.max(10, (passRate / 100) * 80) : 10}
               {@const barColor = getBarColor(passRate, pipeline.status, totalTests)}
@@ -343,21 +355,27 @@
                   </div>
                   <div class="flex items-center gap-1.5 flex-shrink-0">
                     <div class="w-40 h-4 bg-zinc-200 rounded overflow-hidden relative">
-                      {#if pipeline.passCount + pipeline.failCount > 0}
-                        {@const totalTests = pipeline.passCount + pipeline.failCount}
-                        {@const passPercentage = (pipeline.passCount / totalTests) * 100}
+                      {#if pipeline.passCount + pipeline.failCount + pipeline.notRunCount > 0}
+                        {@const totalTests = pipeline.passCount + pipeline.failCount + pipeline.notRunCount}
+                        {@const rawFailPercentage = (pipeline.failCount / totalTests) * 100}
+                        {@const rawNotRunPercentage = (pipeline.notRunCount / totalTests) * 100}
+                        {@const minSegmentPercent = 10}
+                        {@const adjustedFailPercentage = pipeline.failCount > 0 && rawFailPercentage < minSegmentPercent ? minSegmentPercent : rawFailPercentage}
+                        {@const adjustedNotRunPercentage = pipeline.notRunCount > 0 && rawNotRunPercentage < minSegmentPercent ? minSegmentPercent : rawNotRunPercentage}
+                        {@const adjustedPassPercentage = Math.max(0, 100 - adjustedFailPercentage - adjustedNotRunPercentage)}
                         <div class="h-full flex">
                         {#if pipeline.status === "inProgress"}
                           <div class={getTestInProgressColor()} style="width: 100%"></div>
                         {:else if pipeline.status === "interrupted"}
                           <div class={getTestInterruptedColor()} style="width: 100%"></div>
                         {:else}
-                          <div class={getTestPassColor()} style="width: {passPercentage}%"></div>
-                          <div class={getTestFailColor()} style="width: {100 - passPercentage}%"></div>
+                          <div class={getTestPassColor()} style="width: {adjustedPassPercentage}%"></div>
+                          <div class={getTestFailColor()} style="width: {adjustedFailPercentage}%"></div>
+                          <div class="bg-gray-400" style="width: {adjustedNotRunPercentage}%"></div>
                         {/if}
                         </div>
                         <div class="absolute inset-0 flex items-center justify-center">
-                          <span class="text-xs text-white drop-shadow-md">Pass: {pipeline.passCount} Fail: {pipeline.failCount}</span>
+                          <span class="text-xs text-white drop-shadow-md">P:{pipeline.passCount} F:{pipeline.failCount}{#if pipeline.notRunCount > 0}&nbsp;N:{pipeline.notRunCount}{/if}</span>
                         </div>
                       {:else}
                         <div class="h-full w-full flex items-center justify-center {pipeline.status === 'interrupted' ? getTestInterruptedColor() : pipeline.status === 'inProgress' ? getTestInProgressColor() : 'bg-gray-400'}">
@@ -366,7 +384,7 @@
                           {:else if pipeline.status === "interrupted"}
                             <span class="text-xs text-white">Interrupted</span>
                           {:else}
-                            <span class="text-xs text-white">No Tests</span>
+                            <span class="text-xs text-white">No Data</span>
                           {/if}
                         </div>
                       {/if}
@@ -381,15 +399,21 @@
                       <div class="flex items-center justify-between gap-2">
                         <span class="text-xs text-muted-foreground truncate flex-shrink-0 max-w-[80px]">{testRun.testRunName}</span>
                         <div class="w-32 h-4 bg-zinc-200 rounded overflow-hidden relative flex-shrink-0">
-                          {#if testRun.passCount + testRun.failCount > 0}
-                            {@const totalTests = testRun.passCount + testRun.failCount}
-                            {@const passPercentage = (testRun.passCount / totalTests) * 100}
+                          {#if testRun.passCount + testRun.failCount + testRun.notRunCount > 0}
+                            {@const totalTests = testRun.passCount + testRun.failCount + testRun.notRunCount}
+                            {@const rawFailPercentage = (testRun.failCount / totalTests) * 100}
+                            {@const rawNotRunPercentage = (testRun.notRunCount / totalTests) * 100}
+                            {@const minSegmentPercent = 10}
+                            {@const adjustedFailPercentage = testRun.failCount > 0 && rawFailPercentage < minSegmentPercent ? minSegmentPercent : rawFailPercentage}
+                            {@const adjustedNotRunPercentage = testRun.notRunCount > 0 && rawNotRunPercentage < minSegmentPercent ? minSegmentPercent : rawNotRunPercentage}
+                            {@const adjustedPassPercentage = Math.max(0, 100 - adjustedFailPercentage - adjustedNotRunPercentage)}
                             <div class="h-full flex">
-                              <div class={getTestPassColor()} style="width: {passPercentage}%"></div>
-                              <div class={getTestFailColor()} style="width: {100 - passPercentage}%"></div>
+                              <div class={getTestPassColor()} style="width: {adjustedPassPercentage}%"></div>
+                              <div class={getTestFailColor()} style="width: {adjustedFailPercentage}%"></div>
+                              <div class="bg-gray-400" style="width: {adjustedNotRunPercentage}%"></div>
                             </div>
                             <div class="absolute inset-0 flex items-center justify-center">
-                              <span class="text-xs text-white drop-shadow-md">P:{testRun.passCount} F:{testRun.failCount}</span>
+                              <span class="text-xs text-white drop-shadow-md">P:{testRun.passCount} F:{testRun.failCount}{#if testRun.notRunCount > 0}&nbsp;N:{testRun.notRunCount}{/if}</span>
                             </div>
                           {:else}
                             <div class="h-full w-full bg-gray-400 flex items-center justify-center">

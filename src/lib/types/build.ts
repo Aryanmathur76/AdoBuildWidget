@@ -9,6 +9,7 @@ export interface Build {
   completedTime?: string;
   testRunName?: string;
   passedTestCount?: number;
+  notRunTestCount?: number;
   failedTestCount?: number;
   failedTestCases?: any[];
   link?: string;
