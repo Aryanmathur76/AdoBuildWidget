@@ -4,7 +4,6 @@
     import * as Sidebar from "$lib/components/ui/sidebar/index.js";
     import { useSidebar } from "$lib/components/ui/sidebar/context.svelte.js";
     import { Card, CardContent } from "$lib/components/ui/card/index.js";
-    import * as Popover from "$lib/components/ui/popover/index.js";
     import * as Carousel from "$lib/components/ui/carousel/index.js";
     import type { CarouselAPI } from "$lib/components/ui/carousel/context.js";
     import CardTitle from "../card/card-title.svelte";
@@ -191,27 +190,14 @@
                                             <span>DELTAV BUILD HEALTH</span>
                                         </span>
                                     </CardTitle>
-                                    <Popover.Root>
-                                        <Popover.Trigger class="hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 cursor-help">
-                                            <span class="text-sm font-semibold text-primary">{pipelineConfig?.pipelines.length || 0}</span>
-                                            <span class="material-symbols-outlined text-primary" style="font-size: 1.1em;">science</span>
-                                        </Popover.Trigger>
-                                        <Popover.Content class="w-auto p-3">
-                                            <div class="space-y-2">
-                                                <h4 class="font-semibold text-sm">Test Pipelines</h4>   
-                                                <div class="space-y-1 max-h-64 overflow-y-auto">
-                                                    {#each pipelineConfig?.pipelines || [] as pipeline}
-                                                        <div class="text-xs flex items-center gap-2 p-1.5 rounded hover:bg-muted/50">
-                                                            <span class="material-symbols-outlined text-muted-foreground" style="font-size: 1em;">
-                                                                {pipeline.type === 'build' ? 'build' : 'rocket_launch'}
-                                                            </span>
-                                                            <span class="text-foreground flex-1">{pipeline.displayName}</span>
-                                                        </div>
-                                                    {/each}
-                                                </div>
-                                            </div>
-                                        </Popover.Content>
-                                    </Popover.Root>
+                                    <button
+                                        onclick={clearCache}
+                                        disabled={isClearingCache}
+                                        title="Clear cache and refresh"
+                                        class="hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <TrashIcon size={20} class="text-primary" />
+                                    </button>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
@@ -295,24 +281,14 @@
                             <span>DELTAV BUILD HEALTH</span>
                         </span>
                     </CardTitle>
-                    <Popover.Root>
-                        <Popover.Trigger class="hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 cursor-help">
-                            <span class="text-sm font-semibold text-primary">{pipelineConfig?.pipelines.length || 0}</span>
-                            <span class="material-symbols-outlined text-primary" style="font-size: 1.1em;">science</span>
-                        </Popover.Trigger>
-                        <Popover.Content class="w-auto p-3">
-                            <div class="space-y-2">
-                                <button
-                                    onclick={clearCache}
-                                    disabled={isClearingCache}
-                                    class="flex items-center gap-2 px-4 py-2 rounded border border-input bg-background hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full justify-center"
-                                >
-                                    <TrashIcon size={18} />
-                                    <span class="text-sm font-medium">{isClearingCache ? 'Clearing...' : 'Clear Cache'}</span>
-                                </button>
-                            </div>
-                        </Popover.Content>
-                    </Popover.Root>
+                    <button
+                        onclick={clearCache}
+                        disabled={isClearingCache}
+                        title="Clear cache and refresh"
+                        class="hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <TrashIcon size={20} class="text-primary" />
+                    </button>
                 </div>
                 {#if carouselApi && count > 0}
                     <div class="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3 pointer-events-none">
