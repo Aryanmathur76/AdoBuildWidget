@@ -66,20 +66,30 @@ export async function GET({ url }: { url: URL }) {
         }
 
         const releasesData = await releasesResponse.json();
-        const releases = releasesData.value;
+        let releases = releasesData.value;
         
         if (releases && releases.length > 0) {
-            // Filter releases to find the one closest to the requested date (in CST)
-            const cstDateStart = new Date(`${date}T00:00:00Z`).getTime() - 6 * 60 * 60 * 1000;
-            const cstDateEnd = new Date(`${date}T23:59:59Z`).getTime() + 24 * 60 * 60 * 1000 - 6 * 60 * 60 * 1000;
-            
+            // Filter releases to only include those created on the target Central Time date
             const releasesOnTargetDate = releases.filter((rel: any) => {
-                const createdTime = new Date(rel.createdOn).getTime();
-                return createdTime >= cstDateStart && createdTime <= cstDateEnd;
+                if (!rel.createdOn) return false;
+                
+                // Convert UTC creation time to Central Time properly
+                const createdTimeUTC = new Date(rel.createdOn);
+                
+                // Use Intl.DateTimeFormat to get the date in Central Time
+                const centralFormatter = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'America/Chicago',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+                const createdDateCentral = centralFormatter.format(createdTimeUTC);
+                
+                return createdDateCentral === date;
             });
             
             if (releasesOnTargetDate.length > 0) {
-                releases.splice(0, releases.length, ...releasesOnTargetDate);
+                releases = releasesOnTargetDate;
             }
         }
 
