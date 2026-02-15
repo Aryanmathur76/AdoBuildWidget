@@ -209,9 +209,9 @@
                             groups[pipelineName].push(build);
                             return groups;
                         }, {} as Record<string, any>)) as [pipelineName, builds], groupIndex}
-                            <div class="space-y-2">
-                                <h3 class="text-md font-semibold text-foreground ml-2">{pipelineName}</h3>
-                                <div class="space-y-2 ml-2">
+                            <div class="space-y-2 p-4 rounded-lg bg-muted/30 border border-border/50">
+                                <h3 class="text-lg font-semibold text-foreground mb-3">{pipelineName}</h3>
+                                <div class="space-y-2">
                                     {#each builds as build, index}
                                         <div in:fade={{ delay: (releasePipelines.length * 100) + (groupIndex * 50) + (index * 50), duration: 300 }}>
                                             <BuildCard
