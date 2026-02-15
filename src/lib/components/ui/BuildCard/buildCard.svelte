@@ -158,6 +158,7 @@
             </Dialog>
         {/if}
         <div
+            class="flex-container"
             style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%;"
         >
             <div class="flex flex-col items-start min-w-0 flex-1">
@@ -213,9 +214,9 @@
                 {@const failWidth = totalTests > 0 ? ((failCount ?? 0) / totalTests) * 100 : 0}
                 {@const notRunWidth = totalTests > 0 ? ((notRunCount ?? 0) / totalTests) * 100 : 0}
                 
-                <div class="flex-shrink-0 flex flex-col gap-2">
+                <div class="flex-shrink-0 flex flex-col gap-2 test-bar-container">
                     <!-- Progress bar -->
-                    <div class="flex h-6 w-[200px] sm:w-[300px] overflow-hidden rounded-md border border-border bg-muted">
+                    <div class="flex h-6 w-[200px] sm:w-[300px] overflow-hidden rounded-md border border-border bg-muted test-progress-bar">
                         {#if passWidth > 0}
                             <div
                                 class="{getTestPassColor()} flex items-center justify-center text-xs font-medium text-white"
@@ -240,7 +241,7 @@
                     </div>
                     
                     <!-- Stats row -->
-                    <div class="flex items-center justify-between text-xs w-[200px] sm:w-[300px]">
+                    <div class="flex items-center justify-between text-xs w-[200px] sm:w-[300px] test-stats-row">
                         <div class="flex items-center gap-3">
                             <span class="text-lime-600 dark:text-lime-500 font-medium">
                                 <span class="sm:hidden">P:</span>
@@ -268,10 +269,29 @@
                     </div>
                 </div>
             {:else}
-                <div class="flex-shrink-0 flex items-center justify-center w-[200px] sm:w-[300px]">
+                <div class="flex-shrink-0 flex items-center justify-center w-[200px] sm:w-[300px] test-bar-container pb-1">
                     <span class="text-xs text-muted-foreground">No test data</span>
                 </div>
             {/if}
         </div>
     </Card.Content>
 </Card.Root>
+
+<style>
+    @media (max-width: 450px) {
+        .flex-container {
+            flex-direction: column !important;
+            align-items: stretch !important;
+        }
+        
+        .test-bar-container {
+            width: 100% !important;
+            align-items: stretch !important;
+        }
+        
+        .test-progress-bar,
+        .test-stats-row {
+            width: 100% !important;
+        }
+    }
+</style>
