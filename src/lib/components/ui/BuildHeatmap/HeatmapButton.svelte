@@ -349,11 +349,11 @@
           <div class="space-y-2">
             {#each pipelineData as pipeline (pipeline.id)}
               <div>
-                <div class="flex items-center justify-between gap-2 py-1">
+                <div class="flex items-center justify-between gap-0 py-0">
                   <div class="flex-shrink-0">
                     <span class="inline-block text-xs px-2 py-0.5 rounded {getPipelineBadgeColor(pipeline.status)}">{pipeline.name}</span>
                   </div>
-                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                  <div class="flex items-center gap-0 flex-shrink-0">
                     <div class="w-40 h-4 bg-zinc-200 rounded overflow-hidden relative">
                       {#if pipeline.passCount + pipeline.failCount + pipeline.notRunCount > 0}
                         {@const totalTests = pipeline.passCount + pipeline.failCount + pipeline.notRunCount}
@@ -396,7 +396,7 @@
                 {#if pipeline.type === "build" && pipeline.testRuns && pipeline.testRuns.length > 0}
                   <div class="ml-4 mt-1 space-y-1">
                     {#each pipeline.testRuns as testRun}
-                      <div class="flex items-center justify-between gap-2">
+                      <div class="flex items-center justify-between gap-0">
                         <span class="text-xs text-muted-foreground truncate flex-shrink-0 max-w-[80px]">{testRun.testRunName}</span>
                         <div class="w-32 h-4 bg-zinc-200 rounded overflow-hidden relative flex-shrink-0">
                           {#if testRun.passCount + testRun.failCount + testRun.notRunCount > 0}

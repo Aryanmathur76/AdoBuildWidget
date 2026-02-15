@@ -4,17 +4,13 @@
     import * as Card from "$lib/components/ui/card/index.js";
     import PipelineStatusBadge from "$lib/components/ui/PipelineStatusBadge/pipelineStatusBadge.svelte";
     import { toast } from "svelte-sonner";
-    import { fade } from "svelte/transition";
     import { Toaster } from "$lib/components/ui/sonner";
     import * as Chart from "$lib/components/ui/chart/index.js";
-    import { PieChart, Text } from "layerchart";
-    import Skeleton from "$lib/components/ui/skeleton/skeleton.svelte";
     import {
         Dialog,
         DialogContent,
         DialogTitle,
         DialogDescription,
-        DialogTrigger,
     } from "$lib/components/ui/dialog";
     import TestChart from "$lib/components/ui/TestChart/testChart.svelte";
     import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
@@ -29,8 +25,6 @@
     export let notRunCount: number | null = null;
     export let completedDate: string | null = null;
     export let date: string | null = null;
-
-    import { onMount, onDestroy } from "svelte";
 
     let dialogOpen = false;
     let isLoading = false;
