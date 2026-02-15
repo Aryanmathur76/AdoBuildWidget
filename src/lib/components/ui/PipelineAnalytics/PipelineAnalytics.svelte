@@ -15,6 +15,7 @@
     import { getPipelineConfig } from "$lib/utils.js";
 
     const today = new Date();
+    let selectedDays = $state<7 | 14 | 30>(7);
 
     let pipelineConfig: PipelineConfig | null = null;
     try {
@@ -48,7 +49,7 @@
     };
 
     let pipelineCharts = $state<PipelineChartData[]>([]);
-    const last7Days = getLastNDays(7, today);
+    let last7Days = $derived(getLastNDays(selectedDays, today));
 
     $effect(() => {
         if (pipelineConfig?.pipelines) {
@@ -222,10 +223,32 @@
 </script>
 
 <div class="h-full p-4 lg:p-0 lg:pb-0 flex flex-col gap-4">
-    <h3 class="text-lg font-semibold flex items-center gap-2">
-        <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
-        Daily Pipeline Analytics
-    </h3>
+    <div class="flex items-center justify-between gap-4">
+        <h3 class="text-lg font-semibold flex items-center gap-2">
+            <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
+            Daily Pipeline Analytics
+        </h3>
+        <div class="flex items-center gap-2">
+            <button
+                class="px-3 py-1.5 text-sm rounded-md transition-colors {selectedDays === 7 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+                onclick={() => selectedDays = 7}
+            >
+                7 Days
+            </button>
+            <button
+                class="px-3 py-1.5 text-sm rounded-md transition-colors {selectedDays === 14 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+                onclick={() => selectedDays = 14}
+            >
+                14 Days
+            </button>
+            <button
+                class="px-3 py-1.5 text-sm rounded-md transition-colors {selectedDays === 30 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+                onclick={() => selectedDays = 30}
+            >
+                30 Days
+            </button>
+        </div>
+    </div>
     {#if pipelineCharts.length === 0}
         <div class="flex items-center justify-center h-full">
             <p class="text-muted-foreground">No pipeline configuration found</p>
@@ -312,9 +335,9 @@
                                             {:else}
                                                 {totals.totalNotRun} not run
                                             {/if}
-                                            in the last 7 days
+                                            in the last {selectedDays} days
                                         {:else}
-                                            All tests passed in the last 7 days
+                                            All tests passed in the last {selectedDays} days
                                         {/if}
                                     </div>
                                 </div>
