@@ -165,13 +165,6 @@
                     <div class="font-semibold text-[1.1rem] leading-[1.2] truncate">
                         {pipelineName}
                     </div>
-                    {#if completedDate && status != "unknown" && status != "inProgress"}
-                        <span class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-muted text-muted-foreground border">
-                            Completed on {new Date(completedDate).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })} {new Date(completedDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                        </span>
-                    {/if}
-                </div>
-                <div class="flex items-center gap-1 mt-2 mb-1">
                     <PipelineStatusBadge {status} />
                     {#if link}
                         <button
@@ -204,6 +197,11 @@
                         </button>
                     {/if}
                 </div>
+                {#if completedDate && status != "unknown" && status != "inProgress"}
+                    <div class="text-xs text-muted-foreground mb-1">
+                        Completed on {new Date(completedDate).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })} {new Date(completedDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                    </div>
+                {/if}
                 <div class="text-xs text-muted-foreground mb-1">
                     <slot />
                 </div>
