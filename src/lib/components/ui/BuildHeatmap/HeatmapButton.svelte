@@ -349,55 +349,16 @@
           <div class="space-y-2">
             {#each pipelineData as pipeline (pipeline.id)}
               <div>
-                <div class="flex items-center justify-between gap-0 py-0">
-                  <div class="flex-shrink-0">
-                    <span class="inline-block text-xs px-2 py-0.5 rounded {getPipelineBadgeColor(pipeline.status)}">{pipeline.name}</span>
-                  </div>
-                  <div class="flex items-center gap-0 flex-shrink-0">
-                    <div class="w-40 h-4 bg-zinc-200 rounded overflow-hidden relative">
-                      {#if pipeline.passCount + pipeline.failCount + pipeline.notRunCount > 0}
-                        {@const totalTests = pipeline.passCount + pipeline.failCount + pipeline.notRunCount}
-                        {@const rawFailPercentage = (pipeline.failCount / totalTests) * 100}
-                        {@const rawNotRunPercentage = (pipeline.notRunCount / totalTests) * 100}
-                        {@const minSegmentPercent = 5}
-                        {@const adjustedFailPercentage = pipeline.failCount > 0 && rawFailPercentage < minSegmentPercent ? minSegmentPercent : rawFailPercentage}
-                        {@const adjustedNotRunPercentage = pipeline.notRunCount > 0 && rawNotRunPercentage < minSegmentPercent ? minSegmentPercent : rawNotRunPercentage}
-                        {@const adjustedPassPercentage = Math.max(0, 100 - adjustedFailPercentage - adjustedNotRunPercentage)}
-                        <div class="h-full flex">
-                        {#if pipeline.status === "inProgress"}
-                          <div class={getTestInProgressColor()} style="width: 100%"></div>
-                        {:else if pipeline.status === "interrupted"}
-                          <div class={getTestInterruptedColor()} style="width: 100%"></div>
-                        {:else}
-                          <div class={getTestPassColor()} style="width: {adjustedPassPercentage}%"></div>
-                          <div class={getTestFailColor()} style="width: {adjustedFailPercentage}%"></div>
-                          <div class="bg-gray-400" style="width: {adjustedNotRunPercentage}%"></div>
-                        {/if}
-                        </div>
-                        <div class="absolute inset-0 flex items-center justify-center">
-                          <span class="text-xs text-white drop-shadow-md">P:{pipeline.passCount}{#if pipeline.failCount > 0}&nbsp;F:{pipeline.failCount}{/if}{#if pipeline.notRunCount > 0}&nbsp;N:{pipeline.notRunCount}{/if}</span>
-                        </div>
-                      {:else}
-                        <div class="h-full w-full flex items-center justify-center {pipeline.status === 'interrupted' ? getTestInterruptedColor() : pipeline.status === 'inProgress' ? getTestInProgressColor() : 'bg-gray-400'}">
-                          {#if pipeline.status === "inProgress"}
-                            <span class="text-xs text-white">In Progress</span>
-                          {:else if pipeline.status === "interrupted"}
-                            <span class="text-xs text-white">Interrupted</span>
-                          {:else}
-                            <span class="text-xs text-white">No Data</span>
-                          {/if}
-                        </div>
-                      {/if}
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Show test runs for build pipelines -->
+                <!-- Build pipeline: only show sub test runs -->
                 {#if pipeline.type === "build" && pipeline.testRuns && pipeline.testRuns.length > 0}
-                  <div class="ml-4 mt-1 space-y-1">
+                  <div class="space-y-1 p-2 rounded bg-muted/50">
                     {#each pipeline.testRuns as testRun}
-                      <div class="flex items-center justify-between gap-0">
-                        <span class="text-xs text-muted-foreground truncate flex-shrink-0 max-w-[80px]">{testRun.testRunName}</span>
+                      {@const totalTests = testRun.passCount + testRun.failCount + testRun.notRunCount}
+                      {@const passRate = totalTests > 0 ? (testRun.passCount / totalTests) * 100 : 0}
+                      {@const quality = totalTests === 0 ? 'unknown' : getTestQuality(passRate)}
+                      {@const badgeColor = getPipelineBadgeColor(quality)}
+                      <div class="flex items-center justify-between gap-1">
+                        <span class="inline-block text-xs px-1.5 py-0.5 rounded {badgeColor} text-[0.65rem] truncate flex-shrink max-w-[100px]">{testRun.testRunName}</span>
                         <div class="w-32 h-4 bg-zinc-200 rounded overflow-hidden relative flex-shrink-0">
                           {#if testRun.passCount + testRun.failCount + testRun.notRunCount > 0}
                             {@const totalTests = testRun.passCount + testRun.failCount + testRun.notRunCount}
@@ -423,6 +384,50 @@
                         </div>
                       </div>
                     {/each}
+                  </div>
+                {:else}
+                  <!-- Release pipeline: colored badge with aggregate bar -->
+                  <div class="flex items-center justify-between gap-0 py-0">
+                    <div class="flex-shrink-0">
+                      <span class="inline-block text-xs px-2 py-0.5 rounded {getPipelineBadgeColor(pipeline.status)}">{pipeline.name}</span>
+                    </div>
+                    <div class="flex items-center gap-0 flex-shrink-0">
+                      <div class="w-40 h-4 bg-zinc-200 rounded overflow-hidden relative">
+                        {#if pipeline.passCount + pipeline.failCount + pipeline.notRunCount > 0}
+                          {@const totalTests = pipeline.passCount + pipeline.failCount + pipeline.notRunCount}
+                          {@const rawFailPercentage = (pipeline.failCount / totalTests) * 100}
+                          {@const rawNotRunPercentage = (pipeline.notRunCount / totalTests) * 100}
+                          {@const minSegmentPercent = 5}
+                          {@const adjustedFailPercentage = pipeline.failCount > 0 && rawFailPercentage < minSegmentPercent ? minSegmentPercent : rawFailPercentage}
+                          {@const adjustedNotRunPercentage = pipeline.notRunCount > 0 && rawNotRunPercentage < minSegmentPercent ? minSegmentPercent : rawNotRunPercentage}
+                          {@const adjustedPassPercentage = Math.max(0, 100 - adjustedFailPercentage - adjustedNotRunPercentage)}
+                          <div class="h-full flex">
+                          {#if pipeline.status === "inProgress"}
+                            <div class={getTestInProgressColor()} style="width: 100%"></div>
+                          {:else if pipeline.status === "interrupted"}
+                            <div class={getTestInterruptedColor()} style="width: 100%"></div>
+                          {:else}
+                            <div class={getTestPassColor()} style="width: {adjustedPassPercentage}%"></div>
+                            <div class={getTestFailColor()} style="width: {adjustedFailPercentage}%"></div>
+                            <div class="bg-gray-400" style="width: {adjustedNotRunPercentage}%"></div>
+                          {/if}
+                          </div>
+                          <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-xs text-white drop-shadow-md">P:{pipeline.passCount}{#if pipeline.failCount > 0}&nbsp;F:{pipeline.failCount}{/if}{#if pipeline.notRunCount > 0}&nbsp;N:{pipeline.notRunCount}{/if}</span>
+                          </div>
+                        {:else}
+                          <div class="h-full w-full flex items-center justify-center {pipeline.status === 'interrupted' ? getTestInterruptedColor() : pipeline.status === 'inProgress' ? getTestInProgressColor() : 'bg-gray-400'}">
+                            {#if pipeline.status === "inProgress"}
+                              <span class="text-xs text-white">In Progress</span>
+                            {:else if pipeline.status === "interrupted"}
+                              <span class="text-xs text-white">Interrupted</span>
+                            {:else}
+                              <span class="text-xs text-white">No Data</span>
+                            {/if}
+                          </div>
+                        {/if}
+                      </div>
+                    </div>
                   </div>
                 {/if}
               </div>
