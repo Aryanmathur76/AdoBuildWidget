@@ -8,6 +8,7 @@
     import { AIInsights } from "$lib/components/ui/AIInsights/index.js";
     import { LineChart } from "layerchart";
     import { scaleUtc } from "d3-scale";
+    import { curveStep } from "d3-shape";
     import { getPipelineConfig } from "$lib/utils.js";
     import { getBuildStatusColor } from "$lib/constants/colors.js";
     import {
@@ -104,10 +105,10 @@
     })());
 
     const weeklyPassRateChartData = $derived((() => {
-        const allDays = getLastNDays(28, today);
+        const allDays = getLastNDays(35, today);
         const series: Array<{ date: Date; passRate: number }> = [];
 
-        for (let weekIndex = 0; weekIndex < 4; weekIndex++) {
+        for (let weekIndex = 0; weekIndex < 5; weekIndex++) {
             const weekDays = allDays.slice(weekIndex * 7, (weekIndex + 1) * 7);
             const { totalPassed, totalFailed } = weekDays.reduce(
                 (totals, day) => {
@@ -144,8 +145,8 @@
         const minRate = Math.min(...rates);
         const maxRate = Math.max(...rates);
 
-        let lower = Math.floor(minRate - 1);
-        let upper = Math.ceil(maxRate + 1);
+        let lower = Math.floor(minRate - 0.2);
+        let upper = Math.ceil(maxRate + 0.2);
 
         if (100 - upper <= 1) {
             upper = 100;
@@ -180,7 +181,7 @@
 
     // Fetch build quality for all days needed by weekly and trend stats
     $effect(() => {
-        const dateStrings = getLastNDays(28, today)
+        const dateStrings = getLastNDays(35, today)
             .filter(date => !isFutureDay(date))
             .map(date => getDateString(date))
             .filter(dateStr => !dayBuildQuality[dateStr]);
@@ -259,7 +260,7 @@
                             </div>
                             <div class="pt-2 border-t border-border/30">
                                 <div class="w-full min-w-0">
-                                    <p class="text-xs text-muted-foreground mb-1">Pass Rate Trend (4 Weeks)</p>
+                                    <p class="text-xs text-muted-foreground mb-2">Pass Rate Trend (5 Weeks)</p>
                                     <div class="h-14 w-full">
                                         <Chart.Container config={weeklyTrendChartConfig} class="h-full w-full p-0">
                                             <LineChart
@@ -276,10 +277,10 @@
                                                     },
                                                 ]}
                                                 props={{
-                                                    spline: { strokeWidth: 1.5, fillOpacity: 0, motion: "tween" },
+                                                    spline: { curve: curveStep, strokeWidth: 1.5, fillOpacity: 0, motion: "tween" },
                                                     xAxis: {
                                                         format: (v: Date) => v.toLocaleDateString("en-US", { month: "numeric", day: "numeric" }),
-                                                        ticks: 4,
+                                                        ticks: 5,
                                                     },
                                                     yAxis: { ticks: 2 },
                                                     highlight: { points: { r: 0 } },
@@ -299,7 +300,7 @@
                                         </Chart.Container>
                                     </div>
                                     <div class="flex justify-between text-[10px] text-muted-foreground">
-                                        <span>4w ago</span>
+                                        <span>5w ago</span>
                                         <span>Now</span>
                                     </div>
                                 </div>
