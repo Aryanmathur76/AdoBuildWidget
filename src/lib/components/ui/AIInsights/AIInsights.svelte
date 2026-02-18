@@ -156,6 +156,10 @@
         error = "";
         insights = "";
 
+        // Reset pipeline collections each run to avoid stale/duplicated payload data
+        releasePipelines = [];
+        buildPipelines = [];
+
         try {
             // Get last 7 days as DateValue objects (YYYY-MM-DD)
             const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -212,7 +216,18 @@
                 })
             };
 
-            console.log('Build Data for AI:', buildData);
+            const payloadSummary = {
+                days: buildData.days.length,
+                pipelinesPerDay: buildData.days.map(day => ({
+                    date: day.date,
+                    pipelines: day.pipelines.length,
+                    passed: day.pipelines.reduce((sum, p) => sum + (p.passCount || 0), 0),
+                    failed: day.pipelines.reduce((sum, p) => sum + (p.failCount || 0), 0),
+                })),
+            };
+
+            console.log('Build Data for AI (summary):', payloadSummary);
+            console.log('Build Data for AI (full):', buildData);
 
             const response = await fetch('/api/ai-insights', {
                 method: 'POST',

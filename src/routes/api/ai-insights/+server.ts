@@ -12,6 +12,18 @@ if (dev) {
 export const POST: RequestHandler = async ({ request }) => {
 	const { buildData, analysisType } = await request.json();
 
+	if (dev) {
+		const days = Array.isArray(buildData?.days) ? buildData.days : [];
+		const totalPipelines = days.reduce((sum: number, day: any) =>
+			sum + (Array.isArray(day?.pipelines) ? day.pipelines.length : 0), 0);
+		console.log('[ai-insights] request summary', {
+			analysisType: analysisType ?? 'weekly',
+			days: days.length,
+			totalPipelines,
+			dates: days.map((d: any) => d?.date).filter(Boolean)
+		});
+	}
+
 	const endpoint = env.AZURE_OPENAI_ENDPOINT || '';
 	const apiKey = env.AZURE_OPENAI_API_KEY || '';
 	const apiVersion = env.AZURE_OPENAI_API_VERSION || '2025-01-01-preview';
