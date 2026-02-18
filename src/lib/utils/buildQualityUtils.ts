@@ -244,6 +244,18 @@ export type WeeklyStats = {
     totalPassed: number;
     totalFailed: number;
     totalNotRun: number;
+    dailyConsistency: number;
+    failureConcentration: {
+        percentage: number;
+        dateStr: string;
+        dayName: string;
+    } | null;
+    weekOverWeekDelta: {
+        passRate: number;
+        totalTests: number;
+        failed: number;
+        notRun: number;
+    };
     bestPerformingDay: { dateStr: string; dayName: string } | null;
     worstPerformingDay: { dateStr: string; dayName: string } | null;
     qualityCounts: {
@@ -270,17 +282,49 @@ export function calculateWeeklyStats(
         totalNotRunCount?: number;
         releasesWithTestsRan?: number;
     }>,
-    dayBuildQuality: Record<string, DayBuildQuality>
+    dayBuildQuality: Record<string, DayBuildQuality>,
+    previousWeekDays: Array<{
+        dateStr: string;
+        dayName: string;
+        disabled: boolean;
+        quality?: string;
+        totalPassCount?: number;
+        totalFailCount?: number;
+        totalNotRunCount?: number;
+        releasesWithTestsRan?: number;
+    }> = []
 ): WeeklyStats {
     const todayStr = getDateString(new Date());
+
+    const getCompletedDays = (inputDays: typeof days) =>
+        inputDays.filter(day => {
+            if (day.dateStr === todayStr) {
+                return false;
+            }
+            return !day.disabled && dayBuildQuality[day.dateStr];
+        });
+
+    const calculateTotals = (inputDays: typeof days) => {
+        const totalPassed = inputDays.reduce((sum, day) =>
+            sum + (dayBuildQuality[day.dateStr]?.totalPassCount || 0), 0);
+        const totalFailed = inputDays.reduce((sum, day) =>
+            sum + (dayBuildQuality[day.dateStr]?.totalFailCount || 0), 0);
+        const totalNotRun = inputDays.reduce((sum, day) =>
+            sum + (dayBuildQuality[day.dateStr]?.totalNotRunCount || 0), 0);
+        const totalTests = totalPassed + totalFailed + totalNotRun;
+        const successRate = calculatePassRate(totalPassed, totalFailed);
+
+        return {
+            totalPassed,
+            totalFailed,
+            totalNotRun,
+            totalTests,
+            successRate,
+        };
+    };
     
-    const completedDays = days.filter(day => {
-        // Exclude today's data from the calculation
-        if (day.dateStr === todayStr) {
-            return false;
-        }
-        return !day.disabled && dayBuildQuality[day.dateStr];
-    });
+    const completedDays = getCompletedDays(days);
+    const previousCompletedDays = getCompletedDays(previousWeekDays);
     
     if (completedDays.length === 0) {
         return {
@@ -290,6 +334,14 @@ export function calculateWeeklyStats(
             totalPassed: 0,
             totalFailed: 0,
             totalNotRun: 0,
+            dailyConsistency: 0,
+            failureConcentration: null,
+            weekOverWeekDelta: {
+                passRate: 0,
+                totalTests: 0,
+                failed: 0,
+                notRun: 0,
+            },
             bestPerformingDay: null,
             worstPerformingDay: null,
             qualityCounts: {
@@ -304,16 +356,46 @@ export function calculateWeeklyStats(
     }
 
     // Calculate totals
-    const totalPassed = completedDays.reduce((sum, day) => 
-        sum + (dayBuildQuality[day.dateStr]?.totalPassCount || 0), 0);
-    const totalFailed = completedDays.reduce((sum, day) => 
-        sum + (dayBuildQuality[day.dateStr]?.totalFailCount || 0), 0);
-    const totalNotRun = completedDays.reduce((sum, day) =>
-        sum + (dayBuildQuality[day.dateStr]?.totalNotRunCount || 0), 0);
-    const totalTests = totalPassed + totalFailed + totalNotRun;
-    const successRate = calculatePassRate(totalPassed, totalFailed);
+    const { totalPassed, totalFailed, totalNotRun, totalTests, successRate } = calculateTotals(completedDays);
     const totalBuilds = completedDays.reduce((sum, day) => 
         sum + (dayBuildQuality[day.dateStr]?.releasesWithTestsRan || 1), 0);
+
+    const dailyPassRates = completedDays.map(day => {
+        const passCount = dayBuildQuality[day.dateStr]?.totalPassCount || 0;
+        const failCount = dayBuildQuality[day.dateStr]?.totalFailCount || 0;
+        return calculatePassRate(passCount, failCount);
+    });
+    const averagePassRate = dailyPassRates.reduce((sum, rate) => sum + rate, 0) / dailyPassRates.length;
+    const variance = dailyPassRates.reduce((sum, rate) => sum + Math.pow(rate - averagePassRate, 2), 0) / dailyPassRates.length;
+    const dailyConsistency = Math.round(Math.sqrt(variance));
+
+    let failureConcentration: WeeklyStats["failureConcentration"] = null;
+    if (totalFailed > 0) {
+        let peakFailureDay = completedDays[0];
+        let peakFailureCount = dayBuildQuality[peakFailureDay.dateStr]?.totalFailCount || 0;
+
+        for (const day of completedDays) {
+            const failureCount = dayBuildQuality[day.dateStr]?.totalFailCount || 0;
+            if (failureCount > peakFailureCount) {
+                peakFailureCount = failureCount;
+                peakFailureDay = day;
+            }
+        }
+
+        failureConcentration = {
+            percentage: Math.round((peakFailureCount / totalFailed) * 100),
+            dateStr: peakFailureDay.dateStr,
+            dayName: peakFailureDay.dayName,
+        };
+    }
+
+    const previousTotals = calculateTotals(previousCompletedDays);
+    const weekOverWeekDelta = {
+        passRate: successRate - previousTotals.successRate,
+        totalTests: totalTests - previousTotals.totalTests,
+        failed: totalFailed - previousTotals.totalFailed,
+        notRun: totalNotRun - previousTotals.totalNotRun,
+    };
 
     // Count day qualities
     const qualityCounts = {
@@ -361,6 +443,9 @@ export function calculateWeeklyStats(
         totalPassed,
         totalFailed,
         totalNotRun,
+        dailyConsistency,
+        failureConcentration,
+        weekOverWeekDelta,
         bestPerformingDay: { dateStr: bestPerformingDay.dateStr, dayName: bestPerformingDay.dayName },
         worstPerformingDay: { dateStr: worstPerformingDay.dateStr, dayName: worstPerformingDay.dayName },
         qualityCounts

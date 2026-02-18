@@ -290,13 +290,13 @@ describe('buildQualityUtils', () => {
         ];
 
         const mockDayBuildQuality: Record<string, DayBuildQuality> = {
-            '2024-03-09': { quality: 'good', totalPassCount: 100, totalFailCount: 10, releasesWithTestsRan: 2 },
-            '2024-03-10': { quality: 'bad', totalPassCount: 50, totalFailCount: 50, releasesWithTestsRan: 1 },
-            '2024-03-11': { quality: 'ok', totalPassCount: 80, totalFailCount: 20, releasesWithTestsRan: 3 },
-            '2024-03-12': { quality: 'good', totalPassCount: 90, totalFailCount: 10, releasesWithTestsRan: 2 },
-            '2024-03-13': { quality: 'inProgress', totalPassCount: 0, totalFailCount: 0, releasesWithTestsRan: 0 },
-            '2024-03-14': { quality: 'interrupted', totalPassCount: 30, totalFailCount: 20, releasesWithTestsRan: 1 },
-            '2024-03-15': { quality: 'unknown', totalPassCount: 0, totalFailCount: 0, releasesWithTestsRan: 0 },
+            '2024-03-09': { quality: 'good', totalPassCount: 100, totalFailCount: 10, totalNotRunCount: 5, releasesWithTestsRan: 2 },
+            '2024-03-10': { quality: 'bad', totalPassCount: 50, totalFailCount: 50, totalNotRunCount: 2, releasesWithTestsRan: 1 },
+            '2024-03-11': { quality: 'ok', totalPassCount: 80, totalFailCount: 20, totalNotRunCount: 1, releasesWithTestsRan: 3 },
+            '2024-03-12': { quality: 'good', totalPassCount: 90, totalFailCount: 10, totalNotRunCount: 4, releasesWithTestsRan: 2 },
+            '2024-03-13': { quality: 'inProgress', totalPassCount: 0, totalFailCount: 0, totalNotRunCount: 0, releasesWithTestsRan: 0 },
+            '2024-03-14': { quality: 'interrupted', totalPassCount: 30, totalFailCount: 20, totalNotRunCount: 3, releasesWithTestsRan: 1 },
+            '2024-03-15': { quality: 'unknown', totalPassCount: 0, totalFailCount: 0, totalNotRunCount: 0, releasesWithTestsRan: 0 },
         };
 
         it('should calculate comprehensive statistics', () => {
@@ -306,8 +306,21 @@ describe('buildQualityUtils', () => {
             expect(result.totalBuilds).toBe(10); // Sum of releasesWithTestsRan excluding today, with default 1 for 0 values
             expect(result.totalPassed).toBe(350); // 100+50+80+90+0+30 (excluding today)
             expect(result.totalFailed).toBe(110); // 10+50+20+10+0+20 (excluding today)
-            expect(result.totalTests).toBe(460);
+            expect(result.totalNotRun).toBe(15); // 5+2+1+4+0+3 (excluding today)
+            expect(result.totalTests).toBe(475);
             expect(result.successRate).toBe(76); // 350/460 = 76.09% rounded
+            expect(result.dailyConsistency).toBe(31);
+            expect(result.failureConcentration).toEqual({
+                percentage: 45,
+                dateStr: '2024-03-10',
+                dayName: 'Sun',
+            });
+            expect(result.weekOverWeekDelta).toEqual({
+                passRate: 76,
+                totalTests: 475,
+                failed: 110,
+                notRun: 15,
+            });
         });
 
         it('should count quality types correctly', () => {
@@ -343,6 +356,14 @@ describe('buildQualityUtils', () => {
 
             expect(result.totalBuilds).toBe(0);
             expect(result.successRate).toBe(0);
+            expect(result.dailyConsistency).toBe(0);
+            expect(result.failureConcentration).toBeNull();
+            expect(result.weekOverWeekDelta).toEqual({
+                passRate: 0,
+                totalTests: 0,
+                failed: 0,
+                notRun: 0,
+            });
             expect(result.bestPerformingDay).toBeNull();
             expect(result.worstPerformingDay).toBeNull();
         });
@@ -357,7 +378,7 @@ describe('buildQualityUtils', () => {
             const result = calculateWeeklyStats(mixedDays, mockDayBuildQuality);
 
             // Should only process 2024-03-14 (excludes today 2024-03-15 and disabled 2024-03-16)
-            expect(result.totalTests).toBe(50); // 30 + 20 from 2024-03-14 only
+            expect(result.totalTests).toBe(53); // 30 + 20 + 3 not run from 2024-03-14 only
         });
 
         it('should handle days without build quality data', () => {
@@ -369,7 +390,7 @@ describe('buildQualityUtils', () => {
             const result = calculateWeeklyStats(daysWithMissingData, mockDayBuildQuality);
 
             // Should only process days with data
-            expect(result.totalTests).toBe(50); // Only from 2024-03-14
+            expect(result.totalTests).toBe(53); // Only from 2024-03-14
         });
 
         it('should exclude today from calculations', () => {
