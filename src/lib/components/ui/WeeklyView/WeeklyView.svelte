@@ -11,6 +11,7 @@
     import { curveStep } from "d3-shape";
     import { getPipelineConfig } from "$lib/utils.js";
     import { getBuildStatusColor } from "$lib/constants/colors.js";
+    import { getTestQuality } from "$lib/constants/thresholds.js";
     import {
         getDateString,
         isFutureDay,
@@ -36,6 +37,11 @@
         });
 
     const formatPercent = (value: number): string => `${formatMetric(value)}%`;
+
+    const calculatePrecisePassRate = (passed: number, failed: number): number => {
+        const totalExecuted = passed + failed;
+        return totalExecuted > 0 ? (passed / totalExecuted) * 100 : 0;
+    };
 
     const weeklyTrendChartConfig = {
         passRate: { label: "Pass Rate", color: "var(--chart-1)" },
@@ -179,6 +185,19 @@
         };
     })());
 
+    const weeklyPassRatePrecise = $derived(
+        calculatePrecisePassRate(weeklyStats.totalPassed, weeklyStats.totalFailed)
+    );
+
+    const weeklyPassRateQuality = $derived(getTestQuality(weeklyPassRatePrecise));
+    const weeklyPassRateTextClass = $derived(
+        weeklyPassRateQuality === "good"
+            ? "text-green-600"
+            : weeklyPassRateQuality === "ok"
+                ? "text-yellow-600"
+                : "text-red-600"
+    );
+
     // Fetch build quality for all days needed by weekly and trend stats
     $effect(() => {
         const dateStrings = getLastNDays(35, today)
@@ -255,7 +274,7 @@
                                 </div>
                                 <div class="text-center">
                                     <p class="text-xs text-muted-foreground">Pass Rate</p>
-                                    <p class="text-lg font-bold {weeklyStats.successRate === 100 ? 'text-green-600' : weeklyStats.successRate >= 70 ? 'text-yellow-600' : 'text-red-600'}">{formatPercent(weeklyStats.successRate)}</p>
+                                    <p class="text-lg font-bold {weeklyPassRateTextClass}">{formatPercent(weeklyPassRatePrecise)}</p>
                                 </div>
                             </div>
                             <div class="pt-2 border-t border-border/30">
