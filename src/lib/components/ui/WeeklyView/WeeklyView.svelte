@@ -132,9 +132,9 @@
                 {#if browser}
                     <Card class="p-3 hidden md:block bg-background/60 border border-border/50">
                         <div class="flex flex-col space-y-2">
-                            <div class="grid grid-cols-4 gap-4">
+                            <div class="grid grid-cols-5 gap-4">
                                 <div class="text-center">
-                                    <p class="text-xs text-muted-foreground">Total Tests</p>
+                                    <p class="text-xs text-muted-foreground">Total</p>
                                     <p class="text-lg font-bold">{weeklyStats.totalTests.toLocaleString()}</p>
                                 </div>
                                 <div class="text-center">
@@ -144,6 +144,10 @@
                                 <div class="text-center">
                                     <p class="text-xs text-muted-foreground">Failed</p>
                                     <p class="text-lg font-bold text-red-600">{weeklyStats.totalFailed.toLocaleString()}</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-xs text-muted-foreground">Not Run</p>
+                                    <p class="text-lg font-bold text-muted-foreground">{weeklyStats.totalNotRun.toLocaleString()}</p>
                                 </div>
                                 <div class="text-center">
                                     <p class="text-xs text-muted-foreground">Pass Rate</p>

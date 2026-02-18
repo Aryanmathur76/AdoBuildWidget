@@ -243,6 +243,7 @@ export type WeeklyStats = {
     totalTests: number;
     totalPassed: number;
     totalFailed: number;
+    totalNotRun: number;
     bestPerformingDay: { dateStr: string; dayName: string } | null;
     worstPerformingDay: { dateStr: string; dayName: string } | null;
     qualityCounts: {
@@ -288,6 +289,7 @@ export function calculateWeeklyStats(
             totalTests: 0,
             totalPassed: 0,
             totalFailed: 0,
+            totalNotRun: 0,
             bestPerformingDay: null,
             worstPerformingDay: null,
             qualityCounts: {
@@ -306,7 +308,9 @@ export function calculateWeeklyStats(
         sum + (dayBuildQuality[day.dateStr]?.totalPassCount || 0), 0);
     const totalFailed = completedDays.reduce((sum, day) => 
         sum + (dayBuildQuality[day.dateStr]?.totalFailCount || 0), 0);
-    const totalTests = totalPassed + totalFailed;
+    const totalNotRun = completedDays.reduce((sum, day) =>
+        sum + (dayBuildQuality[day.dateStr]?.totalNotRunCount || 0), 0);
+    const totalTests = totalPassed + totalFailed + totalNotRun;
     const successRate = calculatePassRate(totalPassed, totalFailed);
     const totalBuilds = completedDays.reduce((sum, day) => 
         sum + (dayBuildQuality[day.dateStr]?.releasesWithTestsRan || 1), 0);
@@ -356,6 +360,7 @@ export function calculateWeeklyStats(
         totalTests,
         totalPassed,
         totalFailed,
+        totalNotRun,
         bestPerformingDay: { dateStr: bestPerformingDay.dateStr, dayName: bestPerformingDay.dayName },
         worstPerformingDay: { dateStr: worstPerformingDay.dateStr, dayName: worstPerformingDay.dayName },
         qualityCounts
