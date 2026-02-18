@@ -1,6 +1,8 @@
 // Cache functions removed
 import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
 
+const inFlightDayQualityRequests = new Map<string, Promise<DayBuildQuality>>();
+
 /**
  * Helper to get YYYY-MM-DD string for a given date
  */
@@ -77,42 +79,50 @@ export async function fetchBuildQualityForDay(
         return { quality: "unknown" };
     }
 
-    // Cache removed: always fetch live data
+    const existingRequest = inFlightDayQualityRequests.get(dateStr);
+    if (existingRequest) {
+        return existingRequest;
+    }
 
-    try {
-        const res = await fetch(`/api/getDayQuality?date=${dateStr}`);
-        if (res.ok) {
-            const data = await res.json();
-            const result: DayBuildQuality = {
-                quality: data.quality,
-                releasesWithTestsRan: data.releasesWithTestsRan,
-                totalPassCount: data.totalPassCount,
-                totalFailCount: data.totalFailCount,
-                totalNotRunCount: data.totalNotRunCount,
-            };
+    const requestPromise = (async () => {
+        try {
+            const res = await fetch(`/api/getDayQuality?date=${dateStr}`);
+            if (res.ok) {
+                const data = await res.json();
+                const result: DayBuildQuality = {
+                    quality: data.quality,
+                    releasesWithTestsRan: data.releasesWithTestsRan,
+                    totalPassCount: data.totalPassCount,
+                    totalFailCount: data.totalFailCount,
+                    totalNotRunCount: data.totalNotRunCount,
+                };
 
-            // Cache removed: do nothing
+                // Optional: Prefetch pipeline data for this day to improve navigation performance
+                if (pipelineConfig?.pipelines) {
+                    pipelineDataService
+                        .prefetchPipelineData(
+                            dateStr,
+                            pipelineConfig.pipelines.map((p) => p.id.toString()),
+                            pipelineConfig
+                        )
+                        .catch(() => {
+                            // Silently ignore prefetch errors - this is just an optimization
+                        });
+                }
 
-            // Optional: Prefetch pipeline data for this day to improve navigation performance
-            if (pipelineConfig?.pipelines) {
-                pipelineDataService
-                    .prefetchPipelineData(
-                        dateStr,
-                        pipelineConfig.pipelines.map((p) => p.id.toString()),
-                        pipelineConfig
-                    )
-                    .catch(() => {
-                        // Silently ignore prefetch errors - this is just an optimization
-                    });
+                return result;
             }
 
-            return result;
-        } else {
             return { quality: "unknown" };
+        } catch {
+            return { quality: "unknown" };
+        } finally {
+            inFlightDayQualityRequests.delete(dateStr);
         }
-    } catch {
-        return { quality: "unknown" };
-    }
+    })();
+
+    inFlightDayQualityRequests.set(dateStr, requestPromise);
+    return requestPromise;
 }
 
 /**

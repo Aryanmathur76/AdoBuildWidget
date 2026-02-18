@@ -182,16 +182,8 @@
                 );
             }
 
-            const results = await Promise.allSettled(
-                dateStrings.map(async (dateStr) => {
-                    const data = await fetchBuildQualitiesForDates([dateStr], pipelineConfig);
-                    if (data && data[dateStr]) {
-                        // Trigger reactivity by reassigning the object
-                        dayBuildQuality = { ...dayBuildQuality, [dateStr]: data[dateStr] };
-                    }
-                    return { dateStr, data };
-                }),
-            );
+            const results = await fetchBuildQualitiesForDates(dateStrings, pipelineConfig);
+            dayBuildQuality = { ...dayBuildQuality, ...results };
         }
     }
 

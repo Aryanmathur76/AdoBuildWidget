@@ -13,6 +13,22 @@ export interface PipelineDataService {
 }
 
 class PipelineDataServiceImpl implements PipelineDataService {
+    private inFlightRequests = new Map<string, Promise<any>>();
+
+    private async runDedupedRequest<T>(key: string, requestFactory: () => Promise<T>): Promise<T> {
+        const existing = this.inFlightRequests.get(key);
+        if (existing) {
+            return existing as Promise<T>;
+        }
+
+        const requestPromise = requestFactory().finally(() => {
+            this.inFlightRequests.delete(key);
+        });
+
+        this.inFlightRequests.set(key, requestPromise as Promise<any>);
+        return requestPromise;
+    }
+
     /**
      * Prefetches and caches all pipeline data for all days in a month.
      * @param dateStrings Array of date strings (YYYY-MM-DD) for the month
@@ -38,50 +54,52 @@ class PipelineDataServiceImpl implements PipelineDataService {
     }
     // Silent version of fetchReleaseData that doesn't log 404s as errors
     async fetchReleaseDataSilent(date: string, pipelineId: string): Promise<any | null> {
-
-
-        try {
-            const response = await fetch(`/api/constructRelease?date=${date}&releaseDefinitionId=${pipelineId}`);
-            if (response.ok) {
-                const data = await response.json();
-                
-                // Handle null response (no releases found)
-                if (data === null) {
+        const requestKey = `release:${date}:${pipelineId}`;
+        return this.runDedupedRequest(requestKey, async () => {
+            try {
+                const response = await fetch(`/api/constructRelease?date=${date}&releaseDefinitionId=${pipelineId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Handle null response (no releases found)
+                    if (data === null) {
+                        return null;
+                    }
+                    
+                    return data;
+                } else {
+                    console.log(`Error fetching release data for pipeline ${pipelineId}: ${response.status}`);
                     return null;
                 }
-                
-                return data;
-            } else {
-                console.log(`Error fetching release data for pipeline ${pipelineId}: ${response.status}`);
+            } catch (error) {
+                console.log(`Network error fetching release data for pipeline ${pipelineId}:`, error);
                 return null;
             }
-        } catch (error) {
-            console.log(`Network error fetching release data for pipeline ${pipelineId}:`, error);
-            return null;
-        }
+        });
     }
 
     // Silent version of fetchBuildData that doesn't log 404s as errors
     async fetchBuildDataSilent(date: string, pipelineId: string): Promise<any | null> {
-
-
-        try {
-            const response = await fetch(`/api/constructBuild?date=${date}&buildDefinitionId=${pipelineId}`);
-            if (response.ok) {
-                const data = await response.json();
-                
-                return data;
-            } else if (response.status === 404) {
-                // 404 is expected for pipelines that don't have build data
-                return null;
-            } else {
-                console.error(`Error fetching build data for pipeline ${pipelineId}: ${response.status}`);
+        const requestKey = `build:${date}:${pipelineId}`;
+        return this.runDedupedRequest(requestKey, async () => {
+            try {
+                const response = await fetch(`/api/constructBuild?date=${date}&buildDefinitionId=${pipelineId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    return data;
+                } else if (response.status === 404) {
+                    // 404 is expected for pipelines that don't have build data
+                    return null;
+                } else {
+                    console.error(`Error fetching build data for pipeline ${pipelineId}: ${response.status}`);
+                    return null;
+                }
+            } catch (error) {
+                console.error(`Network error fetching build data for pipeline ${pipelineId}:`, error);
                 return null;
             }
-        } catch (error) {
-            console.error(`Network error fetching build data for pipeline ${pipelineId}:`, error);
-            return null;
-        }
+        });
     }
 
     async fetchReleaseData(date: string, pipelineId: string): Promise<any> {
