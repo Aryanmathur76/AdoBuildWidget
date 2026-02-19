@@ -230,19 +230,19 @@
         </h3>
         <div class="flex items-center gap-2">
             <button
-                class="px-3 py-1.5 text-sm font-medium rounded-md border transition-colors {selectedDays === 7 ? 'border-primary/50 bg-primary/20 text-primary-foreground' : 'border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground'}"
+                class="px-3 py-1.5 text-xs font-medium rounded-md border transition-colors {selectedDays === 7 ? 'border-primary/50 bg-primary/20 text-primary-foreground' : 'border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground'}"
                 onclick={() => selectedDays = 7}
             >
                 7 Days
             </button>
             <button
-                class="px-3 py-1.5 text-sm font-medium rounded-md border transition-colors {selectedDays === 14 ? 'border-primary/50 bg-primary/20 text-primary-foreground' : 'border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground'}"
+                class="px-3 py-1.5 text-xs font-medium rounded-md border transition-colors {selectedDays === 14 ? 'border-primary/50 bg-primary/20 text-primary-foreground' : 'border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground'}"
                 onclick={() => selectedDays = 14}
             >
                 14 Days
             </button>
             <button
-                class="px-3 py-1.5 text-sm font-medium rounded-md border transition-colors {selectedDays === 30 ? 'border-primary/50 bg-primary/20 text-primary-foreground' : 'border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground'}"
+                class="px-3 py-1.5 text-xs font-medium rounded-md border transition-colors {selectedDays === 30 ? 'border-primary/50 bg-primary/20 text-primary-foreground' : 'border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground'}"
                 onclick={() => selectedDays = 30}
             >
                 30 Days
