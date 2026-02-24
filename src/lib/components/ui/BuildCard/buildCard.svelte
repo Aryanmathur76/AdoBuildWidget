@@ -254,7 +254,7 @@
                             style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;"
                         >
                             <span
-                                class="material-icons-outlined text-amber-500 hover:text-amber-600"
+                                class="material-icons-outlined text-amber-500 hover:text-amber-600 animate-pulse"
                                 style="font-size: 20px; line-height: 1; vertical-align: middle;"
                             >
                                 psychology
@@ -266,15 +266,6 @@
                     <div class="text-xs text-muted-foreground mb-1">
                         Completed on {new Date(completedDate).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })} {new Date(completedDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                     </div>
-                {/if}
-                {#if rcaSummary}
-                    <button
-                        class="text-xs text-amber-600 dark:text-amber-500 mb-1 text-left hover:underline cursor-pointer bg-transparent border-none p-0"
-                        on:click={() => rcaDialogOpen = true}
-                        title="View full RCA"
-                    >
-                        <span class="font-medium">RCA:</span> {rcaSummary}
-                    </button>
                 {/if}
                 <div class="text-xs text-muted-foreground mb-1">
                     <slot />
