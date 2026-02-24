@@ -305,29 +305,29 @@
                     </div>
                     
                     <!-- Stats row -->
-                    <div class="flex items-center justify-between text-xs w-[200px] sm:w-[300px] test-stats-row">
-                        <div class="flex items-center gap-3">
-                            <span class="text-lime-600 dark:text-lime-500 font-medium">
+                    <div class="flex items-center justify-between flex-wrap gap-y-0.5 text-xs w-[200px] sm:w-[300px] test-stats-row">
+                        <div class="flex items-center gap-3 whitespace-nowrap">
+                            <span class="text-lime-600 dark:text-lime-500 font-medium whitespace-nowrap">
                                 <span class="sm:hidden">P:</span>
                                 <span class="hidden sm:inline">Pass:</span>
                                 {passCount}
                             </span>
                             {#if failCount && failCount > 0}
-                                <span class="text-red-800 dark:text-red-700 font-medium">
+                                <span class="text-red-800 dark:text-red-700 font-medium whitespace-nowrap">
                                     <span class="sm:hidden">F:</span>
                                     <span class="hidden sm:inline">Fail:</span>
                                     {failCount}
                                 </span>
                             {/if}
                             {#if notRunCount && notRunCount > 0}
-                                <span class="text-muted-foreground font-medium">
+                                <span class="text-muted-foreground font-medium whitespace-nowrap">
                                     <span class="sm:hidden">N:</span>
                                     <span class="hidden sm:inline">Not Run:</span>
                                     {notRunCount}
                                 </span>
                             {/if}
                         </div>
-                        <span class="text-muted-foreground font-medium">
+                        <span class="text-muted-foreground font-medium whitespace-nowrap">
                             {passPercentage}% <span class="hidden sm:inline"> Pass Rate</span> · {totalTests} tests
                         </span>
                     </div>
