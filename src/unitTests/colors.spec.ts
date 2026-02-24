@@ -12,11 +12,11 @@ import {
 describe('Color Constants', () => {
   describe('BUILD_STATUS_COLORS', () => {
     it('should have all required status colors defined', () => {
-      expect(BUILD_STATUS_COLORS.good).toBe('bg-lime-600 text-white');
-      expect(BUILD_STATUS_COLORS.ok).toBe('bg-yellow-300 text-black');
-      expect(BUILD_STATUS_COLORS.bad).toBe('bg-red-800 text-white');
-      expect(BUILD_STATUS_COLORS.inProgress).toBe('bg-sky-500 text-white');
-      expect(BUILD_STATUS_COLORS.interrupted).toBe('bg-orange-600 text-white');
+      expect(BUILD_STATUS_COLORS.good).toBe('bg-[var(--success)] text-white');
+      expect(BUILD_STATUS_COLORS.ok).toBe('bg-[var(--partially-succeeded)] text-black');
+      expect(BUILD_STATUS_COLORS.bad).toBe('bg-[var(--failure)] text-white');
+      expect(BUILD_STATUS_COLORS.inProgress).toBe('bg-[var(--in-progress)] text-white');
+      expect(BUILD_STATUS_COLORS.interrupted).toBe('bg-[var(--interrupted)] text-white');
       expect(BUILD_STATUS_COLORS.unknown).toBe('bg-zinc-700 text-white');
       expect(BUILD_STATUS_COLORS.default).toBe('bg-zinc-700 text-white');
     });
@@ -24,11 +24,11 @@ describe('Color Constants', () => {
 
   describe('HEADER_STATUS_COLORS', () => {
     it('should have all required header status colors defined', () => {
-      expect(HEADER_STATUS_COLORS.good).toBe('bg-lime-600 text-white');
-      expect(HEADER_STATUS_COLORS.ok).toBe('bg-yellow-300 text-black');
-      expect(HEADER_STATUS_COLORS.bad).toBe('bg-red-800 text-white');
-      expect(HEADER_STATUS_COLORS.inProgress).toBe('bg-sky-500 text-white');
-      expect(HEADER_STATUS_COLORS.interrupted).toBe('bg-orange-600 text-white');
+      expect(HEADER_STATUS_COLORS.good).toBe('bg-[var(--success)] text-white');
+      expect(HEADER_STATUS_COLORS.ok).toBe('bg-[var(--partially-succeeded)] text-black');
+      expect(HEADER_STATUS_COLORS.bad).toBe('bg-[var(--failure)] text-white');
+      expect(HEADER_STATUS_COLORS.inProgress).toBe('bg-[var(--in-progress)] text-white');
+      expect(HEADER_STATUS_COLORS.interrupted).toBe('bg-[var(--interrupted)] text-white');
       expect(HEADER_STATUS_COLORS.unknown).toBe('bg-zinc-700 text-white');
       expect(HEADER_STATUS_COLORS.default).toBe('bg-zinc-700 text-white');
     });
@@ -36,15 +36,15 @@ describe('Color Constants', () => {
 
   describe('PIPELINE_BADGE_COLORS', () => {
     it('should have all required pipeline badge colors defined', () => {
-      expect(PIPELINE_BADGE_COLORS.good).toBe('bg-lime-600 text-white');
-      expect(PIPELINE_BADGE_COLORS.succeeded).toBe('bg-lime-600 text-white');
-      expect(PIPELINE_BADGE_COLORS.bad).toBe('bg-red-800 text-white');
-      expect(PIPELINE_BADGE_COLORS.failed).toBe('bg-red-800 text-white');
-      expect(PIPELINE_BADGE_COLORS.ok).toBe('bg-yellow-300 text-black');
-      expect(PIPELINE_BADGE_COLORS['partially-succeeded']).toBe('bg-yellow-300 text-black');
-      expect(PIPELINE_BADGE_COLORS.inProgress).toBe('bg-sky-500 text-white');
-      expect(PIPELINE_BADGE_COLORS['in progress']).toBe('bg-sky-500 text-white');
-      expect(PIPELINE_BADGE_COLORS.interrupted).toBe('bg-orange-600 text-white');
+      expect(PIPELINE_BADGE_COLORS.good).toBe('bg-[var(--success)] text-white');
+      expect(PIPELINE_BADGE_COLORS.succeeded).toBe('bg-[var(--success)] text-white');
+      expect(PIPELINE_BADGE_COLORS.bad).toBe('bg-[var(--failure)] text-white');
+      expect(PIPELINE_BADGE_COLORS.failed).toBe('bg-[var(--failure)] text-white');
+      expect(PIPELINE_BADGE_COLORS.ok).toBe('bg-[var(--partially-succeeded)] text-black');
+      expect(PIPELINE_BADGE_COLORS['partially-succeeded']).toBe('bg-[var(--partially-succeeded)] text-black');
+      expect(PIPELINE_BADGE_COLORS.inProgress).toBe('bg-[var(--in-progress)] text-white');
+      expect(PIPELINE_BADGE_COLORS['in progress']).toBe('bg-[var(--in-progress)] text-white');
+      expect(PIPELINE_BADGE_COLORS.interrupted).toBe('bg-[var(--interrupted)] text-white');
       expect(PIPELINE_BADGE_COLORS.unknown).toBe('bg-zinc-700 text-white');
       expect(PIPELINE_BADGE_COLORS.default).toBe('bg-zinc-700 text-white');
     });
@@ -60,11 +60,11 @@ describe('Color Constants', () => {
 
 describe('getBuildStatusColor', () => {
   it('should return correct colors for valid statuses', () => {
-    expect(getBuildStatusColor('good')).toBe('bg-lime-600 text-white');
-    expect(getBuildStatusColor('ok')).toBe('bg-yellow-300 text-black');
-    expect(getBuildStatusColor('bad')).toBe('bg-red-800 text-white');
-    expect(getBuildStatusColor('inProgress')).toBe('bg-sky-500 text-white');
-    expect(getBuildStatusColor('interrupted')).toBe('bg-orange-600 text-white');
+    expect(getBuildStatusColor('good')).toBe('bg-[var(--success)] text-white');
+    expect(getBuildStatusColor('ok')).toBe('bg-[var(--partially-succeeded)] text-black');
+    expect(getBuildStatusColor('bad')).toBe('bg-[var(--failure)] text-white');
+    expect(getBuildStatusColor('inProgress')).toBe('bg-[var(--in-progress)] text-white');
+    expect(getBuildStatusColor('interrupted')).toBe('bg-[var(--interrupted)] text-white');
     expect(getBuildStatusColor('unknown')).toBe('bg-zinc-700 text-white');
   });
 
@@ -83,11 +83,11 @@ describe('getBuildStatusColor', () => {
 
 describe('getHeaderStatusColor', () => {
   it('should return correct colors for valid statuses', () => {
-    expect(getHeaderStatusColor('good')).toBe('bg-lime-600 text-white');
-    expect(getHeaderStatusColor('ok')).toBe('bg-yellow-300 text-black');
-    expect(getHeaderStatusColor('bad')).toBe('bg-red-800 text-white');
-    expect(getHeaderStatusColor('inProgress')).toBe('bg-sky-500 text-white');
-    expect(getHeaderStatusColor('interrupted')).toBe('bg-orange-600 text-white');
+    expect(getHeaderStatusColor('good')).toBe('bg-[var(--success)] text-white');
+    expect(getHeaderStatusColor('ok')).toBe('bg-[var(--partially-succeeded)] text-black');
+    expect(getHeaderStatusColor('bad')).toBe('bg-[var(--failure)] text-white');
+    expect(getHeaderStatusColor('inProgress')).toBe('bg-[var(--in-progress)] text-white');
+    expect(getHeaderStatusColor('interrupted')).toBe('bg-[var(--interrupted)] text-white');
     expect(getHeaderStatusColor('unknown')).toBe('bg-zinc-700 text-white');
   });
 
@@ -106,15 +106,15 @@ describe('getHeaderStatusColor', () => {
 
 describe('getPipelineBadgeColor', () => {
   it('should return correct colors for valid statuses', () => {
-    expect(getPipelineBadgeColor('good')).toBe('bg-lime-600 text-white');
-    expect(getPipelineBadgeColor('succeeded')).toBe('bg-lime-600 text-white');
-    expect(getPipelineBadgeColor('bad')).toBe('bg-red-800 text-white');
-    expect(getPipelineBadgeColor('failed')).toBe('bg-red-800 text-white');
-    expect(getPipelineBadgeColor('ok')).toBe('bg-yellow-300 text-black');
-    expect(getPipelineBadgeColor('partially-succeeded')).toBe('bg-yellow-300 text-black');
-    expect(getPipelineBadgeColor('inProgress')).toBe('bg-sky-500 text-white');
-    expect(getPipelineBadgeColor('in progress')).toBe('bg-sky-500 text-white');
-    expect(getPipelineBadgeColor('interrupted')).toBe('bg-orange-600 text-white');
+    expect(getPipelineBadgeColor('good')).toBe('bg-[var(--success)] text-white');
+    expect(getPipelineBadgeColor('succeeded')).toBe('bg-[var(--success)] text-white');
+    expect(getPipelineBadgeColor('bad')).toBe('bg-[var(--failure)] text-white');
+    expect(getPipelineBadgeColor('failed')).toBe('bg-[var(--failure)] text-white');
+    expect(getPipelineBadgeColor('ok')).toBe('bg-[var(--partially-succeeded)] text-black');
+    expect(getPipelineBadgeColor('partially-succeeded')).toBe('bg-[var(--partially-succeeded)] text-black');
+    expect(getPipelineBadgeColor('inProgress')).toBe('bg-[var(--in-progress)] text-white');
+    expect(getPipelineBadgeColor('in progress')).toBe('bg-[var(--in-progress)] text-white');
+    expect(getPipelineBadgeColor('interrupted')).toBe('bg-[var(--interrupted)] text-white');
     expect(getPipelineBadgeColor('unknown')).toBe('bg-zinc-700 text-white');
   });
 
@@ -178,8 +178,9 @@ describe('Color Consistency', () => {
   });
 
   it('should have proper Tailwind CSS class format', () => {
-    const tailwindClassPattern = /^bg-\w+-\d+(\s+text-\w+)?$/;
-    
+    // Matches both bg-zinc-700 (static) and bg-[var(--some-var)] (CSS variable) forms
+    const tailwindClassPattern = /^bg-(\w+-\d+|\[var\(--[\w-]+\)\])(\s+text-[\w-]+)?$/;
+
     Object.values(BUILD_STATUS_COLORS).forEach(color => {
       expect(color).toMatch(tailwindClassPattern);
     });
@@ -188,10 +189,8 @@ describe('Color Consistency', () => {
       expect(color).toMatch(tailwindClassPattern);
     });
 
-    // Header colors might not have text classes, so more flexible pattern
-    const headerClassPattern = /^bg-\w+-\d+(\s+text-\w+)?$/;
     Object.values(HEADER_STATUS_COLORS).forEach(color => {
-      expect(color).toMatch(headerClassPattern);
+      expect(color).toMatch(tailwindClassPattern);
     });
   });
 });
