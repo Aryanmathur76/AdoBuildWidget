@@ -10,23 +10,52 @@ export interface PipelineDataService {
     // Silent methods that don't throw errors for missing data (useful for interactive elements)
     fetchReleaseDataSilent: (date: string, pipelineId: string) => Promise<any | null>;
     fetchBuildDataSilent: (date: string, pipelineId: string) => Promise<any | null>;
+    // Clear the client-side in-memory cache (optionally for a specific key)
+    clearLocalCache: (key?: string) => void;
 }
 
 class PipelineDataServiceImpl implements PipelineDataService {
     private inFlightRequests = new Map<string, Promise<any>>();
+    private localCache = new Map<string, { data: any; timestamp: number }>();
+    private readonly LOCAL_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+    private getCached(key: string): { hit: true; data: any } | { hit: false } {
+        const entry = this.localCache.get(key);
+        if (entry && Date.now() - entry.timestamp < this.LOCAL_CACHE_TTL_MS) {
+            return { hit: true, data: entry.data };
+        }
+        return { hit: false };
+    }
+
+    private setCached(key: string, data: any): void {
+        this.localCache.set(key, { data, timestamp: Date.now() });
+    }
 
     private async runDedupedRequest<T>(key: string, requestFactory: () => Promise<T>): Promise<T> {
+        // 1. Check local cache first
+        const cached = this.getCached(key);
+        if (cached.hit) return cached.data;
+
+        // 2. Dedup in-flight requests
         const existing = this.inFlightRequests.get(key);
         if (existing) {
             return existing as Promise<T>;
         }
 
-        const requestPromise = requestFactory().finally(() => {
+        const requestPromise = requestFactory().then((result) => {
+            this.setCached(key, result);
+            return result;
+        }).finally(() => {
             this.inFlightRequests.delete(key);
         });
 
         this.inFlightRequests.set(key, requestPromise as Promise<any>);
         return requestPromise;
+    }
+
+    clearLocalCache(key?: string): void {
+        if (key) this.localCache.delete(key);
+        else this.localCache.clear();
     }
 
     /**
@@ -103,18 +132,25 @@ class PipelineDataServiceImpl implements PipelineDataService {
     }
 
     async fetchReleaseData(date: string, pipelineId: string): Promise<any> {
-
+        const key = `release:${date}:${pipelineId}`;
+        const cached = this.getCached(key);
+        if (cached.hit) {
+            if (cached.data === null) throw new Error(`No release data found for pipeline ${pipelineId} on ${date}. This might indicate no releases were created on this date.`);
+            return cached.data;
+        }
 
         try {
             const response = await fetch(`/api/constructRelease?date=${date}&releaseDefinitionId=${pipelineId}`);
             if (response.ok) {
                 const data = await response.json();
-                
+
                 // Handle null response (no releases found)
                 if (data === null) {
+                    this.setCached(key, null);
                     throw new Error(`No release data found for pipeline ${pipelineId} on ${date}. This might indicate no releases were created on this date.`);
                 }
-                
+
+                this.setCached(key, data);
                 return data;
             } else {
                 throw new Error(`Failed to fetch release data: ${response.status}`);
@@ -126,15 +162,21 @@ class PipelineDataServiceImpl implements PipelineDataService {
     }
 
     async fetchBuildData(date: string, pipelineId: string): Promise<any> {
-
+        const key = `build:${date}:${pipelineId}`;
+        const cached = this.getCached(key);
+        if (cached.hit) {
+            if (cached.data === null) throw new Error(`No build data found for pipeline ${pipelineId} on ${date}. This might indicate a pipeline configuration issue.`);
+            return cached.data;
+        }
 
         try {
             const response = await fetch(`/api/constructBuild?date=${date}&buildDefinitionId=${pipelineId}`);
             if (response.ok) {
                 const data = await response.json();
-                
+                this.setCached(key, data);
                 return data;
             } else if (response.status === 404) {
+                this.setCached(key, null);
                 throw new Error(`No build data found for pipeline ${pipelineId} on ${date}. This might indicate a pipeline configuration issue.`);
             } else {
                 throw new Error(`Failed to fetch build data: ${response.status}`);
@@ -146,22 +188,21 @@ class PipelineDataServiceImpl implements PipelineDataService {
     }
 
     async fetchTestCases(releaseId: string): Promise<any[]> {
-
-
-        try {
-            const response = await fetch(`/api/test-cases?releaseId=${releaseId}`);
-            if (response.ok) {
-                const data = await response.json();
-                const testCases = data.testCases || [];
-                
-                return testCases;
-            } else {
-                throw new Error(`Failed to fetch test cases: ${response.status}`);
+        const key = `testcases:${releaseId}`;
+        return this.runDedupedRequest(key, async () => {
+            try {
+                const response = await fetch(`/api/test-cases?releaseId=${releaseId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.testCases || [];
+                } else {
+                    throw new Error(`Failed to fetch test cases: ${response.status}`);
+                }
+            } catch (error) {
+                console.error(`Error fetching test cases for release ${releaseId}:`, error);
+                return [];
             }
-        } catch (error) {
-            console.error(`Error fetching test cases for release ${releaseId}:`, error);
-            return [];
-        }
+        });
     }
 
     async prefetchPipelineData(date: string, pipelineIds: string[], pipelineConfig?: any): Promise<void> {
