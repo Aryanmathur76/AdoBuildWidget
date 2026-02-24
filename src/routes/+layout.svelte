@@ -2,7 +2,8 @@
 	import '../app.css';
 	import { ModeWatcher } from "mode-watcher";
 	import favicon from '$lib/assets/favicon.svg';
-	
+	import PTAChat from '$lib/components/ui/PTAChat.svelte';
+
 	let { children } = $props();
 </script>
 
@@ -18,4 +19,5 @@
   <main class="flex-1 flex flex-col min-h-0">
 	{@render children?.()}
   </main>
+  <PTAChat />
 </div>
