@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /c/Users/Aryan/Documents/Projects/AdoBuildWidget && npm install @azure/data-tables @azure/storage-blob 2>&1)"
+    ]
+  }
+}

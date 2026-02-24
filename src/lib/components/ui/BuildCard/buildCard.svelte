@@ -13,6 +13,7 @@
         DialogDescription,
     } from "$lib/components/ui/dialog";
     import TestChart from "$lib/components/ui/TestChart/testChart.svelte";
+    import { onMount } from "svelte";
     import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
     import { getTestPassColor, getTestFailColor, getTestNoDataColor } from "$lib/constants/colors";
 
@@ -28,6 +29,29 @@
 
     let dialogOpen = false;
     let isLoading = false;
+
+    // RCA state (release pipelines only)
+    let rcaSummary: string | null = null;
+    let rcaFullContent: string | null = null;
+    let rcaEnvironment: string | null = null;
+    let rcaTimestamp: string | null = null;
+    let rcaDialogOpen = false;
+
+    onMount(() => {
+        if (pipelineType === 'release' && pipelineId) {
+            fetch(`/api/rca?releaseId=${pipelineId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.rca) {
+                        rcaSummary = data.rca.summary ?? null;
+                        rcaFullContent = data.rca.fullContent ?? null;
+                        rcaEnvironment = data.rca.environment ?? null;
+                        rcaTimestamp = data.rca.timestamp ?? null;
+                    }
+                })
+                .catch(() => {}); // Silent fail — RCA is non-critical
+        }
+    });
     let testCases:
         | import("$lib/components/ui/TestChart/testChart.svelte").TestCase[]
         | null = null;
@@ -121,6 +145,31 @@
         rel="stylesheet"
     />
     <Card.Content style="position: relative;">
+        {#if rcaFullContent}
+            <Dialog bind:open={rcaDialogOpen}>
+                {#if rcaDialogOpen}
+                    <DialogContent class="!w-[50vw] !max-w-[50vw]">
+                        <DialogTitle>
+                            <div class="flex flex-col gap-1">
+                                <div class="text-lg font-semibold">Root Cause Analysis</div>
+                                {#if rcaEnvironment}
+                                    <div class="text-sm font-normal text-muted-foreground">{pipelineName} · {rcaEnvironment}</div>
+                                {/if}
+                                {#if rcaTimestamp}
+                                    <div class="text-xs font-normal text-muted-foreground">
+                                        {new Date(rcaTimestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
+                                    </div>
+                                {/if}
+                            </div>
+                        </DialogTitle>
+                        <DialogDescription>
+                            <pre class="mt-3 text-xs text-foreground whitespace-pre-wrap font-mono overflow-auto max-h-[60vh] bg-muted/40 rounded-md p-4 border border-border">{rcaFullContent}</pre>
+                        </DialogDescription>
+                    </DialogContent>
+                {/if}
+            </Dialog>
+        {/if}
+
         {#if passCount !== null && failCount !== null && passCount + failCount > 0}
             <Dialog bind:open={dialogOpen}>
                 {#if dialogOpen}
@@ -197,11 +246,35 @@
                             </span>
                         </button>
                     {/if}
+                    {#if rcaSummary}
+                        <button
+                            title="View root cause analysis"
+                            aria-label="View root cause analysis"
+                            on:click={() => rcaDialogOpen = true}
+                            style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;"
+                        >
+                            <span
+                                class="material-icons-outlined text-amber-500 hover:text-amber-600"
+                                style="font-size: 20px; line-height: 1; vertical-align: middle;"
+                            >
+                                psychology
+                            </span>
+                        </button>
+                    {/if}
                 </div>
                 {#if completedDate && status != "unknown" && status != "inProgress"}
                     <div class="text-xs text-muted-foreground mb-1">
                         Completed on {new Date(completedDate).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })} {new Date(completedDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                     </div>
+                {/if}
+                {#if rcaSummary}
+                    <button
+                        class="text-xs text-amber-600 dark:text-amber-500 mb-1 text-left hover:underline cursor-pointer bg-transparent border-none p-0"
+                        on:click={() => rcaDialogOpen = true}
+                        title="View full RCA"
+                    >
+                        <span class="font-medium">RCA:</span> {rcaSummary}
+                    </button>
                 {/if}
                 <div class="text-xs text-muted-foreground mb-1">
                     <slot />
