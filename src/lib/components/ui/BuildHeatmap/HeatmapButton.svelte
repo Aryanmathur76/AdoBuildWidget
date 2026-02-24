@@ -337,7 +337,7 @@
         </div>
       {/if}
     </Popover.Trigger>
-    <Popover.Content class="w-80 p-2">
+    <Popover.Content class="w-96 p-2">
       <div class="space-y-3">
         {#if loadingPipelines}
           <div class="space-y-2">
@@ -388,8 +388,8 @@
                 {:else}
                   <!-- Release pipeline: colored badge with aggregate bar -->
                   <div class="flex items-center justify-between gap-0 py-0">
-                    <div class="flex-shrink-0">
-                      <span class="inline-block text-xs px-2 py-0.5 rounded {getPipelineBadgeColor(pipeline.status)}">{pipeline.name}</span>
+                    <div class="min-w-0 flex-shrink">
+                      <span class="inline-block text-xs px-2 py-0.5 rounded {getPipelineBadgeColor(pipeline.status)} max-w-[160px] truncate">{pipeline.name}</span>
                     </div>
                     <div class="flex items-center gap-0 flex-shrink-0">
                       <div class="w-40 h-4 bg-zinc-200 rounded overflow-hidden relative">
@@ -434,9 +434,9 @@
             {/each}
           </div>
           {#if dayObj.totalPassCount !== undefined || dayObj.totalFailCount !== undefined}
-            <div class="border-t pt-2 flex justify-between items-center">
-              <p class="text-xs font-medium text-muted-foreground">Build ID: {formatBuildId(dayObj.dateStr)}</p>
-              <p class="text-xs text-muted-foreground">Total: {(dayObj.totalPassCount || 0) + (dayObj.totalFailCount || 0) + (dayObj.totalNotRunCount || 0)} (P: {dayObj.totalPassCount || 0}{#if (dayObj.totalFailCount || 0) > 0}, F: {dayObj.totalFailCount}{/if}{#if (dayObj.totalNotRunCount || 0) > 0}, N: {dayObj.totalNotRunCount}{/if})</p>
+            <div class="border-t pt-2 flex flex-col gap-0.5">
+              <p class="text-xs font-medium text-muted-foreground whitespace-nowrap">Build ID: {formatBuildId(dayObj.dateStr)}</p>
+              <p class="text-xs text-muted-foreground whitespace-nowrap">Total: {(dayObj.totalPassCount || 0) + (dayObj.totalFailCount || 0) + (dayObj.totalNotRunCount || 0)} (P: {dayObj.totalPassCount || 0}{#if (dayObj.totalFailCount || 0) > 0}, F: {dayObj.totalFailCount}{/if}{#if (dayObj.totalNotRunCount || 0) > 0}, N: {dayObj.totalNotRunCount}{/if})</p>
             </div>
           {:else}
             <div class="border-t pt-2">
