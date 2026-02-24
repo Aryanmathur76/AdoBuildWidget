@@ -153,7 +153,7 @@
                             <div class="flex flex-col gap-1">
                                 <div class="text-lg font-semibold">Root Cause Analysis</div>
                                 {#if rcaEnvironment}
-                                    <div class="text-sm font-normal text-muted-foreground">{pipelineName} · {rcaEnvironment}</div>
+                                    <div class="text-sm font-normal text-muted-foreground">{pipelineName}</div>
                                 {/if}
                                 {#if rcaTimestamp}
                                     <div class="text-xs font-normal text-muted-foreground">
