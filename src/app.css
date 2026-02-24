@@ -4,6 +4,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── Normal theme (default) ─────────────────────────────────────────────── */
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -16,11 +17,11 @@
   --primary-foreground: oklch(0.984 0.003 247.858);
   --secondary: oklch(80.819% 0.008 242.02);
   --secondary-foreground: oklch(0.984 0.003 247.858);
-  --success: #65a30d;       /* Lime - 600 - success */
-  --failure: #b91c1c;       /* Red - 600 - failure */
-  --interrupted: #f97316;   /* Orange 600 - interrupted */
-  --partially-succeeded: #facc15;  /* Yellow 400 - warning/partial */
-  --in-progress: #0284c7;    /* Sky 500 - in prog */
+  --success: #65a30d;
+  --failure: #b91c1c;
+  --interrupted: #f97316;
+  --partially-succeeded: #facc15;
+  --in-progress: #0284c7;
   --muted: oklch(0.968 0.007 247.896);
   --muted-foreground: oklch(0.554 0.046 257.417);
   --accent: oklch(80.287% 0.00446 237.186);
@@ -30,7 +31,7 @@
   --input: oklch(0.929 0.013 255.508);
   --ring: oklch(0.704 0.04 256.788);
   --chart-1: #65a30d;
-  --chart-2: #b91c1c;  
+  --chart-2: #b91c1c;
   --chart-3: oklch(39.8% 0.07 227.392);
   --chart-4: oklch(82.8% 0.189 84.429);
   --chart-5: oklch(76.9% 0.188 70.08);
@@ -55,10 +56,10 @@
   --primary-foreground: oklch(0.279 0.041 260.031);
   --secondary: oklch(0.279 0.041 260.031);
   --secondary-foreground: oklch(0.984 0.003 247.858);
-  --success: #65a30d;       /* Lime - 600 - success */
-  --failure: #b91c1c;       /* Red - 600 - failure */
-  --partially-succeeded: #facc15;  /* Yellow 400 - warning/partial */
-  --in-progress: #0284c7;    /* Sky 500 - in prog */
+  --success: #65a30d;
+  --failure: #b91c1c;
+  --partially-succeeded: #facc15;
+  --in-progress: #0284c7;
   --muted: oklch(34.415% 0.00752 264.512);
   --muted-foreground: oklch(0.704 0.04 256.788);
   --accent: oklch(34.415% 0.00752 264.512);
@@ -68,7 +69,7 @@
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.551 0.027 264.364);
   --chart-1: #65a30d;
-  --chart-2: #b91c1c;  
+  --chart-2: #b91c1c;
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
@@ -80,6 +81,86 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.551 0.027 264.364);
+}
+
+/* ── Terminal theme overrides ────────────────────────────────────────────── */
+[data-theme="terminal"] {
+  --radius: 0rem;
+  --background: #f2f2f2;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --primary: #0a0a0a;
+  --primary-foreground: #f2f2f2;
+  --secondary: #e0e0e0;
+  --secondary-foreground: #0a0a0a;
+  --success: #4ade80;
+  --failure: #ef4444;
+  --interrupted: #f97316;
+  --partially-succeeded: #facc15;
+  --in-progress: #38bdf8;
+  --muted: #e8e8e8;
+  --muted-foreground: #555555;
+  --accent: #d8d8d8;
+  --accent-foreground: #0a0a0a;
+  --destructive: #ef4444;
+  --border: #b0b0b0;
+  --input: #e0e0e0;
+  --ring: #0a0a0a;
+  --chart-1: #4ade80;
+  --chart-2: #ef4444;
+  --chart-3: #38bdf8;
+  --chart-4: #facc15;
+  --chart-5: #f97316;
+  --sidebar: #f2f2f2;
+  --sidebar-foreground: #0a0a0a;
+  --sidebar-primary: #0a0a0a;
+  --sidebar-primary-foreground: #f2f2f2;
+  --sidebar-accent: #d8d8d8;
+  --sidebar-accent-foreground: #0a0a0a;
+  --sidebar-border: #b0b0b0;
+  --sidebar-ring: #0a0a0a;
+}
+
+[data-theme="terminal"].dark {
+  --background: #141414;
+  --foreground: #f0f0f0;
+  --card: #1e1e1e;
+  --card-foreground: #f0f0f0;
+  --popover: #1e1e1e;
+  --popover-foreground: #f0f0f0;
+  --primary: #f0f0f0;
+  --primary-foreground: #141414;
+  --secondary: #2a2a2a;
+  --secondary-foreground: #f0f0f0;
+  --success: #4ade80;
+  --failure: #ef4444;
+  --interrupted: #f97316;
+  --partially-succeeded: #facc15;
+  --in-progress: #38bdf8;
+  --muted: #1e1e1e;
+  --muted-foreground: #888888;
+  --accent: #2a2a2a;
+  --accent-foreground: #f0f0f0;
+  --destructive: #ef4444;
+  --border: #383838;
+  --input: #2a2a2a;
+  --ring: #f0f0f0;
+  --chart-1: #4ade80;
+  --chart-2: #ef4444;
+  --chart-3: #38bdf8;
+  --chart-4: #facc15;
+  --chart-5: #f97316;
+  --sidebar: #141414;
+  --sidebar-foreground: #f0f0f0;
+  --sidebar-primary: #f0f0f0;
+  --sidebar-primary-foreground: #141414;
+  --sidebar-accent: #2a2a2a;
+  --sidebar-accent-foreground: #f0f0f0;
+  --sidebar-border: #383838;
+  --sidebar-ring: #f0f0f0;
 }
 
 @theme inline {
@@ -128,5 +209,25 @@
     @apply bg-background text-foreground;
     overflow-y: hidden;
     height: 100%;
+  }
+  /* Terminal-only: monospace font + scanline */
+  [data-theme="terminal"] body {
+    font-family: ui-monospace, 'Cascadia Code', 'Cascadia Mono', 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.01em;
+  }
+  [data-theme="terminal"] body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.04) 2px,
+      rgba(0, 0, 0, 0.04) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
   }
 }

@@ -21,6 +21,23 @@
     import { toast } from "svelte-sonner";
     import { Toaster } from "$lib/components/ui/sonner";
 
+    // Theme
+    let theme = $state<'normal' | 'terminal'>(
+        typeof window !== 'undefined'
+            ? (localStorage.getItem('buildHealthTheme') as 'normal' | 'terminal') || 'normal'
+            : 'normal'
+    );
+    $effect(() => {
+        if (typeof window !== 'undefined') {
+            if (theme === 'terminal') {
+                document.documentElement.setAttribute('data-theme', 'terminal');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+            }
+            localStorage.setItem('buildHealthTheme', theme);
+        }
+    });
+
     // State
     let currentTab = $state(
         typeof window !== 'undefined' 
@@ -168,7 +185,7 @@
 
 <div class="w-full h-screen max-h-screen overflow-hidden" transition:slide={{ duration: 300 }}>
     <Toaster position="top-center" richColors />
-    <Card class={`py-0 border-0 shadow-none h-full rounded-none flex flex-col bg-gradient-to-b ${gradientColor} to-background`}>
+    <Card class={`py-0 border-0 shadow-none h-full rounded-none flex flex-col ${theme === 'terminal' ? 'bg-background' : `bg-gradient-to-b ${gradientColor} to-background`}`}>
         {#if isMobile}
         <!-- Mobile: Tabs Interface with Sidebar -->
         <div class="h-full">
@@ -183,40 +200,33 @@
                         </button>
                         <!-- Full header - hidden by default, shown on click or hover -->
                         <div class="absolute top-0 left-0 right-0 transition-all duration-200 ease-out bg-gradient-to-b from-background/95 to-background/80 backdrop-blur-sm z-50 shadow-lg" style={`opacity: ${mobileMenuOpen ? 1 : 0}; pointer-events: ${mobileMenuOpen ? 'auto' : 'none'}; transform: translateY(${mobileMenuOpen ? 0 : '-100%'});`}>
-                            <div class="flex items-center justify-between px-4 pt-3 pb-2">
-                                <div class="flex items-center gap-2">
-                                    <CardTitle>
-                                        <span class="inline-flex text-base font-bold py-1 items-center gap-1">
-                                            <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">health_metrics</span>
-                                            <span>DELTAV BUILD HEALTH</span>
-                                        </span>
-                                    </CardTitle>
+                            <div class="flex items-center justify-between px-3 pt-2 pb-1.5">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-primary font-bold tracking-widest uppercase text-xs">▶ DELTAV BUILD HEALTH</span>
                                     <button
                                         onclick={clearCache}
                                         disabled={isClearingCache}
                                         title="Clear cache and refresh"
-                                        class="hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-1 rounded border border-input/50 bg-background/20 hover:bg-accent/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        class="flex items-center gap-1 px-1.5 py-0.5 border border-border hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs"
                                     >
                                         {#if isClearingCache}
-                                            <Loader2 size={20} class="text-primary animate-spin" />
+                                            <Loader2 size={14} class="text-primary animate-spin" />
                                         {:else}
-                                            <TrashIcon size={20} class="text-primary" />
+                                            <TrashIcon size={14} class="text-primary" />
                                         {/if}
                                     </button>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" aria-label="Toggle view mode">
-                                        <span class="material-symbols-outlined" style="font-size: 1.25em;">
+                                    <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors uppercase tracking-wide" aria-label="Toggle view mode">
+                                        <span class="material-symbols-outlined" style="font-size: 1em;">
                                             {#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}
                                         </span>
-                                        {#if !isMobile}<span>{heatmapViewMode === "graph" ? "Graph" : "Simple"}</span>{/if}
                                     </button>
-                                    <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" title="Get help about this widget" aria-label="Help">
-                                        <span class="material-symbols-outlined" style="font-size: 1.25em;">help</span>
-                                        {#if !isMobile}<span>Help</span>{/if}
+                                    <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors uppercase tracking-wide" title="Get help about this widget" aria-label="Help">
+                                        <span class="material-symbols-outlined" style="font-size: 1em;">help</span>
                                     </button>
                                     <Sidebar.Trigger class="flex items-center gap-2">
-                                        <span class="material-symbols-outlined" style="font-size: 1.75em; line-height: 1;">settings</span>
+                                        <span class="material-symbols-outlined" style="font-size: 1.25em; line-height: 1;">settings</span>
                                     </Sidebar.Trigger>
                                 </div>
                             </div>
@@ -281,6 +291,46 @@
         {:else}
         <!-- Desktop: Carousel Layout (No Sidebar) -->
         <div class="flex flex-col h-full">
+            {#if theme === 'terminal'}
+            <!-- Terminal header -->
+            <div class="relative flex items-center justify-between py-1 px-3 border-b border-border bg-card">
+                <div class="flex items-center gap-3">
+                    <span class="text-primary font-bold tracking-widest uppercase text-xs">▶ DELTAV BUILD HEALTH</span>
+                    <button
+                        onclick={clearCache}
+                        disabled={isClearingCache}
+                        title="Clear cache and refresh"
+                        class="flex items-center gap-1 px-1.5 py-0.5 border border-border hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs"
+                    >
+                        {#if isClearingCache}
+                            <Loader2 size={14} class="text-primary animate-spin" />
+                        {:else}
+                            <TrashIcon size={14} class="text-primary" />
+                        {/if}
+                    </button>
+                </div>
+                {#if carouselApi && count > 0}
+                    <span class="absolute left-1/2 -translate-x-1/2 text-xs text-muted-foreground tracking-widest pointer-events-none">
+                        [{current}/{count}]
+                    </span>
+                {/if}
+                <div class="flex items-center gap-2">
+                    <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors uppercase tracking-wide" aria-label="Toggle view mode">
+                        <span class="material-symbols-outlined" style="font-size: 1em;">{#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}</span>
+                        <span>{heatmapViewMode === "graph" ? "[GRAPH]" : "[SIMPLE]"}</span>
+                    </button>
+                    <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors uppercase tracking-wide" title="Get help" aria-label="Help">
+                        <span class="material-symbols-outlined" style="font-size: 1em;">help</span>
+                        <span>[HELP]</span>
+                    </button>
+                    <button onclick={() => theme = 'normal'} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors uppercase tracking-wide" title="Switch to normal theme">
+                        <span class="material-symbols-outlined" style="font-size: 1em;">contrast</span>
+                        <span>[NORMAL]</span>
+                    </button>
+                </div>
+            </div>
+            {:else}
+            <!-- Normal header -->
             <div class="relative flex items-center justify-between p-4 bg-transparent rounded-lg">
                 <div class="flex items-center gap-2">
                     <CardTitle>
@@ -320,49 +370,54 @@
                         <span class="material-symbols-outlined" style="font-size: 1.25em;">help</span>
                         <span>Help</span>
                     </button>
+                    <button onclick={() => theme = 'terminal'} class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors" title="Switch to retro terminal theme">
+                        <span class="material-symbols-outlined" style="font-size: 1.25em;">terminal</span>
+                        <span>Retro</span>
+                    </button>
                 </div>
             </div>
-            <div class="h-full flex-1 min-h-0 px-4 pb-4">
+            {/if}
+            <div class={`h-full flex-1 min-h-0 ${theme === 'terminal' ? 'px-2 pb-2' : 'px-4 pb-4'}`}>
                 <Carousel.Root opts={{ align: "start", slidesToScroll: 1 }} class="h-full flex flex-col" setApi={(api) => carouselApi = api}>
-                    <Carousel.Content class="h-full flex-1 min-h-0 -ml-4">
-                        <Carousel.Item class="h-full pl-4 basis-1/3">
-                            <Card class="h-full bg-background/70 backdrop-blur-sm">
-                                <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
+                    <Carousel.Content class={`h-full flex-1 min-h-0 ${theme === 'terminal' ? '-ml-2' : '-ml-4'}`}>
+                        <Carousel.Item class={`h-full ${theme === 'terminal' ? 'pl-2' : 'pl-4'} basis-1/3`}>
+                            <Card class={`h-full ${theme === 'terminal' ? 'bg-card border border-border' : 'bg-background/70 backdrop-blur-sm'}`}>
+                                <CardContent class={`flex-1 min-h-0 ${theme === 'terminal' ? 'p-2' : 'p-4'} pt-0 flex flex-col overflow-auto h-full`}>
                                     <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} />
                                 </CardContent>
                             </Card>
                         </Carousel.Item>
-                        <Carousel.Item class="h-full pl-4 basis-1/3">
-                            <Card class="h-full bg-background/70 backdrop-blur-sm">
-                                <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
+                        <Carousel.Item class={`h-full ${theme === 'terminal' ? 'pl-2' : 'pl-4'} basis-1/3`}>
+                            <Card class={`h-full ${theme === 'terminal' ? 'bg-card border border-border' : 'bg-background/70 backdrop-blur-sm'}`}>
+                                <CardContent class={`flex-1 min-h-0 ${theme === 'terminal' ? 'p-2' : 'p-4'} pt-0 flex flex-col overflow-auto h-full`}>
                                     <WeeklyView viewMode={heatmapViewMode} />
                                 </CardContent>
                             </Card>
                         </Carousel.Item>
-                        <Carousel.Item class="h-full pl-4 basis-1/3">
-                            <Card class="h-full bg-background/70 backdrop-blur-sm">
-                                <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
+                        <Carousel.Item class={`h-full ${theme === 'terminal' ? 'pl-2' : 'pl-4'} basis-1/3`}>
+                            <Card class={`h-full ${theme === 'terminal' ? 'bg-card border border-border' : 'bg-background/70 backdrop-blur-sm'}`}>
+                                <CardContent class={`flex-1 min-h-0 ${theme === 'terminal' ? 'p-2' : 'p-4'} pt-0 flex flex-col overflow-auto h-full`}>
                                     <PipelineAnalytics />
                                 </CardContent>
                             </Card>
                         </Carousel.Item>
-                        <Carousel.Item class="h-full pl-4 basis-1/3">
-                            <Card class="h-full bg-background/70 backdrop-blur-sm">
-                                <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
+                        <Carousel.Item class={`h-full ${theme === 'terminal' ? 'pl-2' : 'pl-4'} basis-1/3`}>
+                            <Card class={`h-full ${theme === 'terminal' ? 'bg-card border border-border' : 'bg-background/70 backdrop-blur-sm'}`}>
+                                <CardContent class={`flex-1 min-h-0 ${theme === 'terminal' ? 'p-2' : 'p-4'} pt-0 flex flex-col overflow-auto h-full`}>
                                     <MonthlyTestResults />
                                 </CardContent>
                             </Card>
                         </Carousel.Item>
-                        <Carousel.Item class="h-full pl-4 basis-1/3">
-                            <Card class="h-full bg-background/70 backdrop-blur-sm">
-                                <CardContent class="flex-1 min-h-0 p-4 pt-0 flex flex-col overflow-auto h-full">
+                        <Carousel.Item class={`h-full ${theme === 'terminal' ? 'pl-2' : 'pl-4'} basis-1/3`}>
+                            <Card class={`h-full ${theme === 'terminal' ? 'bg-card border border-border' : 'bg-background/70 backdrop-blur-sm'}`}>
+                                <CardContent class={`flex-1 min-h-0 ${theme === 'terminal' ? 'p-2' : 'p-4'} pt-0 flex flex-col overflow-auto h-full`}>
                                     <WeeklyTestResults />
                                 </CardContent>
                             </Card>
                         </Carousel.Item>
                     </Carousel.Content>
-                    <Carousel.Previous class="-left-4" />
-                    <Carousel.Next class="-right-4" />
+                    <Carousel.Previous class={theme === 'terminal' ? '-left-3' : '-left-4'} />
+                    <Carousel.Next class={theme === 'terminal' ? '-right-3' : '-right-4'} />
                 </Carousel.Root>
             </div>
         </div>
