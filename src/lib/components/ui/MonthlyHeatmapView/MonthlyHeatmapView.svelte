@@ -1,6 +1,5 @@
 <script lang="ts">
     import { fly } from "svelte/transition";
-    import * as Pagination from "$lib/components/ui/pagination/index.js";
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import HeatmapButton from "../BuildHeatmap/HeatmapButton.svelte";
     import { 
@@ -187,6 +186,27 @@
         }
     }
 
+    // Typewriter state for AI analysis output
+    let displayedRationale = $state('');
+    let isTyping = $state(false);
+
+    $effect(() => {
+        if (!bestBuildRationale) { displayedRationale = ''; return; }
+        displayedRationale = '';
+        isTyping = true;
+        let i = 0;
+        const interval = setInterval(() => {
+            if (i < bestBuildRationale.length) {
+                displayedRationale = bestBuildRationale.slice(0, i + 1);
+                i++;
+            } else {
+                clearInterval(interval);
+                isTyping = false;
+            }
+        }, 8);
+        return () => clearInterval(interval);
+    });
+
     // Analyze best build using AI
     async function analyzeBestBuild() {
         analyzingBestBuild = true;
@@ -359,36 +379,34 @@
             <span class="w-2.5 h-2.5 inline-block bg-muted/60 border border-border/40"></span>No Data
         </span>
     </div>
-    <div class="flex items-center justify-center gap-2">
+    <div class="flex items-center justify-center gap-2 mt-2">
+        <button
+            onclick={() => currentMonthPage > 1 && currentMonthPage--}
+            disabled={currentMonthPage <= 1}
+            class="px-1.5 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-mono"
+            aria-label="Previous month"
+        >◀</button>
+        <span class="text-xs font-medium tracking-wider min-w-[72px] text-center uppercase">{monthNames[currentMonth].slice(0, 3)} {currentYear}</span>
+        <button
+            onclick={() => currentMonthPage < months.length && currentMonthPage++}
+            disabled={currentMonthPage >= months.length}
+            class="px-1.5 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-mono"
+            aria-label="Next month"
+        >▶</button>
         {#if currentMonthPage !== today.getMonth() + 1}
             <button
                 onclick={() => currentMonthPage = today.getMonth() + 1}
-                class="px-2 py-1 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors rounded"
-            >Today</button>
+                class="px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors uppercase tracking-wide"
+            >TODAY</button>
         {/if}
-        <Pagination.Root count={months.length} perPage={1} siblingCount={1} bind:page={currentMonthPage}>
-            {#snippet children({ pages, currentPage })}
-                <Pagination.Content>
-                    <Pagination.Item><Pagination.PrevButton /></Pagination.Item>
-                    {#each pages as page (page.key)}
-                        {#if page.type === "ellipsis"}
-                            <Pagination.Item><Pagination.Ellipsis /></Pagination.Item>
-                        {:else}
-                            <Pagination.Item><Pagination.Link {page} isActive={currentPage === page.value}>{monthNames[page.value - 1].slice(0, 3)}</Pagination.Link></Pagination.Item>
-                        {/if}
-                    {/each}
-                    <Pagination.Item><Pagination.NextButton /></Pagination.Item>
-                </Pagination.Content>
-            {/snippet}
-        </Pagination.Root>
     </div>
     {#if bestBuildRationale}
-        <div class="mt-3 p-3 bg-muted/50 rounded-md">
+        <div class="mt-3 p-3 bg-muted/50 rounded-md font-mono">
             <div class="flex items-center gap-2 mb-2">
                 <span class="material-symbols-outlined text-primary" style="font-size: 1.25em;">psychology</span>
                 <h4 class="text-sm font-medium">AI Analysis</h4>
             </div>
-            <p class="text-sm text-muted-foreground leading-relaxed">{bestBuildRationale}</p>
+            <p class="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{displayedRationale}{#if isTyping}<span class="cursor-blink">_</span>{/if}</p>
         </div>
     {/if}
 </div>

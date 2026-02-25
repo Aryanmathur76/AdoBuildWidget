@@ -158,3 +158,20 @@
     );
   }
 }
+
+/* ── Blinking terminal cursor (global so all components can use it) ── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.cursor-blink {
+  animation: blink 1.1s step-end infinite;
+  margin-left: 1px;
+}
+
+/* ── Retro scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--background); border-left: 1px solid var(--border); }
+::-webkit-scrollbar-thumb { background: var(--border); }
+::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+html { scrollbar-width: thin; scrollbar-color: var(--border) var(--background); }

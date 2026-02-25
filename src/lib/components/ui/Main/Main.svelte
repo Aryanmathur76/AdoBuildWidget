@@ -51,6 +51,10 @@
     const count = 5; // Hardcoded for 5 carousel items
     let current = $state(0);
     let visibleSlides = $state<number[]>([0, 1, 2]); // Default to first 3
+    let canScrollPrev = $state(false);
+    let canScrollNext = $state(true);
+    let bootVisible = $state(true);
+    let bootFading = $state(false);
 
     // Track PTA panel open state from the shared store.
     // Delay the carousel switch until the panel animation finishes (220ms) so
@@ -74,11 +78,23 @@
         const slidesVisible = ptaIsOpen ? 2 : 3;
         if (carouselApi) {
             current = carouselApi.selectedScrollSnap() + 1;
+            canScrollPrev = carouselApi.canScrollPrev();
+            canScrollNext = carouselApi.canScrollNext();
             visibleSlides = Array.from({ length: slidesVisible }, (_, i) => (current - 1) + i).filter(i => i >= 0 && i < count);
             carouselApi.on("select", () => {
                 current = carouselApi!.selectedScrollSnap() + 1;
+                canScrollPrev = carouselApi!.canScrollPrev();
+                canScrollNext = carouselApi!.canScrollNext();
                 visibleSlides = Array.from({ length: ptaIsOpen ? 2 : 3 }, (_, i) => (current - 1) + i).filter(i => i >= 0 && i < count);
             });
+        }
+    });
+
+    // Boot splash: fade out after 1.6 s, remove after 2.2 s
+    $effect(() => {
+        if (typeof window !== 'undefined') {
+            setTimeout(() => { bootFading = true; }, 1600);
+            setTimeout(() => { bootVisible = false; }, 2200);
         }
     });
 
@@ -188,6 +204,17 @@
 
 <div class="retro-container w-full h-screen max-h-screen overflow-hidden" transition:slide={{ duration: 300 }}>
     <Toaster position="top-center" richColors />
+    {#if bootVisible}
+        <div class="fixed inset-0 z-[10000] bg-background flex flex-col items-center justify-center gap-2 font-mono"
+             style="transition: opacity 500ms ease-out; opacity: {bootFading ? 0 : 1}; pointer-events: {bootFading ? 'none' : 'all'};">
+            <div class="text-xs text-primary tracking-widest space-y-1.5">
+                <div class="font-bold">▶ DELTAV BUILD HEALTH</div>
+                <div class="text-muted-foreground">INITIALIZING SYSTEMS...</div>
+                <div class="text-muted-foreground">LOADING BUILD DATA...</div>
+                <div class="text-muted-foreground">CONNECTING TO PIPELINES<span class="cursor-blink">_</span></div>
+            </div>
+        </div>
+    {/if}
     <Card class="py-0 border-0 shadow-none h-full rounded-none flex flex-col bg-background">
         {#if isMobile}
         <!-- Mobile: Tabs Interface with Sidebar -->
@@ -296,9 +323,11 @@
                     {/if}
                 </div>
                 {#if carouselApi && count > 0}
-                    <span class="absolute left-1/2 -translate-x-1/2 text-xs text-muted-foreground tracking-widest pointer-events-none">
-                        [{current}/{count}]
-                    </span>
+                    <div class="absolute left-1/2 -translate-x-1/2 flex items-center gap-1">
+                        <button onclick={() => carouselApi?.scrollPrev()} disabled={!canScrollPrev} class="px-1.5 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-mono" aria-label="Previous">◀</button>
+                        <span class="text-xs text-muted-foreground tracking-widest px-1 min-w-[36px] text-center">{current}/{count}</span>
+                        <button onclick={() => carouselApi?.scrollNext()} disabled={!canScrollNext} class="px-1.5 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-mono" aria-label="Next">▶</button>
+                    </div>
                 {/if}
                 <div class="flex items-center gap-2">
                     <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors" title={heatmapViewMode === "graph" ? "Switch to simple view" : "Switch to graph view"} aria-label="Toggle view mode">
@@ -360,8 +389,6 @@
                             </Card>
                         </Carousel.Item>
                     </Carousel.Content>
-                    <Carousel.Previous class="-left-3" />
-                    <Carousel.Next class="-right-3" />
                 </Carousel.Root>
             </div>
         </div>
@@ -372,32 +399,6 @@
 <HelpDialog bind:open={helpDialogOpen} isMobile={isSmallView} />
 
 <style>
-    /* ── Blinking terminal cursor ── */
-    @keyframes blink {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0; }
-    }
-    .cursor-blink {
-        animation: blink 1.1s step-end infinite;
-        margin-left: 1px;
-    }
-
-    /* ── CRT scanline overlay ── */
-    .retro-container::before {
-        content: '';
-        position: fixed;
-        inset: 0;
-        background: repeating-linear-gradient(
-            0deg,
-            transparent 0px,
-            transparent 1px,
-            rgba(0, 0, 0, 0.045) 1px,
-            rgba(0, 0, 0, 0.045) 2px
-        );
-        pointer-events: none;
-        z-index: 9999;
-    }
-
     /* ── Subtle vignette ── */
     .retro-container::after {
         content: '';

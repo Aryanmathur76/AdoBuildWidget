@@ -247,6 +247,14 @@
                         </div>
                     {/each}
                 </div>
+                <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-2">
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block bg-[var(--success)]"></span>Good</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block bg-[var(--partially-succeeded)]"></span>OK</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block bg-[var(--failure)]"></span>Bad</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block bg-[var(--in-progress)]"></span>In Progress</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block bg-[var(--interrupted)]"></span>Interrupted</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block bg-muted/60 border border-border/40"></span>No Data</span>
+                </div>
             </div>
 
             <!-- Stats Grid -->
