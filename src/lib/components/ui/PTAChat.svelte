@@ -330,10 +330,12 @@
           </div>
         {/if}
 
-        <!-- Thinking cursor (before first tool fires) -->
+        <!-- Thinking indicator (before first tool fires) -->
         {#if msg.thinking && activeTools.length === 0}
           <div class="pta-line pta-line--thinking">
-            <span class="pta-cursor-blink">▋</span>
+            <span class="pta-thinking-dot"></span>
+            <span class="pta-thinking-dot"></span>
+            <span class="pta-thinking-dot"></span>
           </div>
         {/if}
 
@@ -353,10 +355,8 @@
   </div>
 
   <!-- Input row -->
-  <div class="pta-input-row">
-    <span class="pta-prompt-glyph pta-prompt-glyph--input" class:pta-prompt-glyph--busy={isLoading}>
-      {isLoading ? '⟳' : '❯'}
-    </span>
+  <div class="pta-input-row" class:pta-input-row--busy={isLoading}>
+    <span class="pta-prompt-glyph pta-prompt-glyph--input">❯</span>
     <textarea
       class="pta-input"
       bind:this={inputEl}
@@ -673,16 +673,21 @@
   .pta-tool__name   { color: var(--pta-cyan); }
   .pta-tool__args   { color: var(--pta-orange); opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px; }
 
-  /* Thinking cursor */
-  .pta-line--thinking { padding: 2px 0 2px 22px; }
-  .pta-cursor-blink {
-    color: var(--pta-prompt);
-    font-size: 14px;
-    animation: pta-blink 1s step-end infinite;
+  /* Thinking indicator */
+  .pta-line--thinking { padding: 6px 0 4px; gap: 5px; align-items: center; }
+  .pta-thinking-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--pta-text-dim);
+    animation: pta-dot-pulse 1.4s ease-in-out infinite;
+    flex-shrink: 0;
   }
-  @keyframes pta-blink {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0; }
+  .pta-thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+  .pta-thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pta-dot-pulse {
+    0%, 80%, 100% { opacity: 0.2; transform: scale(0.75); background: var(--pta-text-dim); }
+    40%           { opacity: 1;   transform: scale(1.1);  background: var(--pta-prompt); }
   }
 
   /* Output */
@@ -745,8 +750,13 @@
     font-size: 14px;
     transition: color 0.15s;
   }
-  .pta-prompt-glyph--busy { color: var(--pta-yellow); animation: pta-spin 0.8s linear infinite; }
-  @keyframes pta-spin { to { transform: rotate(360deg); } }
+
+  /* Input row greyed out while agent is generating */
+  .pta-input-row--busy {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  .pta-input-row--busy .pta-prompt-glyph { color: var(--pta-text-dim); }
 
   .pta-input {
     flex: 1;
