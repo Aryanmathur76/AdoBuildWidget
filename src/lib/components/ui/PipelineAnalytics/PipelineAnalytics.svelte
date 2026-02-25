@@ -73,16 +73,18 @@
 
     async function fetchAllPipelineData() {
         if (!pipelineConfig?.pipelines) return;
-        
-        const newCharts: PipelineChartData[] = [];
-        
-        for (let i = 0; i < pipelineConfig.pipelines.length; i++) {
-            const pipeline = pipelineConfig.pipelines[i];
-            const charts = await fetchPipelineData(pipeline);
-            newCharts.push(...charts);
-        }
-        
-        pipelineCharts = newCharts;
+
+        await Promise.allSettled(
+            pipelineConfig.pipelines.map(pipeline =>
+                fetchPipelineData(pipeline).then(charts => {
+                    // Replace the loading placeholder for this pipeline with real data
+                    pipelineCharts = [
+                        ...pipelineCharts.filter(c => c.pipelineId !== String(pipeline.id) || !c.loading),
+                        ...charts,
+                    ];
+                })
+            )
+        );
     }
 
     async function fetchPipelineData(pipeline: any): Promise<PipelineChartData[]> {

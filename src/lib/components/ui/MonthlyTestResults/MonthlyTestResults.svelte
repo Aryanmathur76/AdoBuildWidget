@@ -74,6 +74,8 @@
     let expandedFlakyTests = $state<Record<string, boolean>>({});
     let loadingStages = $state<LoadingProgress[]>([]);
 
+    let abortController: AbortController | null = null;
+
     // Configuration - presets
     type PresetEntry = { planId: string; suiteId: string };
     // Start empty — presets must come from PUBLIC_MONTHLY_TEST_PRESETS
@@ -90,6 +92,10 @@
 
     // Batch and parallelize API calls
     async function fetchData() {
+        abortController?.abort();
+        abortController = new AbortController();
+        const { signal } = abortController;
+
         loading = true;
         error = null;
         data = null;
@@ -102,11 +108,11 @@
             const testPlanRunsUrl = `/api/test-plan-runs?testPlanId=${planId}&suiteId=${suiteId}`;
 
             // Start non-streaming fetches in parallel
-            const allTestCasesPromise = fetch(allTestCasesUrl).then(r => r.ok ? r.json() : Promise.reject('Failed to fetch test cases'));
-            const testPlanRunsPromise = fetch(testPlanRunsUrl).then(r => r.ok ? r.json() : Promise.reject('Failed to fetch plan runs'));
+            const allTestCasesPromise = fetch(allTestCasesUrl, { signal }).then(r => r.ok ? r.json() : Promise.reject('Failed to fetch test cases'));
+            const testPlanRunsPromise = fetch(testPlanRunsUrl, { signal }).then(r => r.ok ? r.json() : Promise.reject('Failed to fetch plan runs'));
 
             // Start streaming fetch for main data
-            const response = await fetch(monthlyUrl);
+            const response = await fetch(monthlyUrl, { signal });
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`Failed to fetch: ${response.status} ${response.statusText} - ${errorText}`);
@@ -164,6 +170,7 @@
                 }
             }
         } catch (e: any) {
+            if (e?.name === 'AbortError') return;
             error = e.message || String(e);
         } finally {
             loading = false;
@@ -203,6 +210,8 @@
             // No presets provided; leave loading=false and show no-data state
             loading = false;
         }
+
+        return () => abortController?.abort();
     });
 
 
