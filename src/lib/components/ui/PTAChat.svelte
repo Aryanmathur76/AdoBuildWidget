@@ -274,17 +274,22 @@
   function toggle(): void {
     isOpen = !isOpen;
     if (!isOpen) { isMinimized = false; isMaximized = false; }
-    if (isOpen) tick().then(() => inputEl?.focus());
+    if (isOpen) {
+      tick().then(() => inputEl?.focus());
+      setTimeout(() => scrollToBottom(), 250);
+    }
   }
 
   function minimize(): void {
     isMinimized = !isMinimized;
     if (isMinimized) isMaximized = false;
+    if (!isMinimized) setTimeout(() => scrollToBottom(), 250); // restoring
   }
 
   function maximize(): void {
     isMaximized = !isMaximized;
     if (isMaximized) isMinimized = false;
+    setTimeout(() => scrollToBottom(), 250); // reflow after resize settles
   }
 </script>
 
@@ -670,7 +675,6 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    scroll-behavior: smooth;
     line-height: 1.55;
   }
   .pta-terminal::-webkit-scrollbar       { width: 5px; }
