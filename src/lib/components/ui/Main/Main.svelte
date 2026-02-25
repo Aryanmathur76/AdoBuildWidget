@@ -405,18 +405,24 @@
                     {/if}
                 </div>
                 {#if carouselApi && count > 0}
-                    <div class="absolute left-1/2 -translate-x-1/2 flex items-center gap-1">
+                    <div class="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
                         <button onclick={() => carouselApi?.scrollPrev()} disabled={!canScrollPrev} class="px-1.5 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-mono" aria-label="Previous">◀</button>
-                        <span class="text-xs text-muted-foreground tracking-widest px-1 min-w-[36px] text-center">{current}/{count}</span>
+                        {#each Array.from({length: count}, (_, i) => i) as i}
+                            <button
+                                onclick={() => carouselApi?.scrollTo(i)}
+                                class="rounded-full transition-all duration-150 {visibleSlides.includes(i) ? 'w-2 h-2 bg-primary' : 'w-1.5 h-1.5 bg-border hover:bg-muted-foreground/50'}"
+                                aria-label="Go to slide {i + 1}"
+                            ></button>
+                        {/each}
                         <button onclick={() => carouselApi?.scrollNext()} disabled={!canScrollNext} class="px-1.5 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-mono" aria-label="Next">▶</button>
                     </div>
                 {/if}
                 <div class="flex items-center gap-2" style={appReady ? `animation:flash-in 280ms ease-out both;animation-delay:${FLASH_DELAYS[1]}ms` : 'opacity:0'}>
                     <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors" title={heatmapViewMode === "graph" ? "Switch to simple view" : "Switch to graph view"} aria-label="Toggle view mode">
-                        <span class="material-symbols-outlined" style="font-size: 1em;">{#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}</span>
+                        <span class="material-symbols-outlined" style="font-size: 14px; line-height: 1;">{#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}</span>
                     </button>
                     <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors" title="Get help" aria-label="Help">
-                        <span class="material-symbols-outlined" style="font-size: 1em;">help</span>
+                        <span class="material-symbols-outlined" style="font-size: 14px; line-height: 1;">help</span>
                     </button>
                     <button
                         onclick={clearCache}
