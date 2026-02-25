@@ -307,7 +307,7 @@
                     </button>
                 </div>
             </div>
-            <div class="h-full flex-1 min-h-0 px-2 pb-2">
+            <div class="h-full flex-1 min-h-0 px-2 pt-2 pb-2">
                 <Carousel.Root opts={{ align: "start", slidesToScroll: 1 }} class="h-full flex flex-col" setApi={(api) => carouselApi = api}>
                     <Carousel.Content class="h-full flex-1 min-h-0 -ml-2">
                         <Carousel.Item class="h-full pl-2 {ptaIsOpen ? 'basis-1/2' : 'basis-1/3'}">
