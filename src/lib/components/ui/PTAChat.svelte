@@ -1025,4 +1025,42 @@
     background: var(--pta-bg2);
     border-top: 1px solid var(--pta-border);
   }
+
+  /* ── Mobile: full-screen chat panel ─────────────────────────────────────── */
+  @media (max-width: 767px) {
+    /* Nudge FAB above the home indicator on newer phones */
+    .pta-fab {
+      bottom: max(24px, env(safe-area-inset-bottom));
+      right: max(24px, env(safe-area-inset-right));
+    }
+
+    /* Full-screen overlay when open or maximized */
+    .pta-side-wrapper--open,
+    .pta-side-wrapper--maximized {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      /*
+       * 100dvh = "dynamic" viewport height.
+       * Unlike 100vh, it shrinks when the soft keyboard appears so the panel
+       * resizes rather than getting clipped behind the keyboard.
+       */
+      height: 100dvh;
+      z-index: 9001;
+      transition: none;   /* skip the width-slide animation on mobile */
+    }
+
+    /* Strip the desktop min-width so the panel actually fills the screen */
+    .pta-panel {
+      min-width: 0;
+      border-left: none;
+    }
+
+    /* Keyboard shortcut hint is irrelevant on touch – reclaim the space */
+    .pta-status__right {
+      display: none;
+    }
+  }
 </style>
