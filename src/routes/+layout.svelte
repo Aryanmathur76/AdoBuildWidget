@@ -3,8 +3,21 @@
 	import { ModeWatcher } from "mode-watcher";
 	import favicon from '$lib/assets/favicon.svg';
 	import PTAChat from '$lib/components/ui/PTAChat.svelte';
+	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
+	import { env } from '$env/dynamic/public';
+	import { initAppInsights, trackPageView } from '$lib/analytics';
 
 	let { children } = $props();
+
+	onMount(() => {
+		initAppInsights(env.PUBLIC_APPINSIGHTS_CONNECTION_STRING ?? '');
+	});
+
+	// Track every client-side navigation as a page view
+	afterNavigate(({ to }) => {
+		if (to?.url) trackPageView(to.url.pathname);
+	});
 </script>
 
 <svelte:head>

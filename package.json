@@ -50,6 +50,7 @@
 	"dependencies": {
 		"@azure/data-tables": "^13.3.2",
 		"@azure/storage-blob": "^12.31.0",
+		"@microsoft/applicationinsights-web": "^3.3.11",
 		"@sveltejs/adapter-node": "^5.3.1",
 		"buffer": "^6.0.3",
 		"date-fns": "^4.1.0",
