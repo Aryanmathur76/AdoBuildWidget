@@ -3,7 +3,8 @@
     "allow": [
       "Bash(cd /c/Users/Aryan/Documents/Projects/AdoBuildWidget && npm install @azure/data-tables @azure/storage-blob 2>&1)",
       "Bash(cd /c/Users/E1456440/Documents/Projects/AdoBuildWidget && npx vitest run 2>&1)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(head:*)"
     ]
   }
 }

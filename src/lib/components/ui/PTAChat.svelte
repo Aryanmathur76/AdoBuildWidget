@@ -23,6 +23,15 @@
     error: boolean;
   }
 
+  interface PipelineContext {
+    id: string;
+    displayName: string;
+    type: string;
+    quality: string;
+    todayRunId: number | null;
+    todayRunName: string | null;
+  }
+
   interface ActiveTool {
     name: string;
     input: string;
@@ -46,6 +55,24 @@
                     isMaximized        ? 'pta-side-wrapper--maximized' :
                                         'pta-side-wrapper--open';
 
+  // Fetch pipeline context when panel first opens
+  $: if (isOpen && !contextLoaded) {
+    fetchTodayContext();
+  }
+
+  // Derive suggestion chips from today's context
+  $: suggestions = todayContext
+    .filter(p => ['bad', 'interrupted', 'ok', 'inProgress'].includes(p.quality))
+    .slice(0, 4)
+    .map(p => {
+      if (p.quality === 'interrupted') return `Why was ${p.displayName} interrupted today?`;
+      if (p.quality === 'bad')         return `Why did ${p.displayName} fail today?`;
+      if (p.quality === 'ok')          return `What tests failed in ${p.displayName} today?`;
+      if (p.quality === 'inProgress')  return `What's the current status of ${p.displayName}?`;
+      return null;
+    })
+    .filter(Boolean) as string[];
+
   let sessionId:    string|null = null;
   let messages:     Message[]   = [];
   let activeTools:  ActiveTool[] = [];
@@ -63,7 +90,24 @@
   let messagesEl: HTMLDivElement;
   let inputEl:    HTMLTextAreaElement;
 
+  // ── Today's context (for suggestions + silent context injection) ───────────
+  let todayContext:    PipelineContext[] = [];
+  let contextLoaded:   boolean          = false;
+  let contextInjected: boolean          = false;
+
   // ── Helpers ────────────────────────────────────────────────────────────────
+
+  async function fetchTodayContext(): Promise<void> {
+    try {
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+      const res = await fetch(`/api/getTodayContext?date=${today}`);
+      if (res.ok) {
+        const data = await res.json();
+        todayContext = data.pipelines ?? [];
+      }
+    } catch (_) { /* non-fatal */ }
+    contextLoaded = true;
+  }
 
   function apiHeaders(): Record<string, string> {
     const h: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -123,13 +167,14 @@
         });
       } catch (_) { /* ignore */ }
     }
-    sessionId    = null;
-    messages     = [];
-    activeTools  = [];
-    lastResponse = null;
-    isLoading    = false;
-    isMinimized  = false;
-    isMaximized  = false;
+    sessionId       = null;
+    messages        = [];
+    activeTools     = [];
+    lastResponse    = null;
+    isLoading       = false;
+    isMinimized     = false;
+    isMaximized     = false;
+    contextInjected = false;
     await initSession();
   }
 
@@ -162,11 +207,25 @@
     messages = [...messages, { role: 'assistant', content: '', thinking: true, error: false }];
     await scrollToBottom();
 
+    // Build the message sent to the API — silently prepend pipeline context on first message
+    let apiMessage = text;
+    if (!contextInjected && todayContext.length > 0) {
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+      const lines = todayContext
+        .filter(p => p.todayRunId)
+        .map(p => `• ${p.displayName} (${p.type}, def:${p.id}): ${p.todayRunName} (ID:${p.todayRunId}) — ${p.quality}`)
+        .join('\n');
+      if (lines) {
+        apiMessage = `[Pipeline context — ${today}:\n${lines}]\n\n${text}`;
+      }
+      contextInjected = true;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: apiHeaders(),
-        body: JSON.stringify({ session_id: sessionId, message: text }),
+        body: JSON.stringify({ session_id: sessionId, message: apiMessage }),
       });
 
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
@@ -344,6 +403,15 @@
         <div class="pta-welcome__rule">────────────────────────────────────────────────</div>
         <div class="pta-welcome__hint">Ask about a pipeline failure to get started.</div>
         <div class="pta-welcome__hint pta-welcome__hint--dim">e.g. "analyze why release 12345 failed"</div>
+        {#if contextLoaded && suggestions.length > 0}
+          <div class="pta-suggestions">
+            {#each suggestions as s}
+              <button class="pta-suggestion-chip" onclick={() => { inputText = s; inputEl?.focus(); }}>
+                {s}
+              </button>
+            {/each}
+          </div>
+        {/if}
       </div>
     {/if}
 
@@ -695,6 +763,35 @@
   .pta-welcome__rule      { color: var(--pta-border); font-size: 11px; margin: 6px 0 4px; letter-spacing: 0.02em; }
   .pta-welcome__hint      { font-size: 12.5px; color: var(--pta-text); }
   .pta-welcome__hint--dim { color: var(--pta-text-dim); font-size: 12px; }
+
+  /* Suggestion chips */
+  .pta-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 14px;
+  }
+  .pta-suggestion-chip {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 5px 9px;
+    font-family: var(--pta-mono);
+    font-size: 11.5px;
+    color: var(--pta-prompt);
+    background: transparent;
+    border: 1px solid var(--pta-border-dim);
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pta-suggestion-chip::before { content: '❯ '; opacity: 0.5; }
+  .pta-suggestion-chip:hover {
+    background: var(--pta-bg3);
+    border-color: var(--pta-prompt);
+  }
 
   /* ── Lines ───────────────────────────────────────────────────────────────── */
   .pta-line {
