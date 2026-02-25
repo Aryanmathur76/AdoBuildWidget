@@ -15,6 +15,7 @@
     import { env } from "$env/dynamic/public";
     import type { PipelineConfig } from "$lib/utils/buildQualityUtils.js";
     import { ptaOpen } from "$lib/stores/ptaStore";
+    import { getBuildStatusColor } from "$lib/constants/colors.js";
     import TrashIcon from "@lucide/svelte/icons/trash-2";
     import Loader2 from "@lucide/svelte/icons/loader-2";
     import { toast } from "svelte-sonner";
@@ -45,7 +46,6 @@
     );
     let helpDialogOpen = $state(false);
     let todayQuality = $state<string>("unknown");
-    let mobileMenuOpen = $state(false);
     let carouselApi = $state<CarouselAPI>();
     let isClearingCache = $state(false);
     const count = 5; // Hardcoded for 5 carousel items
@@ -195,49 +195,23 @@
             <Sidebar.Provider>
                 <Sidebar.Inset class="h-full">
                     <Tabs.Root bind:value={currentTab} class="h-full flex flex-col">
-                    <!-- Collapsible header - shows arrow handle, expands on click/hover -->
-                    <div class="relative">
-                        <!-- Small arrow handle always visible -->
-                        <button type="button" onclick={() => mobileMenuOpen = !mobileMenuOpen} class="flex justify-center cursor-pointer bg-background/30 hover:bg-transparent transition-colors w-full" aria-label="Toggle menu">
-                            <span class="material-symbols-outlined text-muted-foreground hover:opacity-0 transition-opacity" style="font-size: 1.25em;" aria-hidden="true">expand_more</span>
-                        </button>
-                        <!-- Full header - hidden by default, shown on click or hover -->
-                        <div class="absolute top-0 left-0 right-0 transition-all duration-200 ease-out bg-gradient-to-b from-background/95 to-background/80 backdrop-blur-sm z-50 shadow-lg" style={`opacity: ${mobileMenuOpen ? 1 : 0}; pointer-events: ${mobileMenuOpen ? 'auto' : 'none'}; transform: translateY(${mobileMenuOpen ? 0 : '-100%'});`}>
-                            <div class="flex items-center justify-between px-3 pt-2 pb-1.5">
-                                <div class="flex items-center gap-3">
-                                    <span class="text-primary font-bold tracking-widest uppercase text-xs">▶ DELTAV BUILD HEALTH</span>
-                                    <button
-                                        onclick={clearCache}
-                                        disabled={isClearingCache}
-                                        title="Clear cache and refresh"
-                                        class="flex items-center gap-1 px-1.5 py-0.5 border border-border hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs"
-                                    >
-                                        {#if isClearingCache}
-                                            <Loader2 size={14} class="text-primary animate-spin" />
-                                        {:else}
-                                            <TrashIcon size={14} class="text-primary" />
-                                        {/if}
-                                    </button>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors uppercase tracking-wide" aria-label="Toggle view mode">
-                                        <span class="material-symbols-outlined" style="font-size: 1em;">
-                                            {#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}
-                                        </span>
-                                    </button>
-                                    <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors uppercase tracking-wide" title="Get help about this widget" aria-label="Help">
-                                        <span class="material-symbols-outlined" style="font-size: 1em;">help</span>
-                                    </button>
-                                    <Sidebar.Trigger class="flex items-center gap-2">
-                                        <span class="material-symbols-outlined" style="font-size: 1.25em; line-height: 1;">settings</span>
-                                    </Sidebar.Trigger>
-                                </div>
-                            </div>
+                    <!-- Permanent mini-header -->
+                    <div class="flex items-center justify-between py-1 px-3 border-b border-border">
+                        <span class="text-primary font-bold tracking-widest uppercase text-xs">▶ DELTAV BUILD HEALTH</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors" title={heatmapViewMode === "graph" ? "Switch to simple view" : "Switch to graph view"} aria-label="Toggle view mode">
+                                <span class="material-symbols-outlined" style="font-size: 1em;">
+                                    {#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}
+                                </span>
+                            </button>
+                            <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors" title="Get help about this widget" aria-label="Help">
+                                <span class="material-symbols-outlined" style="font-size: 1em;">help</span>
+                            </button>
+                            <Sidebar.Trigger class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors" title="Open menu">
+                                <span class="material-symbols-outlined" style="font-size: 1em; line-height: 1;">settings</span>
+                            </Sidebar.Trigger>
                         </div>
                     </div>
-                    {#if mobileMenuOpen}
-                        <div class="absolute inset-0 z-40" role="presentation" onclick={() => mobileMenuOpen = false}></div>
-                    {/if}
                     <main class="flex-1 min-h-0 overflow-hidden">
                         <Tabs.Content value="Monthly" class="h-full overflow-auto">
                             <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} isMainView={true} />
@@ -261,27 +235,40 @@
                             <Sidebar.GroupContent>
                                 <Sidebar.Menu>
                                     <Sidebar.MenuItem>
-                                        <Sidebar.MenuButton onclick={() => { currentTab = "Monthly"; sidebar?.toggle(); }} class={currentTab === "Monthly" ? "bg-accent" : ""}>
+                                        <Sidebar.MenuButton onclick={() => { currentTab = "Monthly"; sidebar?.toggle(); }} class={currentTab === "Monthly" ? "bg-accent border-l-2 border-primary py-3 min-h-[44px]" : "border-l-2 border-transparent py-3 min-h-[44px]"}>
                                             <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
                                             <span>Daily Tests - Monthly</span>
                                         </Sidebar.MenuButton>
                                     </Sidebar.MenuItem>
                                     <Sidebar.MenuItem>
-                                        <Sidebar.MenuButton onclick={() => { currentTab = "Weekly"; sidebar?.toggle(); }} class={currentTab === "Weekly" ? "bg-accent" : ""}>
+                                        <Sidebar.MenuButton onclick={() => { currentTab = "Weekly"; sidebar?.toggle(); }} class={currentTab === "Weekly" ? "bg-accent border-l-2 border-primary py-3 min-h-[44px]" : "border-l-2 border-transparent py-3 min-h-[44px]"}>
                                             <span class="material-symbols-outlined" style="font-size: 1.5em;">view_week</span>
                                             <span>Daily Tests - Weekly</span>
                                         </Sidebar.MenuButton>
                                     </Sidebar.MenuItem>
                                     <Sidebar.MenuItem>
-                                        <Sidebar.MenuButton onclick={() => { currentTab = "Analytics"; sidebar?.toggle(); }} class={currentTab === "Analytics" ? "bg-accent" : ""}>
+                                        <Sidebar.MenuButton onclick={() => { currentTab = "Analytics"; sidebar?.toggle(); }} class={currentTab === "Analytics" ? "bg-accent border-l-2 border-primary py-3 min-h-[44px]" : "border-l-2 border-transparent py-3 min-h-[44px]"}>
                                             <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
                                             <span>Daily Pipeline Analytics</span>
                                         </Sidebar.MenuButton>
                                     </Sidebar.MenuItem>
                                     <Sidebar.MenuItem>
-                                        <Sidebar.MenuButton onclick={() => { currentTab = "TestResults"; sidebar?.toggle(); }} class={currentTab === "TestResults" ? "bg-accent" : ""}>
+                                        <Sidebar.MenuButton onclick={() => { currentTab = "TestResults"; sidebar?.toggle(); }} class={currentTab === "TestResults" ? "bg-accent border-l-2 border-primary py-3 min-h-[44px]" : "border-l-2 border-transparent py-3 min-h-[44px]"}>
                                             <span class="material-symbols-outlined" style="font-size: 1.5em;">calendar_month</span>
                                             <span>Monthly Test Run Analysis</span>
+                                        </Sidebar.MenuButton>
+                                    </Sidebar.MenuItem>
+                                </Sidebar.Menu>
+                            </Sidebar.GroupContent>
+                        </Sidebar.Group>
+                        <Sidebar.Group>
+                            <Sidebar.GroupLabel>Display</Sidebar.GroupLabel>
+                            <Sidebar.GroupContent>
+                                <Sidebar.Menu>
+                                    <Sidebar.MenuItem>
+                                        <Sidebar.MenuButton onclick={() => { heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"; sidebar?.toggle(); }} class="border-l-2 border-transparent py-3 min-h-[44px]">
+                                            <span class="material-symbols-outlined" style="font-size: 1.5em;">{heatmapViewMode === "graph" ? "bar_chart" : "view_day"}</span>
+                                            <span>{heatmapViewMode === "graph" ? "Switch to Simple" : "Switch to Graph"}</span>
                                         </Sidebar.MenuButton>
                                     </Sidebar.MenuItem>
                                 </Sidebar.Menu>
@@ -296,8 +283,27 @@
         <div class="flex flex-col h-full">
             <!-- Retro terminal header -->
             <div class="relative flex items-center justify-between py-1 px-3 border-b border-border bg-card">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
                     <span class="text-primary font-bold tracking-widest uppercase text-xs">▶ DELTAV BUILD HEALTH</span>
+                    {#if todayQuality !== 'unknown'}
+                        <span class="flex items-center gap-1 border-l border-border/50 pl-2 ml-1">
+                            <span class="w-2 h-2 rounded-full inline-block {getBuildStatusColor(todayQuality).split(' ')[0]}"></span>
+                            <span class="text-xs text-muted-foreground uppercase tracking-wide">TODAY: {todayQuality.toUpperCase()}</span>
+                        </span>
+                    {/if}
+                </div>
+                {#if carouselApi && count > 0}
+                    <span class="absolute left-1/2 -translate-x-1/2 text-xs text-muted-foreground tracking-widest pointer-events-none">
+                        [{current}/{count}]
+                    </span>
+                {/if}
+                <div class="flex items-center gap-2">
+                    <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors" title={heatmapViewMode === "graph" ? "Switch to simple view" : "Switch to graph view"} aria-label="Toggle view mode">
+                        <span class="material-symbols-outlined" style="font-size: 1em;">{#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}</span>
+                    </button>
+                    <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors" title="Get help" aria-label="Help">
+                        <span class="material-symbols-outlined" style="font-size: 1em;">help</span>
+                    </button>
                     <button
                         onclick={clearCache}
                         disabled={isClearingCache}
@@ -309,21 +315,6 @@
                         {:else}
                             <TrashIcon size={14} class="text-primary" />
                         {/if}
-                    </button>
-                </div>
-                {#if carouselApi && count > 0}
-                    <span class="absolute left-1/2 -translate-x-1/2 text-xs text-muted-foreground tracking-widest pointer-events-none">
-                        [{current}/{count}]
-                    </span>
-                {/if}
-                <div class="flex items-center gap-2">
-                    <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors uppercase tracking-wide" aria-label="Toggle view mode">
-                        <span class="material-symbols-outlined" style="font-size: 1em;">{#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}</span>
-                        <span>{heatmapViewMode === "graph" ? "[GRAPH]" : "[SIMPLE]"}</span>
-                    </button>
-                    <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors uppercase tracking-wide" title="Get help" aria-label="Help">
-                        <span class="material-symbols-outlined" style="font-size: 1em;">help</span>
-                        <span>[HELP]</span>
                     </button>
                 </div>
             </div>

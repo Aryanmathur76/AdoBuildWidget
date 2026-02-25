@@ -253,7 +253,11 @@
     </div>
     {#if pipelineCharts.length === 0}
         <div class="flex items-center justify-center h-full">
-            <p class="text-muted-foreground">No pipeline configuration found</p>
+            <div class="text-center space-y-2">
+                <span class="material-symbols-outlined text-muted-foreground" style="font-size: 3em;">settings_suggest</span>
+                <p class="text-sm font-medium">No pipelines configured</p>
+                <p class="text-xs text-muted-foreground">Set <code class="font-mono bg-muted px-1">PUBLIC_AZURE_PIPELINE_CONFIG</code> to get started</p>
+            </div>
         </div>
     {:else}
         {#each pipelineCharts as pipelineChart (pipelineChart.pipelineId + '-' + (pipelineChart.testRunName || 'default'))}

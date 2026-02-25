@@ -313,10 +313,18 @@
             {/each}
         </div>
     {:else if error}
-        <div class="flex-1 flex items-center justify-center text-destructive">
-            <div class="text-center space-y-2">
-                <span class="material-symbols-outlined" style="font-size: 3em;">error</span>
-                <p class="text-sm">{error}</p>
+        <div class="flex-1 flex items-center justify-center">
+            <div class="text-center space-y-3 max-w-xs">
+                <span class="material-symbols-outlined text-destructive" style="font-size: 3em;">error</span>
+                <p class="text-sm font-medium text-destructive">Failed to load data</p>
+                <p class="text-xs text-muted-foreground">{error}</p>
+                <button
+                    onclick={fetchData}
+                    class="flex items-center gap-1 mx-auto px-3 py-1.5 text-xs border border-border hover:bg-accent transition-colors"
+                >
+                    <span class="material-symbols-outlined" style="font-size: 1em;">refresh</span>
+                    Retry
+                </button>
             </div>
         </div>
     {:else if loading}
@@ -329,8 +337,9 @@
     {:else if !data}
         <div class="flex-1 flex items-center justify-center text-muted-foreground">
             <div class="text-center space-y-2">
-                <span class="material-symbols-outlined" style="font-size: 3em;">inbox</span>
-                <p class="text-sm">No data available</p>
+                <span class="material-symbols-outlined text-muted-foreground" style="font-size: 3em;">inbox</span>
+                <p class="text-sm font-medium">No presets configured</p>
+                <p class="text-xs text-muted-foreground">Set <code class="font-mono bg-muted px-1">PUBLIC_MONTHLY_TEST_PRESETS</code> to load test run data</p>
             </div>
         </div>
     {:else}

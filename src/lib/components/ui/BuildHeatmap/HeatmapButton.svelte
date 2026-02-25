@@ -275,19 +275,21 @@
       disabled={dayObj.disabled}
     >
       {#if viewMode === "simple"}
-        <div class="flex items-center justify-center w-full h-full {dayObj.colorClass} rounded-sm">
-          {#if dayObj.disabled}
-            <span class="material-symbols-outlined text-white" style="font-size: 1.25em;">schedule</span>
-          {:else}
+        {#if dayObj.disabled}
+          <div class="flex items-center justify-center w-full h-full bg-transparent border border-dashed border-border/40 rounded-sm">
+            <span class="material-symbols-outlined text-muted-foreground/40" style="font-size: 1.25em;">schedule</span>
+          </div>
+        {:else}
+          <div class="flex items-center justify-center w-full h-full {dayObj.quality === 'unknown' ? 'bg-muted/60 text-muted-foreground' : dayObj.colorClass} rounded-sm ring-1 ring-inset ring-border/20">
             <span class="text-xs font-bold">{dayObj.day}</span>
-          {/if}
-        </div>
+          </div>
+        {/if}
       {:else if loadingPipelines}
         <div class="flex flex-col h-full w-full bg-transparent rounded-sm">
-          <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm">
+          <div class="h-1/4 w-full flex items-center justify-center {dayObj.quality === 'unknown' ? 'bg-muted/60' : dayObj.colorClass} rounded-t-sm ring-1 ring-inset ring-border/20">
             <span class="text-xs font-bold drop-shadow-sm">
               {#if dayObj.disabled}
-                <span class="material-symbols-outlined" style="font-size: 0.75em;">schedule</span>
+                <span class="material-symbols-outlined text-muted-foreground/40" style="font-size: 0.75em;">schedule</span>
               {:else}
                 {dayObj.day}
               {/if}
@@ -301,10 +303,10 @@
         </div>
       {:else if pipelineData.length > 0}
         <div class="flex flex-col h-full w-full bg-transparent rounded-sm">
-          <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm">
+          <div class="h-1/4 w-full flex items-center justify-center {dayObj.quality === 'unknown' ? 'bg-muted/60' : dayObj.colorClass} rounded-t-sm ring-1 ring-inset ring-border/20">
             <span class="text-xs font-bold drop-shadow-sm">
               {#if dayObj.disabled}
-                <span class="material-symbols-outlined" style="font-size: 0.75em;">schedule</span>
+                <span class="material-symbols-outlined text-muted-foreground/40" style="font-size: 0.75em;">schedule</span>
               {:else}
                 {dayObj.day}
               {/if}
@@ -321,20 +323,20 @@
           </div>
         </div>
       {:else}
-        <div class="flex flex-col h-full w-full bg-transparent rounded-sm">
-          <div class="h-1/4 w-full flex items-center justify-center {dayObj.colorClass} rounded-t-sm">
-            <span class="text-xs font-bold drop-shadow-sm">{dayObj.day}</span>
+        {#if dayObj.disabled}
+          <div class="flex items-center justify-center w-full h-full bg-transparent border border-dashed border-border/40 rounded-sm">
+            <span class="material-symbols-outlined text-muted-foreground/40" style="font-size: 1em;">schedule</span>
           </div>
-          <div class="h-3/4 flex items-center justify-center w-full">
-            <span class="text-xs font-bold">
-              {#if dayObj.disabled}
-                <span class="material-symbols-outlined" style="font-size: 1em;">schedule</span>
-              {:else}
-                {dayObj.day}
-              {/if}
-            </span>
+        {:else}
+          <div class="flex flex-col h-full w-full bg-transparent rounded-sm">
+            <div class="h-1/4 w-full flex items-center justify-center {dayObj.quality === 'unknown' ? 'bg-muted/60 text-muted-foreground' : dayObj.colorClass} rounded-t-sm ring-1 ring-inset ring-border/20">
+              <span class="text-xs font-bold drop-shadow-sm">{dayObj.day}</span>
+            </div>
+            <div class="h-3/4 flex items-center justify-center w-full">
+              <span class="text-xs font-bold text-muted-foreground/50">{dayObj.day}</span>
+            </div>
           </div>
-        </div>
+        {/if}
       {/if}
     </Popover.Trigger>
     <Popover.Content class="w-96 p-2">
