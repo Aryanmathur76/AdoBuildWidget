@@ -135,6 +135,16 @@
 
   onMount(async () => {
     await initSession();
+
+    function onEscape(e: KeyboardEvent): void {
+      if (e.key === 'Escape' && isOpen && document.activeElement !== inputEl) {
+        isOpen     = false;
+        isMinimized = false;
+        isMaximized = false;
+      }
+    }
+    document.addEventListener('keydown', onEscape);
+    return () => document.removeEventListener('keydown', onEscape);
   });
 
   // ── Chat ──────────────────────────────────────────────────────────────────

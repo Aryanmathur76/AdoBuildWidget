@@ -339,7 +339,13 @@
             </div>
         {/each}
     </div>
-    <div class="flex justify-center">
+    <div class="flex items-center justify-center gap-2">
+        {#if currentMonthPage !== today.getMonth() + 1}
+            <button
+                onclick={() => currentMonthPage = today.getMonth() + 1}
+                class="px-2 py-1 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors rounded"
+            >Today</button>
+        {/if}
         <Pagination.Root count={months.length} perPage={1} siblingCount={1} bind:page={currentMonthPage}>
             {#snippet children({ pages, currentPage })}
                 <Pagination.Content>

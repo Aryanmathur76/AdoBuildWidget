@@ -162,25 +162,46 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                     </svg>
                 </a>
-                <Popover.Root bind:open={popoverOpen}>
-                    <Popover.Trigger
-                        class={cn(buttonVariants({ variant: "outline", class: "w-48 justify-between font-normal" }), !selectedDate && "text-muted-foreground")}
+                <div class="flex items-center gap-1">
+                    <button
+                        onclick={() => { if (selectedDate) selectedDate = selectedDate.subtract({ days: 1 }); }}
+                        class={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
+                        aria-label="Previous day"
                     >
-                        <CalendarIcon />
-                        {selectedDate ? df.format(selectedDate.toDate(getLocalTimeZone())) : "Pick a date"}
-                    </Popover.Trigger>
-                    <Popover.Content bind:ref={contentRef} class="w-auto p-0">
-                        <Calendar
-                            type="single"
-                            bind:value={selectedDate}
-                            captionLayout="dropdown"
-                            maxValue={today(getLocalTimeZone())}
-                            preventDeselect={true}
-                            disableDaysOutsideMonth={false}
-                            fixedWeeks={true}
-                        />
-                    </Popover.Content>
-                </Popover.Root>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <Popover.Root bind:open={popoverOpen}>
+                        <Popover.Trigger
+                            class={cn(buttonVariants({ variant: "outline", class: "w-48 justify-between font-normal" }), !selectedDate && "text-muted-foreground")}
+                        >
+                            <CalendarIcon />
+                            {selectedDate ? df.format(selectedDate.toDate(getLocalTimeZone())) : "Pick a date"}
+                        </Popover.Trigger>
+                        <Popover.Content bind:ref={contentRef} class="w-auto p-0">
+                            <Calendar
+                                type="single"
+                                bind:value={selectedDate}
+                                captionLayout="dropdown"
+                                maxValue={today(getLocalTimeZone())}
+                                preventDeselect={true}
+                                disableDaysOutsideMonth={false}
+                                fixedWeeks={true}
+                            />
+                        </Popover.Content>
+                    </Popover.Root>
+                    <button
+                        onclick={() => { if (selectedDate) selectedDate = selectedDate.add({ days: 1 }); }}
+                        disabled={!selectedDate || selectedDate.toString() === today(getLocalTimeZone()).toString()}
+                        class={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
+                        aria-label="Next day"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
             </Card.Header>
             <Card.Content>
                 <div class="mt-8 flex flex-col gap-4 w-full">

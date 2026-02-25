@@ -28,9 +28,14 @@
     });
 
     // State
+    const VALID_TABS = ["Monthly", "Weekly", "Analytics", "TestResults"];
     let currentTab = $state(
         typeof window !== 'undefined'
-            ? localStorage.getItem('buildHealthCurrentTab') || "Monthly"
+            ? (() => {
+                const urlTab = new URL(window.location.href).searchParams.get('tab');
+                if (urlTab && VALID_TABS.includes(urlTab)) return urlTab;
+                return localStorage.getItem('buildHealthCurrentTab') || "Monthly";
+              })()
             : "Monthly"
     );
     let heatmapViewMode = $state<"simple" | "graph">(
@@ -112,11 +117,26 @@
         }
     });
 
-    // Save tab selection to localStorage when it changes
+    // Save tab selection to localStorage and sync to URL when it changes
     $effect(() => {
         if (typeof window !== 'undefined') {
             localStorage.setItem('buildHealthCurrentTab', currentTab);
+            history.replaceState({}, '', '?tab=' + encodeURIComponent(currentTab));
         }
+    });
+
+    // Keyboard carousel navigation (ArrowLeft / ArrowRight)
+    $effect(() => {
+        if (typeof window === 'undefined') return;
+        function handleCarouselKey(e: KeyboardEvent) {
+            if (!isDesktop || !carouselApi) return;
+            const el = document.activeElement as HTMLElement | null;
+            if (el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA' || el?.isContentEditable) return;
+            if (e.key === 'ArrowLeft')  { e.preventDefault(); carouselApi.scrollPrev(); }
+            else if (e.key === 'ArrowRight') { e.preventDefault(); carouselApi.scrollNext(); }
+        }
+        window.addEventListener('keydown', handleCarouselKey);
+        return () => window.removeEventListener('keydown', handleCarouselKey);
     });
 
     // Save view mode to localStorage when it changes
