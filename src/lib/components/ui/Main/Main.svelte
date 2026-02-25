@@ -47,11 +47,22 @@
     let current = $state(0);
     let visibleSlides = $state<number[]>([0, 1, 2]); // Default to first 3
 
-    // Track PTA panel open state from the shared store
+    // Track PTA panel open state from the shared store.
+    // Delay the carousel switch until the panel animation finishes (220ms) so
+    // Embla's ResizeObserver and the flex-width transition don't compete.
+    // On close, revert immediately so it's done before the panel finishes leaving.
     let ptaIsOpen = $state(false);
+    let ptaOpenTimer: ReturnType<typeof setTimeout> | null = null;
     $effect(() => {
-        const unsub = ptaOpen.subscribe(v => { ptaIsOpen = v; });
-        return unsub;
+        const unsub = ptaOpen.subscribe(v => {
+            if (ptaOpenTimer) { clearTimeout(ptaOpenTimer); ptaOpenTimer = null; }
+            if (v) {
+                ptaOpenTimer = setTimeout(() => { ptaIsOpen = true; }, 230);
+            } else {
+                ptaIsOpen = false;
+            }
+        });
+        return () => { unsub(); if (ptaOpenTimer) clearTimeout(ptaOpenTimer); };
     });
 
     $effect(() => {

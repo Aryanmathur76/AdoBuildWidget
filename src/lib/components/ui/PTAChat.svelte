@@ -496,7 +496,8 @@
     width: 0;
     overflow: hidden;
     flex-shrink: 0;
-    transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: width;
+    transition: width 0.22s ease-out;
   }
   .pta-side-wrapper--open {
     width: 420px;
