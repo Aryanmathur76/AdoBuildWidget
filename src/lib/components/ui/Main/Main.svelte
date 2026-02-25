@@ -55,6 +55,21 @@
     let canScrollNext = $state(true);
     let bootVisible = $state(true);
     let bootFading = $state(false);
+    // Animated boot sequence state
+    const BOOT_LINES = [
+        { text: "ESTABLISHING NETWORK INTERFACE",  suffix: "OK"               },
+        { text: "CONNECTING TO AZURE DEVOPS",      suffix: "OK"               },
+        { text: "AUTHENTICATING SERVICE PRINCIPAL",suffix: "OK"               },
+        { text: "FETCHING PIPELINE CONFIGURATION", suffix: "3 PIPELINES"      },
+        { text: "LOADING BUILD HISTORY [90 DAYS]", suffix: "OK"               },
+        { text: "SCANNING RELEASE DEFINITIONS",    suffix: "2 FOUND"          },
+        { text: "WARMING BUILD DATA CACHE",        suffix: "HIT"              },
+        { text: "SYSTEM READY",                    suffix: ""                 },
+    ] as const;
+    type BootLine = { text: string; suffix: string };
+    let bootTypedLines = $state<BootLine[]>([]);
+    let bootCurrentText = $state('');
+    let bootCurrentSuffix = $state('');
 
     // Track PTA panel open state from the shared store.
     // Delay the carousel switch until the panel animation finishes (220ms) so
@@ -90,12 +105,47 @@
         }
     });
 
-    // Boot splash: fade out after 1.6 s, remove after 2.2 s
+    // Boot splash: animated typewriter sequence
     $effect(() => {
-        if (typeof window !== 'undefined') {
-            setTimeout(() => { bootFading = true; }, 1600);
-            setTimeout(() => { bootVisible = false; }, 2200);
+        if (typeof window === 'undefined') return;
+        let cancelled = false;
+        const timers: ReturnType<typeof setTimeout>[] = [];
+        const t = (fn: () => void, delay: number) => {
+            timers.push(setTimeout(() => { if (!cancelled) fn(); }, delay));
+        };
+
+        let delay = 250;
+        for (let i = 0; i < BOOT_LINES.length; i++) {
+            const line = BOOT_LINES[i];
+            const lineIdx = i;
+            // Reset current line
+            t(() => { bootCurrentText = ''; bootCurrentSuffix = ''; }, delay);
+            delay += 30;
+            // Type each character
+            for (let j = 1; j <= line.text.length; j++) {
+                const slice = line.text.slice(0, j);
+                t(() => { bootCurrentText = slice; }, delay);
+                delay += 8;
+            }
+            // Show suffix
+            delay += 90;
+            if (line.suffix) {
+                const sfx = line.suffix;
+                t(() => { bootCurrentSuffix = sfx; }, delay);
+                delay += 180;
+            } else {
+                delay += 60;
+            }
+            // Commit to completed lines
+            const txt = line.text, sfx = line.suffix;
+            t(() => { bootTypedLines = [...bootTypedLines, { text: txt, suffix: sfx }]; bootCurrentText = ''; bootCurrentSuffix = ''; }, delay);
+            delay += 40;
         }
+        // Fade out
+        t(() => { bootFading = true; }, delay + 350);
+        t(() => { bootVisible = false; }, delay + 950);
+
+        return () => { cancelled = true; timers.forEach(clearTimeout); };
     });
 
     // Responsive state
@@ -205,13 +255,30 @@
 <div class="retro-container w-full h-screen max-h-screen overflow-hidden" transition:slide={{ duration: 300 }}>
     <Toaster position="top-center" richColors />
     {#if bootVisible}
-        <div class="fixed inset-0 z-[10000] bg-background flex flex-col items-center justify-center gap-2 font-mono"
-             style="transition: opacity 500ms ease-out; opacity: {bootFading ? 0 : 1}; pointer-events: {bootFading ? 'none' : 'all'};">
-            <div class="text-xs text-primary tracking-widest space-y-1.5">
-                <div class="font-bold">▶ DELTAV BUILD HEALTH</div>
-                <div class="text-muted-foreground">INITIALIZING SYSTEMS...</div>
-                <div class="text-muted-foreground">LOADING BUILD DATA...</div>
-                <div class="text-muted-foreground">CONNECTING TO PIPELINES<span class="cursor-blink">_</span></div>
+        <div class="fixed inset-0 z-[10000] bg-background flex flex-col items-center justify-center font-mono"
+             style="transition: opacity 600ms ease-out; opacity: {bootFading ? 0 : 1}; pointer-events: {bootFading ? 'none' : 'all'};">
+            <div class="text-xs tracking-wide w-[380px] max-w-[90vw]">
+                <!-- Title -->
+                <div class="text-primary font-bold mb-1 text-sm">▶ DELTAV BUILD HEALTH</div>
+                <div class="border-t border-border/50 mb-3"></div>
+                <!-- Completed lines -->
+                {#each bootTypedLines as line}
+                    <div class="flex items-baseline justify-between gap-4 leading-5">
+                        <span class="text-muted-foreground">{line.text}</span>
+                        {#if line.suffix}
+                            <span class="text-green-500 shrink-0 text-[10px]">[{line.suffix}]</span>
+                        {/if}
+                    </div>
+                {/each}
+                <!-- Currently typing line -->
+                {#if bootCurrentText !== undefined && bootTypedLines.length < BOOT_LINES.length}
+                    <div class="flex items-baseline justify-between gap-4 leading-5">
+                        <span class="text-foreground">{bootCurrentText}<span class="cursor-blink">_</span></span>
+                        {#if bootCurrentSuffix}
+                            <span class="text-green-500 shrink-0 text-[10px]">[{bootCurrentSuffix}]</span>
+                        {/if}
+                    </div>
+                {/if}
             </div>
         </div>
     {/if}
