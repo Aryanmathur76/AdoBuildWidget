@@ -186,7 +186,7 @@
     }
 </script>
 
-<div class="w-full h-screen max-h-screen overflow-hidden" transition:slide={{ duration: 300 }}>
+<div class="retro-container w-full h-screen max-h-screen overflow-hidden" transition:slide={{ duration: 300 }}>
     <Toaster position="top-center" richColors />
     <Card class="py-0 border-0 shadow-none h-full rounded-none flex flex-col bg-background">
         {#if isMobile}
@@ -197,7 +197,7 @@
                     <Tabs.Root bind:value={currentTab} class="h-full flex flex-col">
                     <!-- Permanent mini-header -->
                     <div class="flex items-center justify-between py-1 px-3 border-b border-border">
-                        <span class="text-primary font-bold tracking-widest uppercase text-xs">▶ DELTAV BUILD HEALTH</span>
+                        <span class="text-primary font-bold tracking-widest uppercase text-xs">▶ DELTAV BUILD HEALTH<span class="cursor-blink">_</span></span>
                         <div class="flex items-center gap-2">
                             <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors" title={heatmapViewMode === "graph" ? "Switch to simple view" : "Switch to graph view"} aria-label="Toggle view mode">
                                 <span class="material-symbols-outlined" style="font-size: 1em;">
@@ -284,10 +284,13 @@
             <!-- Retro terminal header -->
             <div class="relative flex items-center justify-between py-1 px-3 border-b border-border bg-card">
                 <div class="flex items-center gap-2">
-                    <span class="text-primary font-bold tracking-widest uppercase text-xs">▶ DELTAV BUILD HEALTH</span>
+                    <span class="text-primary font-bold tracking-widest uppercase text-xs">▶ DELTAV BUILD HEALTH<span class="cursor-blink">_</span></span>
                     {#if todayQuality !== 'unknown'}
                         <span class="flex items-center gap-1 border-l border-border/50 pl-2 ml-1">
-                            <span class="w-2 h-2 rounded-full inline-block {getBuildStatusColor(todayQuality).split(' ')[0]}"></span>
+                            <span class="relative inline-flex">
+                                <span class="animate-ping absolute inline-flex w-2 h-2 rounded-full {getBuildStatusColor(todayQuality).split(' ')[0]} opacity-50"></span>
+                                <span class="relative w-2 h-2 rounded-full inline-block {getBuildStatusColor(todayQuality).split(' ')[0]}"></span>
+                            </span>
                             <span class="text-xs text-muted-foreground uppercase tracking-wide">TODAY: {todayQuality.toUpperCase()}</span>
                         </span>
                     {/if}
@@ -369,4 +372,40 @@
 <HelpDialog bind:open={helpDialogOpen} isMobile={isSmallView} />
 
 <style>
+    /* ── Blinking terminal cursor ── */
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+    }
+    .cursor-blink {
+        animation: blink 1.1s step-end infinite;
+        margin-left: 1px;
+    }
+
+    /* ── CRT scanline overlay ── */
+    .retro-container::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background: repeating-linear-gradient(
+            0deg,
+            transparent 0px,
+            transparent 1px,
+            rgba(0, 0, 0, 0.045) 1px,
+            rgba(0, 0, 0, 0.045) 2px
+        );
+        pointer-events: none;
+        z-index: 9999;
+    }
+
+    /* ── Subtle vignette ── */
+    .retro-container::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(ellipse at center, transparent 70%, rgba(0, 0, 0, 0.15) 100%);
+        pointer-events: none;
+        z-index: 9998;
+    }
+
 </style>
