@@ -262,11 +262,14 @@
                         </button>
                     {/if}
                 </div>
-                {#if completedDate && status != "unknown" && status != "inProgress"}
-                    <div class="text-xs text-muted-foreground mb-1">
+                <div class="text-xs text-muted-foreground mb-1">
+                    {#if completedDate && status != "unknown" && status != "inProgress"}
                         Completed on {new Date(completedDate).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })} {new Date(completedDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                    </div>
-                {/if}
+                        {#if pipelineId}&nbsp;·&nbsp;<span class="opacity-50">ID: {pipelineId}</span>{/if}
+                    {:else if pipelineId}
+                        <span class="opacity-50">#{pipelineId}</span>
+                    {/if}
+                </div>
                 <div class="text-xs text-muted-foreground mb-1">
                     <slot />
                 </div>
