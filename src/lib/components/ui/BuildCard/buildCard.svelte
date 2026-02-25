@@ -265,9 +265,9 @@
                 <div class="text-xs text-muted-foreground mb-1">
                     {#if completedDate && status != "unknown" && status != "inProgress"}
                         Completed on {new Date(completedDate).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })} {new Date(completedDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                        {#if pipelineId}&nbsp;·&nbsp;<span class="opacity-50">ID: {pipelineId}</span>{/if}
+                        {#if pipelineId}&nbsp;·&nbsp;<span class="opacity-50">{pipelineType === 'release' ? 'Release' : 'Build'} ID: {pipelineId}</span>{/if}
                     {:else if pipelineId}
-                        <span class="opacity-50">#{pipelineId}</span>
+                        <span class="opacity-50">{pipelineType === 'release' ? 'Release' : 'Build'} ID: {pipelineId}</span>
                     {/if}
                 </div>
                 <div class="text-xs text-muted-foreground mb-1">
