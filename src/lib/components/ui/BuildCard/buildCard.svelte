@@ -16,6 +16,7 @@
     import { onMount } from "svelte";
     import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
     import { getTestPassColor, getTestFailColor, getTestNoDataColor } from "$lib/constants/colors";
+    import { ptaInject } from "$lib/stores/ptaStore";
 
     export let pipelineName: string = "PipelineName";
     export let pipelineGroup: string | null = null; // Pipeline group name for display in dialogs
@@ -129,6 +130,19 @@
                 }
             }, 50);
         }
+    }
+
+    function handlePtaInject() {
+        const typeLabel = pipelineType === 'release' ? 'release' : 'build';
+        const idPart = pipelineId ? ` ${pipelineId}` : '';
+        let text = `Analyze ${pipelineName} (${typeLabel}${idPart})`;
+        if (status) text += ` — status: ${status}`;
+        if (passCount !== null && failCount !== null && passCount + failCount > 0) {
+            text += ` — ${passCount} passed`;
+            if (failCount > 0) text += `, ${failCount} failed`;
+            if (notRunCount && notRunCount > 0) text += `, ${notRunCount} not run`;
+        }
+        ptaInject.set(text);
     }
 
     const chartConfig = {
@@ -261,6 +275,20 @@
                             </span>
                         </button>
                     {/if}
+                    <button
+                        title="Ask PTA about this pipeline"
+                        aria-label="Ask PTA"
+                        on:click={handlePtaInject}
+                        class="hidden lg:flex items-center justify-center pta-inject-btn"
+                        style="background: none; border: none; cursor: pointer;"
+                    >
+                        <span
+                            class="material-icons-outlined text-muted-foreground hover:text-primary"
+                            style="font-size: 20px; line-height: 1; vertical-align: middle;"
+                        >
+                            smart_toy
+                        </span>
+                    </button>
                 </div>
                 <div class="text-xs text-muted-foreground mb-1">
                     {#if completedDate && status != "unknown" && status != "inProgress"}

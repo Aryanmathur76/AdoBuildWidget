@@ -9,7 +9,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { marked } from 'marked';
-  import { ptaOpen } from '$lib/stores/ptaStore';
+  import { ptaOpen, ptaInject } from '$lib/stores/ptaStore';
 
   const API_BASE = import.meta.env.VITE_PTA_API_BASE || 'http://localhost:8000';
   const API_KEY  = import.meta.env.VITE_PTA_API_KEY  || '';
@@ -58,6 +58,16 @@
   // Fetch pipeline context when panel first opens
   $: if (isOpen && !contextLoaded) {
     fetchTodayContext();
+  }
+
+  // Consume a pending inject from BuildCard — open panel and populate input
+  $: if ($ptaInject) {
+    const pending = $ptaInject;
+    ptaInject.set(null);
+    isOpen = true;
+    isMinimized = false;
+    inputText = pending;
+    tick().then(() => inputEl?.focus());
   }
 
   // Derive suggestion chips from today's context
