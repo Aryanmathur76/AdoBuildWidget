@@ -53,8 +53,10 @@
     let visibleSlides = $state<number[]>([0, 1, 2]); // Default to first 3
     let canScrollPrev = $state(false);
     let canScrollNext = $state(true);
+    const FLASH_DELAYS = [0, 100, 200, 300, 400].sort(() => Math.random() - 0.5);
     let bootVisible = $state(true);
-    let bootFading = $state(false);
+    let appReady = $state(false);
+    let bootPhase = $state<'visible' | 'deleting'>('visible');
     // Animated boot sequence state
     const BOOT_LINES = [
         { text: "ESTABLISHING NETWORK INTERFACE",  suffix: "OK"               },
@@ -141,9 +143,15 @@
             t(() => { bootTypedLines = [...bootTypedLines, { text: txt, suffix: sfx }]; bootCurrentText = ''; bootCurrentSuffix = ''; }, delay);
             delay += 40;
         }
-        // Fade out
-        t(() => { bootFading = true; }, delay + 350);
-        t(() => { bootVisible = false; }, delay + 950);
+        // Sequential delete exit: lines pop off bottom-to-top every 45ms
+        t(() => { bootPhase = 'deleting'; }, delay + 350);
+        for (let i = BOOT_LINES.length; i >= 0; i--) {
+            const len = i;
+            t(() => { bootTypedLines = bootTypedLines.slice(0, len); },
+              delay + 350 + (BOOT_LINES.length - i) * 45);
+        }
+        t(() => { bootVisible = false; appReady = true; },
+          delay + 350 + BOOT_LINES.length * 45 + 100);
 
         return () => { cancelled = true; timers.forEach(clearTimeout); };
     });
@@ -255,8 +263,8 @@
 <div class="retro-container w-full h-screen max-h-screen overflow-hidden" transition:slide={{ duration: 300 }}>
     <Toaster position="top-center" richColors />
     {#if bootVisible}
-        <div class="fixed inset-0 z-[10000] bg-background flex flex-col items-center justify-center font-mono"
-             style="transition: opacity 600ms ease-out; opacity: {bootFading ? 0 : 1}; pointer-events: {bootFading ? 'none' : 'all'};">
+        <div class="fixed inset-0 z-[10000] bg-background flex flex-col items-center justify-center font-mono overflow-hidden"
+             style="pointer-events: {bootPhase !== 'visible' ? 'none' : 'all'};">
             <div class="text-xs tracking-wide w-[380px] max-w-[90vw]">
                 <!-- Title -->
                 <div class="text-primary font-bold mb-1 text-sm">▶ DELTAV BUILD HEALTH</div>
@@ -271,7 +279,7 @@
                     </div>
                 {/each}
                 <!-- Currently typing line -->
-                {#if bootCurrentText !== undefined && bootTypedLines.length < BOOT_LINES.length}
+                {#if bootCurrentText !== undefined && bootTypedLines.length < BOOT_LINES.length && bootPhase !== 'deleting'}
                     <div class="flex items-baseline justify-between gap-4 leading-5">
                         <span class="text-foreground">{bootCurrentText}<span class="cursor-blink">_</span></span>
                         {#if bootCurrentSuffix}
@@ -280,6 +288,7 @@
                     </div>
                 {/if}
             </div>
+
         </div>
     {/if}
     <Card class="py-0 border-0 shadow-none h-full rounded-none flex flex-col bg-background">
@@ -290,7 +299,7 @@
                 <Sidebar.Inset class="h-full">
                     <Tabs.Root bind:value={currentTab} class="h-full flex flex-col">
                     <!-- Permanent mini-header -->
-                    <div class="flex items-center justify-between py-1 px-3 border-b border-border">
+                    <div class="flex items-center justify-between py-1 px-3 border-b border-border" style={appReady ? `animation:flash-in 280ms ease-out both;animation-delay:${FLASH_DELAYS[3]}ms` : 'opacity:0'}>
                         <span class="text-primary font-bold tracking-widest uppercase text-xs">▶ DELTAV BUILD HEALTH<span class="cursor-blink">_</span></span>
                         <div class="flex items-center gap-2">
                             <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors" title={heatmapViewMode === "graph" ? "Switch to simple view" : "Switch to graph view"} aria-label="Toggle view mode">
@@ -306,7 +315,7 @@
                             </Sidebar.Trigger>
                         </div>
                     </div>
-                    <main class="flex-1 min-h-0 overflow-hidden">
+                    <main class="flex-1 min-h-0 overflow-hidden" style={appReady ? `animation:flash-in 280ms ease-out both;animation-delay:${FLASH_DELAYS[4]}ms` : 'opacity:0'}>
                         <Tabs.Content value="Monthly" class="h-full overflow-auto">
                             <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} isMainView={true} />
                         </Tabs.Content>
@@ -377,7 +386,7 @@
         <div class="flex flex-col h-full">
             <!-- Retro terminal header -->
             <div class="relative flex items-center justify-between py-1 px-3 border-b border-border bg-card">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2" style={appReady ? `animation:flash-in 280ms ease-out both;animation-delay:${FLASH_DELAYS[0]}ms` : 'opacity:0'}>
                     <span class="text-primary font-bold tracking-widest uppercase text-xs">▶ DELTAV BUILD HEALTH<span class="cursor-blink">_</span></span>
                     {#if todayQuality !== 'unknown'}
                         <span class="flex items-center gap-1 border-l border-border/50 pl-2 ml-1">
@@ -396,7 +405,7 @@
                         <button onclick={() => carouselApi?.scrollNext()} disabled={!canScrollNext} class="px-1.5 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-mono" aria-label="Next">▶</button>
                     </div>
                 {/if}
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2" style={appReady ? `animation:flash-in 280ms ease-out both;animation-delay:${FLASH_DELAYS[1]}ms` : 'opacity:0'}>
                     <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors" title={heatmapViewMode === "graph" ? "Switch to simple view" : "Switch to graph view"} aria-label="Toggle view mode">
                         <span class="material-symbols-outlined" style="font-size: 1em;">{#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}</span>
                     </button>
@@ -417,7 +426,7 @@
                     </button>
                 </div>
             </div>
-            <div class="h-full flex-1 min-h-0 px-2 pt-2 pb-2">
+            <div class="h-full flex-1 min-h-0 px-2 pt-2 pb-2" style={appReady ? `animation:flash-in 280ms ease-out both;animation-delay:${FLASH_DELAYS[2]}ms` : 'opacity:0'}>
                 <Carousel.Root opts={{ align: "start", slidesToScroll: 1 }} class="h-full flex flex-col" setApi={(api) => carouselApi = api}>
                     <Carousel.Content class="h-full flex-1 min-h-0 -ml-2">
                         <Carousel.Item class="h-full pl-2 {ptaIsOpen ? 'basis-1/2' : 'basis-1/3'}">

@@ -175,3 +175,11 @@
 ::-webkit-scrollbar-thumb { background: var(--border); }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
 html { scrollbar-width: thin; scrollbar-color: var(--border) var(--background); }
+
+/* ── Flash-in (app section reveal) ── */
+@keyframes flash-in {
+  0%   { opacity: 0; }
+  15%  { opacity: 1; }
+  30%  { opacity: 0.12; }
+  100% { opacity: 1; }
+}
