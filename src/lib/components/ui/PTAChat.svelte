@@ -252,14 +252,16 @@
   }
 </script>
 
-<!-- ── FAB — terminal launch button ───────────────────────────────────────── -->
-<button class="pta-fab" class:pta-fab--open={isOpen} onclick={toggle} title="PTA — Pipeline Triage Agent">
+<!-- ── FAB — only visible when panel is closed ────────────────────────────── -->
+{#if !isOpen}
+<button class="pta-fab" onclick={toggle} title="PTA — Pipeline Triage Agent">
   <span class="pta-fab__icon">&gt;_</span>
   <span class="pta-fab__label">PTA</span>
 </button>
+{/if}
 
-<!-- ── Terminal panel ─────────────────────────────────────────────────────── -->
-{#if isOpen}
+<!-- ── Side panel wrapper — always in DOM, CSS drives width ───────────────── -->
+<div class="pta-side-wrapper" class:pta-side-wrapper--open={isOpen}>
 <div class="pta-panel">
 
   <!-- Title bar -->
@@ -383,7 +385,7 @@
   </div>
 
 </div>
-{/if}
+</div><!-- /.pta-side-wrapper -->
 
 <!-- ── Save RCA modal ─────────────────────────────────────────────────────── -->
 {#if showSaveModal}
@@ -460,7 +462,7 @@
     --pta-ui-font:     'Segoe UI', system-ui, sans-serif;
   }
 
-  /* ── FAB ─────────────────────────────────────────────────────────────────── */
+  /* ── FAB — shown only when panel is closed ───────────────────────────────── */
   .pta-fab {
     position: fixed;
     bottom: 24px;
@@ -482,35 +484,34 @@
     transition: background 0.12s, border-color 0.12s, color 0.12s;
     user-select: none;
   }
-  .pta-fab:hover           { background: var(--pta-bg3); border-color: var(--pta-prompt); color: var(--pta-text-bright); }
-  .pta-fab--open           { background: var(--pta-prompt); color: var(--pta-bg); border-color: var(--pta-prompt); }
-  .pta-fab--open:hover     { background: #4a8bc0; border-color: #4a8bc0; }
-  .pta-fab__icon           { font-size: 15px; font-weight: 700; letter-spacing: -0.03em; }
-  .pta-fab__label          { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .pta-fab:hover   { background: var(--pta-bg3); border-color: var(--pta-prompt); color: var(--pta-text-bright); }
+  .pta-fab__icon   { font-size: 15px; font-weight: 700; letter-spacing: -0.03em; }
+  .pta-fab__label  { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
 
-  /* ── Panel ───────────────────────────────────────────────────────────────── */
+  /* ── Side-panel wrapper — flex item, animates width ─────────────────────── */
+  .pta-side-wrapper {
+    width: 0;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .pta-side-wrapper--open {
+    width: 420px;
+  }
+
+  /* ── Panel — full-height flex column inside the wrapper ──────────────────── */
   .pta-panel {
-    position: fixed;
-    bottom: 76px;
-    right: 24px;
-    z-index: 8999;
-    width: 560px;
-    height: 680px;
+    width: 420px;
+    min-width: 420px;   /* prevents reflow while wrapper animates */
+    height: 100%;
     display: flex;
     flex-direction: column;
     background: var(--pta-bg);
-    border: 1px solid var(--pta-border);
-    border-radius: 6px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04);
+    border-left: 1px solid var(--pta-border);
     overflow: hidden;
     font-family: var(--pta-mono);
     font-size: 13px;
     color: var(--pta-text);
-    animation: pta-slide-up 0.16s ease-out;
-  }
-  @keyframes pta-slide-up {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
   }
 
   /* ── Title bar ───────────────────────────────────────────────────────────── */
