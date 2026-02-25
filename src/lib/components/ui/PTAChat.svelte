@@ -1,5 +1,6 @@
 <!--
-  PTAChat.svelte — Floating chat panel for the PTA (Pipeline Triage Agent)
+  PTAChat.svelte — Integrated terminal-style chat panel for the PTA (Pipeline Triage Agent)
+  Styled after Azure Cloud Shell / VS Code integrated terminal.
 
   Environment variables (Vite):
     VITE_PTA_API_BASE         API base URL, e.g. http://pta-api.internal:8000
@@ -251,116 +252,134 @@
   }
 </script>
 
-<!-- ── Floating button ─────────────────────────────────────────────────────── -->
+<!-- ── FAB — terminal launch button ───────────────────────────────────────── -->
 <button class="pta-fab" class:pta-fab--open={isOpen} onclick={toggle} title="PTA — Pipeline Triage Agent">
-  {#if isOpen}
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-    </svg>
-  {:else}
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    </svg>
-  {/if}
+  <span class="pta-fab__icon">&gt;_</span>
   <span class="pta-fab__label">PTA</span>
 </button>
 
-<!-- ── Chat panel ─────────────────────────────────────────────────────────── -->
+<!-- ── Terminal panel ─────────────────────────────────────────────────────── -->
 {#if isOpen}
 <div class="pta-panel">
 
-  <!-- Header -->
-  <div class="pta-header">
-    <div class="pta-header__left">
-      <span class="pta-header__dot" class:pta-header__dot--ready={sessionId}></span>
-      <span class="pta-header__title">Pipeline Triage Agent</span>
+  <!-- Title bar -->
+  <div class="pta-titlebar">
+    <div class="pta-titlebar__controls">
+      <span class="pta-dot pta-dot--close" onclick={toggle} title="Close"></span>
+      <span class="pta-dot pta-dot--min" title="Minimize"></span>
+      <span class="pta-dot pta-dot--max" title="Maximize"></span>
     </div>
-    <div class="pta-header__actions">
+    <div class="pta-titlebar__tab">
+      <span class="pta-titlebar__tab-icon">&gt;_</span>
+      Pipeline Triage Agent
+      <span class="pta-titlebar__tab-status" class:pta-titlebar__tab-status--ready={sessionId}></span>
+    </div>
+    <div class="pta-titlebar__actions">
       {#if lastResponse}
-        <button class="pta-btn pta-btn--ghost" onclick={openSaveModal} title="Save RCA to Azure Storage">
-          Save RCA
+        <button class="pta-tbtn" onclick={openSaveModal} title="Save RCA to Azure Storage">
+          &#x2191; Save RCA
         </button>
       {/if}
-      <button class="pta-btn pta-btn--ghost" onclick={newSession} title="Start a new session">
-        New
+      <button class="pta-tbtn" onclick={newSession} title="Start a new session">
+        &#x2295; New
       </button>
     </div>
   </div>
 
-  <!-- Messages -->
-  <div class="pta-messages" bind:this={messagesEl}>
+  <!-- Terminal output -->
+  <div class="pta-terminal" bind:this={messagesEl}>
     {#if messages.length === 0}
-      <div class="pta-empty">
-        <div class="pta-empty__icon">⚡</div>
-        <div class="pta-empty__text">Ask about a pipeline failure</div>
-        <div class="pta-empty__hint">e.g. "analyze why release 12345 failed"</div>
+      <div class="pta-welcome">
+        <div class="pta-welcome__banner">Pipeline Triage Agent</div>
+        <div class="pta-welcome__meta">
+          {#if sessionId}
+            <span class="pta-welcome__ok">● connected</span> &nbsp;· session {sessionId.slice(0, 8)}
+          {:else}
+            <span class="pta-welcome__err">● connecting…</span>
+          {/if}
+        </div>
+        <div class="pta-welcome__rule">────────────────────────────────────────────────</div>
+        <div class="pta-welcome__hint">Ask about a pipeline failure to get started.</div>
+        <div class="pta-welcome__hint pta-welcome__hint--dim">e.g. "analyze why release 12345 failed"</div>
       </div>
     {/if}
 
     {#each messages as msg, i}
-      <div class="pta-msg pta-msg--{msg.role}" class:pta-msg--error={msg.error}>
+      {#if msg.role === 'user'}
+        <!-- User command line -->
+        <div class="pta-line pta-line--cmd">
+          <span class="pta-prompt-glyph">❯</span>
+          <span class="pta-line__cmd-text">{msg.content}</span>
+        </div>
 
-        {#if msg.role === 'user'}
-          <div class="pta-msg__bubble">{msg.content}</div>
-
-        {:else}
-          <!-- Tool activity (shown above last assistant message while running) -->
-          {#if i === messages.length - 1 && (isLoading || activeTools.length > 0)}
-            <div class="pta-tools">
-              {#each activeTools as tool}
-                <div class="pta-tool" class:pta-tool--done={tool.done}>
-                  <span class="pta-tool__icon">{tool.done ? '✓' : '⚡'}</span>
-                  <span class="pta-tool__name">{tool.name}</span>
-                  {#if !tool.done && tool.input}
-                    <span class="pta-tool__input">{tool.input.slice(0, 60)}{tool.input.length > 60 ? '…' : ''}</span>
-                  {/if}
-                </div>
-              {/each}
-            </div>
-          {/if}
-
-          <!-- Thinking dots (before first tool fires) -->
-          {#if msg.thinking && activeTools.length === 0}
-            <div class="pta-thinking"><span></span><span></span><span></span></div>
-          {/if}
-
-          <!-- Response -->
-          {#if msg.content && !msg.error}
-            <div class="pta-msg__markdown">{@html renderMarkdown(msg.content)}</div>
-          {:else if msg.content && msg.error}
-            <div class="pta-msg__bubble pta-msg__bubble--error">{msg.content}</div>
-          {/if}
+      {:else}
+        <!-- Tool activity (shown while running) -->
+        {#if i === messages.length - 1 && (isLoading || activeTools.length > 0)}
+          <div class="pta-toolblock">
+            {#each activeTools as tool}
+              <div class="pta-line pta-line--tool" class:pta-line--tool-done={tool.done}>
+                <span class="pta-tool__badge" class:pta-tool__badge--done={tool.done}>
+                  {tool.done ? '✓' : '⟳'}
+                </span>
+                <span class="pta-tool__name">{tool.name}</span>
+                {#if !tool.done && tool.input}
+                  <span class="pta-tool__args">{tool.input.slice(0, 60)}{tool.input.length > 60 ? '…' : ''}</span>
+                {/if}
+              </div>
+            {/each}
+          </div>
         {/if}
 
-      </div>
+        <!-- Thinking cursor (before first tool fires) -->
+        {#if msg.thinking && activeTools.length === 0}
+          <div class="pta-line pta-line--thinking">
+            <span class="pta-cursor-blink">▋</span>
+          </div>
+        {/if}
+
+        <!-- Response output -->
+        {#if msg.content && !msg.error}
+          <div class="pta-line pta-line--output">
+            <div class="pta-output-md">{@html renderMarkdown(msg.content)}</div>
+          </div>
+        {:else if msg.content && msg.error}
+          <div class="pta-line pta-line--error">
+            <span class="pta-error-badge">[ERROR]</span>
+            <span class="pta-error-text">{msg.content}</span>
+          </div>
+        {/if}
+      {/if}
     {/each}
   </div>
 
-  <!-- Input -->
+  <!-- Input row -->
   <div class="pta-input-row">
+    <span class="pta-prompt-glyph pta-prompt-glyph--input" class:pta-prompt-glyph--busy={isLoading}>
+      {isLoading ? '⟳' : '❯'}
+    </span>
     <textarea
       class="pta-input"
       bind:this={inputEl}
       bind:value={inputText}
       onkeydown={handleKeydown}
-      placeholder="Ask about a pipeline failure…"
+      placeholder="type a question and press Enter…"
       rows={2}
       disabled={isLoading || !sessionId}
     ></textarea>
-    <button
-      class="pta-send"
-      onclick={sendMessage}
-      disabled={isLoading || !inputText.trim() || !sessionId}
-      title="Send (Enter)"
-    >
-      {#if isLoading}
-        <span class="pta-send__spinner"></span>
+  </div>
+
+  <!-- Status bar -->
+  <div class="pta-statusbar">
+    <span class="pta-status__left">
+      {#if sessionId}
+        <span class="pta-status__dot pta-status__dot--ok"></span>
+        session&nbsp;{sessionId.slice(0, 8)}
       {:else}
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-        </svg>
+        <span class="pta-status__dot pta-status__dot--err"></span>
+        connecting…
       {/if}
-    </button>
+    </span>
+    <span class="pta-status__right">Enter&nbsp;·&nbsp;send &nbsp;|&nbsp; Shift+Enter&nbsp;·&nbsp;newline</span>
   </div>
 
 </div>
@@ -370,44 +389,49 @@
 {#if showSaveModal}
 <div class="pta-overlay" role="dialog" aria-modal="true">
   <div class="pta-modal">
-    <div class="pta-modal__header">Save RCA to Azure Storage</div>
+    <div class="pta-modal__titlebar">
+      <span class="pta-modal__icon">&gt;_</span>
+      <span class="pta-modal__title">save-rca&nbsp;—&nbsp;Azure Storage</span>
+    </div>
 
-    <label class="pta-modal__label">
-      Type
-      <select class="pta-modal__select" bind:value={saveType}>
-        <option value="release">Release</option>
-        <option value="build">Build</option>
-      </select>
-    </label>
-
-    <label class="pta-modal__label">
-      {saveType === 'release' ? 'Release ID' : 'Build ID'}
-      <input
-        class="pta-modal__input"
-        bind:value={saveItemId}
-        placeholder={saveType === 'release' ? '12345' : '67890'}
-        type="text"
-      />
-    </label>
-
-    {#if saveType === 'release'}
+    <div class="pta-modal__body">
       <label class="pta-modal__label">
-        Environment
-        <input class="pta-modal__input" bind:value={saveEnv} placeholder="Production" type="text" />
+        <span class="pta-modal__key">type</span>
+        <select class="pta-modal__select" bind:value={saveType}>
+          <option value="release">release</option>
+          <option value="build">build</option>
+        </select>
       </label>
-    {/if}
 
-    <div class="pta-modal__actions">
-      <button class="pta-btn pta-btn--ghost" onclick={() => showSaveModal = false}>Cancel</button>
+      <label class="pta-modal__label">
+        <span class="pta-modal__key">{saveType === 'release' ? 'release_id' : 'build_id'}</span>
+        <input
+          class="pta-modal__input"
+          bind:value={saveItemId}
+          placeholder={saveType === 'release' ? '12345' : '67890'}
+          type="text"
+        />
+      </label>
+
+      {#if saveType === 'release'}
+        <label class="pta-modal__label">
+          <span class="pta-modal__key">environment</span>
+          <input class="pta-modal__input" bind:value={saveEnv} placeholder="Production" type="text" />
+        </label>
+      {/if}
+    </div>
+
+    <div class="pta-modal__footer">
+      <button class="pta-tbtn pta-tbtn--cancel" onclick={() => showSaveModal = false}>cancel</button>
       <button
-        class="pta-btn pta-btn--primary"
+        class="pta-tbtn pta-tbtn--confirm"
         onclick={submitSave}
         disabled={!saveItemId.trim() || saveStatus === 'saving'}
       >
-        {#if saveStatus === 'saving'}Saving…
-        {:else if saveStatus === 'ok'}Saved ✓
-        {:else if saveStatus === 'error'}Error — retry?
-        {:else}Save
+        {#if saveStatus === 'saving'}saving…
+        {:else if saveStatus === 'ok'}saved ✓
+        {:else if saveStatus === 'error'}error — retry?
+        {:else}save
         {/if}
       </button>
     </div>
@@ -416,22 +440,24 @@
 {/if}
 
 <style>
-  /* ── CSS custom properties (all prefixed pta- to avoid collisions) ────────── */
+  /* ── Design tokens ────────────────────────────────────────────────────────── */
   :root {
-    --pta-bg:          #0f1117;
-    --pta-bg2:         #161b26;
-    --pta-bg3:         #1e2535;
-    --pta-border:      #2a3040;
-    --pta-accent:      #4f8ef7;
-    --pta-accent2:     #3a6fd8;
-    --pta-text:        #c9d1d9;
-    --pta-text-dim:    #6e7681;
-    --pta-text-bright: #e6edf3;
-    --pta-green:       #3fb950;
-    --pta-red:         #f85149;
-    --pta-radius:      10px;
-    --pta-font:        'Inter', 'Segoe UI', system-ui, sans-serif;
-    --pta-mono:        'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    --pta-bg:          #1e1e1e;
+    --pta-bg2:         #252526;
+    --pta-bg3:         #2d2d2d;
+    --pta-border:      #474747;
+    --pta-border-dim:  #3a3a3a;
+    --pta-text:        #cccccc;
+    --pta-text-dim:    #6a6a6a;
+    --pta-text-bright: #ffffff;
+    --pta-prompt:      #569cd6;    /* Azure blue */
+    --pta-green:       #4ec9b0;    /* Terminal teal-green */
+    --pta-yellow:      #dcdcaa;    /* Terminal yellow */
+    --pta-orange:      #ce9178;    /* Tool args */
+    --pta-red:         #f44747;
+    --pta-cyan:        #9cdcfe;
+    --pta-mono:        'Cascadia Code', 'Cascadia Mono', 'Fira Code', 'Consolas', 'Courier New', monospace;
+    --pta-ui-font:     'Segoe UI', system-ui, sans-serif;
   }
 
   /* ── FAB ─────────────────────────────────────────────────────────────────── */
@@ -443,236 +469,377 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 18px 10px 14px;
-    background: var(--pta-accent);
-    color: #fff;
-    border: none;
-    border-radius: 28px;
+    padding: 8px 16px 8px 12px;
+    background: var(--pta-bg2);
+    color: var(--pta-prompt);
+    border: 1px solid var(--pta-border);
+    border-radius: 4px;
     cursor: pointer;
-    font-family: var(--pta-font);
-    font-size: 14px;
+    font-family: var(--pta-mono);
+    font-size: 13px;
     font-weight: 600;
-    box-shadow: 0 4px 20px rgba(79, 142, 247, 0.35);
-    transition: background 0.15s, transform 0.1s;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
     user-select: none;
   }
-  .pta-fab:hover  { background: var(--pta-accent2); transform: translateY(-1px); }
-  .pta-fab:active { transform: translateY(0); }
-  .pta-fab--open  { background: var(--pta-bg3); box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
-  .pta-fab__label { letter-spacing: 0.04em; }
+  .pta-fab:hover           { background: var(--pta-bg3); border-color: var(--pta-prompt); color: var(--pta-text-bright); }
+  .pta-fab--open           { background: var(--pta-prompt); color: var(--pta-bg); border-color: var(--pta-prompt); }
+  .pta-fab--open:hover     { background: #4a8bc0; border-color: #4a8bc0; }
+  .pta-fab__icon           { font-size: 15px; font-weight: 700; letter-spacing: -0.03em; }
+  .pta-fab__label          { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
 
   /* ── Panel ───────────────────────────────────────────────────────────────── */
   .pta-panel {
     position: fixed;
-    bottom: 84px;
+    bottom: 76px;
     right: 24px;
     z-index: 8999;
-    width: 520px;
+    width: 560px;
     height: 680px;
     display: flex;
     flex-direction: column;
     background: var(--pta-bg);
     border: 1px solid var(--pta-border);
-    border-radius: var(--pta-radius);
-    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    border-radius: 6px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04);
     overflow: hidden;
-    font-family: var(--pta-font);
+    font-family: var(--pta-mono);
+    font-size: 13px;
     color: var(--pta-text);
-    animation: pta-slide-up 0.18s ease-out;
+    animation: pta-slide-up 0.16s ease-out;
   }
   @keyframes pta-slide-up {
-    from { opacity: 0; transform: translateY(12px) scale(0.98); }
-    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* ── Header ──────────────────────────────────────────────────────────────── */
-  .pta-header {
+  /* ── Title bar ───────────────────────────────────────────────────────────── */
+  .pta-titlebar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
+    gap: 0;
+    height: 34px;
     background: var(--pta-bg2);
     border-bottom: 1px solid var(--pta-border);
     flex-shrink: 0;
+    padding: 0 10px;
   }
-  .pta-header__left   { display: flex; align-items: center; gap: 8px; }
-  .pta-header__dot    { width: 8px; height: 8px; border-radius: 50%; background: var(--pta-text-dim); transition: background 0.3s; }
-  .pta-header__dot--ready { background: var(--pta-green); }
-  .pta-header__title  { font-size: 13px; font-weight: 600; color: var(--pta-text-bright); letter-spacing: 0.02em; }
-  .pta-header__actions { display: flex; gap: 6px; }
 
-  /* ── Buttons ─────────────────────────────────────────────────────────────── */
-  .pta-btn {
-    padding: 5px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
+  .pta-titlebar__controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 12px;
+  }
+  .pta-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
     cursor: pointer;
-    border: none;
-    transition: background 0.12s;
+    transition: opacity 0.12s;
   }
-  .pta-btn--ghost   { background: transparent; color: var(--pta-text-dim); border: 1px solid var(--pta-border); }
-  .pta-btn--ghost:hover { background: var(--pta-bg3); color: var(--pta-text); }
-  .pta-btn--primary { background: var(--pta-accent); color: #fff; }
-  .pta-btn--primary:hover:not(:disabled) { background: var(--pta-accent2); }
-  .pta-btn:disabled { opacity: 0.45; cursor: default; }
+  .pta-dot:hover { opacity: 0.75; }
+  .pta-dot--close { background: #ff5f57; }
+  .pta-dot--min   { background: #febc2e; }
+  .pta-dot--max   { background: #28c840; }
 
-  /* ── Messages ────────────────────────────────────────────────────────────── */
-  .pta-messages {
+  .pta-titlebar__tab {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 14px;
+    height: 100%;
+    background: var(--pta-bg);
+    border-right: 1px solid var(--pta-border);
+    border-left: 1px solid var(--pta-border);
+    color: var(--pta-text);
+    font-size: 12px;
+    font-family: var(--pta-ui-font);
+    font-weight: 500;
+  }
+  .pta-titlebar__tab-icon {
+    font-family: var(--pta-mono);
+    color: var(--pta-prompt);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .pta-titlebar__tab-status {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--pta-text-dim);
+    margin-left: 2px;
+    transition: background 0.3s;
+  }
+  .pta-titlebar__tab-status--ready { background: var(--pta-green); }
+
+  .pta-titlebar__actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+  }
+
+  /* ── Toolbar buttons ─────────────────────────────────────────────────────── */
+  .pta-tbtn {
+    padding: 4px 10px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-family: var(--pta-ui-font);
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--pta-border-dim);
+    background: transparent;
+    color: var(--pta-text-dim);
+    transition: background 0.1s, color 0.1s, border-color 0.1s;
+    letter-spacing: 0.02em;
+  }
+  .pta-tbtn:hover:not(:disabled)        { background: var(--pta-bg3); color: var(--pta-text); border-color: var(--pta-border); }
+  .pta-tbtn--confirm                     { color: var(--pta-green); border-color: var(--pta-green); }
+  .pta-tbtn--confirm:hover:not(:disabled){ background: rgba(78,201,176,0.1); }
+  .pta-tbtn--cancel                      { color: var(--pta-text-dim); }
+  .pta-tbtn:disabled                     { opacity: 0.35; cursor: default; }
+
+  /* ── Terminal output area ────────────────────────────────────────────────── */
+  .pta-terminal {
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
+    padding: 14px 16px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 2px;
     scroll-behavior: smooth;
+    line-height: 1.55;
   }
-  .pta-messages::-webkit-scrollbar       { width: 4px; }
-  .pta-messages::-webkit-scrollbar-track { background: transparent; }
-  .pta-messages::-webkit-scrollbar-thumb { background: var(--pta-border); border-radius: 2px; }
+  .pta-terminal::-webkit-scrollbar       { width: 5px; }
+  .pta-terminal::-webkit-scrollbar-track { background: transparent; }
+  .pta-terminal::-webkit-scrollbar-thumb { background: var(--pta-border); border-radius: 2px; }
 
-  .pta-empty {
-    flex: 1;
+  /* Welcome screen */
+  .pta-welcome {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    color: var(--pta-text-dim);
+    gap: 4px;
+    padding-bottom: 10px;
   }
-  .pta-empty__icon { font-size: 28px; }
-  .pta-empty__text { font-size: 14px; font-weight: 500; color: var(--pta-text); }
-  .pta-empty__hint { font-size: 12px; }
+  .pta-welcome__banner    { font-size: 15px; font-weight: 700; color: var(--pta-prompt); letter-spacing: 0.04em; }
+  .pta-welcome__meta      { font-size: 12px; color: var(--pta-text-dim); margin-top: 2px; }
+  .pta-welcome__ok        { color: var(--pta-green); }
+  .pta-welcome__err       { color: var(--pta-red); }
+  .pta-welcome__rule      { color: var(--pta-border); font-size: 11px; margin: 6px 0 4px; letter-spacing: 0.02em; }
+  .pta-welcome__hint      { font-size: 12.5px; color: var(--pta-text); }
+  .pta-welcome__hint--dim { color: var(--pta-text-dim); font-size: 12px; }
 
-  .pta-msg            { display: flex; flex-direction: column; }
-  .pta-msg--user      { align-items: flex-end; }
-  .pta-msg--assistant { align-items: flex-start; }
+  /* ── Lines ───────────────────────────────────────────────────────────────── */
+  .pta-line {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 8px;
+    min-height: 20px;
+  }
 
-  .pta-msg__bubble {
-    max-width: 88%;
-    padding: 10px 14px;
-    border-radius: 12px;
+  /* User command */
+  .pta-line--cmd {
+    margin-top: 10px;
+    padding-top: 6px;
+    border-top: 1px solid var(--pta-border-dim);
+  }
+  .pta-line--cmd:first-child { border-top: none; margin-top: 0; }
+  .pta-line__cmd-text { color: var(--pta-text-bright); word-break: break-word; }
+
+  /* Prompt glyph */
+  .pta-prompt-glyph {
+    color: var(--pta-prompt);
+    font-size: 13px;
+    flex-shrink: 0;
+    user-select: none;
+    margin-top: 1px;
+    font-weight: 700;
+  }
+
+  /* Tool block */
+  .pta-toolblock { display: flex; flex-direction: column; gap: 1px; margin: 4px 0; }
+  .pta-line--tool { gap: 6px; font-size: 12px; }
+  .pta-tool__badge {
+    color: var(--pta-yellow);
+    font-size: 11px;
+    flex-shrink: 0;
+    width: 16px;
+    text-align: center;
+    transition: color 0.2s;
+  }
+  .pta-tool__badge--done { color: var(--pta-green); }
+  .pta-tool__name   { color: var(--pta-cyan); }
+  .pta-tool__args   { color: var(--pta-orange); opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px; }
+
+  /* Thinking cursor */
+  .pta-line--thinking { padding: 2px 0 2px 22px; }
+  .pta-cursor-blink {
+    color: var(--pta-prompt);
     font-size: 14px;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
+    animation: pta-blink 1s step-end infinite;
   }
-  .pta-msg--user .pta-msg__bubble { background: var(--pta-accent); color: #fff; border-bottom-right-radius: 3px; }
-  .pta-msg__bubble--error { background: rgba(248,81,73,0.12); color: var(--pta-red); border: 1px solid rgba(248,81,73,0.25); }
-
-  /* ── Markdown ────────────────────────────────────────────────────────────── */
-  .pta-msg__markdown { font-size: 13.5px; line-height: 1.65; color: var(--pta-text); max-width: 100%; word-break: break-word; }
-  .pta-msg__markdown :global(h2) { font-size: 15px; font-weight: 700; color: var(--pta-text-bright); margin: 16px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--pta-border); }
-  .pta-msg__markdown :global(h3) { font-size: 13px; font-weight: 700; color: var(--pta-accent); margin: 12px 0 4px; text-transform: uppercase; letter-spacing: 0.06em; }
-  .pta-msg__markdown :global(p)  { margin: 0 0 8px; }
-  .pta-msg__markdown :global(ul), .pta-msg__markdown :global(ol) { margin: 4px 0 8px; padding-left: 18px; }
-  .pta-msg__markdown :global(li) { margin-bottom: 3px; }
-  .pta-msg__markdown :global(hr) { border: none; border-top: 1px solid var(--pta-border); margin: 14px 0; }
-  .pta-msg__markdown :global(code) { font-family: var(--pta-mono); font-size: 12px; background: var(--pta-bg3); padding: 1px 5px; border-radius: 4px; color: #e2b96f; }
-  .pta-msg__markdown :global(pre)  { background: var(--pta-bg2); border: 1px solid var(--pta-border); border-radius: 6px; padding: 10px 12px; overflow-x: auto; margin: 8px 0; }
-  .pta-msg__markdown :global(pre code) { background: none; padding: 0; color: var(--pta-text); }
-  .pta-msg__markdown :global(strong) { color: var(--pta-text-bright); font-weight: 700; }
-  .pta-msg__markdown :global(blockquote) { border-left: 3px solid var(--pta-border); margin: 6px 0; padding: 4px 12px; color: var(--pta-text-dim); font-style: italic; }
-  .pta-msg__markdown :global(table) { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 8px 0; }
-  .pta-msg__markdown :global(th) { background: var(--pta-bg3); color: var(--pta-text-bright); padding: 6px 10px; text-align: left; font-weight: 600; border: 1px solid var(--pta-border); }
-  .pta-msg__markdown :global(td) { padding: 5px 10px; border: 1px solid var(--pta-border); vertical-align: top; }
-  .pta-msg__markdown :global(tr:nth-child(even) td) { background: rgba(255,255,255,0.02); }
-
-  /* ── Tool activity ───────────────────────────────────────────────────────── */
-  .pta-tools { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; width: 100%; }
-  .pta-tool  { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--pta-text-dim); transition: color 0.2s; }
-  .pta-tool--done  { color: var(--pta-green); }
-  .pta-tool__icon  { width: 14px; text-align: center; }
-  .pta-tool__name  { font-family: var(--pta-mono); color: inherit; }
-  .pta-tool__input { color: var(--pta-text-dim); opacity: 0.6; font-family: var(--pta-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
-
-  /* ── Thinking dots ───────────────────────────────────────────────────────── */
-  .pta-thinking { display: flex; gap: 5px; padding: 10px 0 4px; }
-  .pta-thinking span { width: 7px; height: 7px; background: var(--pta-text-dim); border-radius: 50%; animation: pta-bounce 1.2s ease-in-out infinite; }
-  .pta-thinking span:nth-child(2) { animation-delay: 0.2s; }
-  .pta-thinking span:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes pta-bounce {
-    0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
-    40%           { transform: scale(1.0); opacity: 1;   }
+  @keyframes pta-blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
   }
+
+  /* Output */
+  .pta-line--output { flex-direction: column; padding-left: 0; margin: 4px 0 6px; }
+
+  /* Error */
+  .pta-line--error     { gap: 8px; font-size: 12.5px; }
+  .pta-error-badge     { color: var(--pta-red); flex-shrink: 0; font-size: 11px; }
+  .pta-error-text      { color: var(--pta-red); opacity: 0.85; }
+
+  /* ── Markdown output ─────────────────────────────────────────────────────── */
+  .pta-output-md { font-size: 13px; line-height: 1.65; color: var(--pta-text); word-break: break-word; max-width: 100%; }
+
+  .pta-output-md :global(h2) {
+    font-size: 14px; font-weight: 700; color: var(--pta-text-bright);
+    margin: 14px 0 5px; padding-bottom: 3px;
+    border-bottom: 1px solid var(--pta-border-dim);
+    font-family: var(--pta-ui-font);
+  }
+  .pta-output-md :global(h3) {
+    font-size: 12px; font-weight: 700; color: var(--pta-cyan);
+    margin: 10px 0 4px; text-transform: uppercase; letter-spacing: 0.06em;
+    font-family: var(--pta-ui-font);
+  }
+  .pta-output-md :global(p)  { margin: 0 0 6px; }
+  .pta-output-md :global(ul), .pta-output-md :global(ol) { margin: 4px 0 6px; padding-left: 18px; }
+  .pta-output-md :global(li) { margin-bottom: 2px; }
+  .pta-output-md :global(hr) { border: none; border-top: 1px solid var(--pta-border-dim); margin: 10px 0; }
+  .pta-output-md :global(code) {
+    font-family: var(--pta-mono); font-size: 12px;
+    background: var(--pta-bg3); padding: 1px 5px; border-radius: 3px; color: var(--pta-yellow);
+  }
+  .pta-output-md :global(pre)  {
+    background: var(--pta-bg2); border: 1px solid var(--pta-border-dim);
+    border-radius: 3px; padding: 10px 12px; overflow-x: auto; margin: 6px 0;
+  }
+  .pta-output-md :global(pre code) { background: none; padding: 0; color: var(--pta-text); }
+  .pta-output-md :global(strong)   { color: var(--pta-text-bright); font-weight: 700; }
+  .pta-output-md :global(blockquote) {
+    border-left: 2px solid var(--pta-border); margin: 4px 0;
+    padding: 3px 10px; color: var(--pta-text-dim); font-style: italic;
+  }
+  .pta-output-md :global(table) { width: 100%; border-collapse: collapse; font-size: 12px; margin: 6px 0; }
+  .pta-output-md :global(th) { background: var(--pta-bg3); color: var(--pta-text-bright); padding: 5px 10px; text-align: left; font-weight: 600; border: 1px solid var(--pta-border-dim); }
+  .pta-output-md :global(td) { padding: 4px 10px; border: 1px solid var(--pta-border-dim); vertical-align: top; }
+  .pta-output-md :global(tr:nth-child(even) td) { background: rgba(255,255,255,0.02); }
 
   /* ── Input row ───────────────────────────────────────────────────────────── */
   .pta-input-row {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 8px;
-    padding: 10px 12px 12px;
-    background: var(--pta-bg2);
+    padding: 10px 14px 10px;
+    background: var(--pta-bg);
     border-top: 1px solid var(--pta-border);
     flex-shrink: 0;
   }
+  .pta-prompt-glyph--input {
+    margin-top: 10px;
+    font-size: 14px;
+    transition: color 0.15s;
+  }
+  .pta-prompt-glyph--busy { color: var(--pta-yellow); animation: pta-spin 0.8s linear infinite; }
+  @keyframes pta-spin { to { transform: rotate(360deg); } }
+
   .pta-input {
     flex: 1;
-    background: var(--pta-bg3);
-    border: 1px solid var(--pta-border);
-    border-radius: 8px;
-    padding: 10px 12px;
-    color: var(--pta-text);
-    font-family: var(--pta-font);
-    font-size: 13.5px;
-    line-height: 1.4;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--pta-border-dim);
+    border-radius: 0;
+    padding: 8px 0;
+    color: var(--pta-text-bright);
+    font-family: var(--pta-mono);
+    font-size: 13px;
+    line-height: 1.5;
     resize: none;
     outline: none;
     transition: border-color 0.15s;
+    caret-color: var(--pta-prompt);
   }
-  .pta-input:focus        { border-color: var(--pta-accent); }
+  .pta-input:focus        { border-bottom-color: var(--pta-prompt); }
   .pta-input::placeholder { color: var(--pta-text-dim); }
-  .pta-input:disabled     { opacity: 0.5; cursor: default; }
+  .pta-input:disabled     { opacity: 0.4; cursor: default; }
 
-  .pta-send {
-    width: 40px; height: 40px;
-    border-radius: 8px;
-    background: var(--pta-accent);
-    color: #fff;
-    border: none;
-    cursor: pointer;
+  /* ── Status bar ──────────────────────────────────────────────────────────── */
+  .pta-statusbar {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
+    padding: 3px 14px;
+    background: var(--pta-prompt);
+    color: var(--pta-bg);
+    font-size: 11px;
+    font-family: var(--pta-ui-font);
     flex-shrink: 0;
-    transition: background 0.12s, transform 0.1s;
   }
-  .pta-send:hover:not(:disabled) { background: var(--pta-accent2); transform: translateY(-1px); }
-  .pta-send:disabled { opacity: 0.4; cursor: default; transform: none; }
-  .pta-send__spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: pta-spin 0.7s linear infinite; }
-  @keyframes pta-spin { to { transform: rotate(360deg); } }
+  .pta-status__left  { display: flex; align-items: center; gap: 5px; font-weight: 600; }
+  .pta-status__right { opacity: 0.75; font-size: 10.5px; }
+  .pta-status__dot   { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .pta-status__dot--ok  { background: var(--pta-bg); }
+  .pta-status__dot--err { background: var(--pta-red); }
 
   /* ── Save modal ──────────────────────────────────────────────────────────── */
   .pta-overlay {
     position: fixed;
     inset: 0;
     z-index: 9100;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0,0,0,0.7);
     display: flex;
     align-items: center;
     justify-content: center;
-    animation: pta-fade 0.15s ease;
+    animation: pta-fade 0.12s ease;
   }
   @keyframes pta-fade { from { opacity: 0; } to { opacity: 1; } }
 
   .pta-modal {
-    background: var(--pta-bg2);
+    background: var(--pta-bg);
     border: 1px solid var(--pta-border);
-    border-radius: var(--pta-radius);
-    padding: 24px;
-    width: 340px;
+    border-radius: 6px;
+    width: 360px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-    font-family: var(--pta-font);
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    font-family: var(--pta-mono);
     color: var(--pta-text);
   }
-  .pta-modal__header { font-size: 15px; font-weight: 700; color: var(--pta-text-bright); }
-  .pta-modal__label  { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 600; color: var(--pta-text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .pta-modal__titlebar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    background: var(--pta-bg2);
+    border-bottom: 1px solid var(--pta-border);
+    font-size: 12px;
+    font-family: var(--pta-ui-font);
+  }
+  .pta-modal__icon  { color: var(--pta-prompt); font-family: var(--pta-mono); font-weight: 700; }
+  .pta-modal__title { color: var(--pta-text); }
+  .pta-modal__body  { display: flex; flex-direction: column; gap: 12px; padding: 16px 14px; }
+  .pta-modal__label { display: flex; flex-direction: column; gap: 4px; }
+  .pta-modal__key   { font-size: 11px; color: var(--pta-cyan); letter-spacing: 0.04em; }
   .pta-modal__input,
-  .pta-modal__select { background: var(--pta-bg3); border: 1px solid var(--pta-border); border-radius: 6px; padding: 8px 10px; color: var(--pta-text); font-family: var(--pta-font); font-size: 13.5px; outline: none; }
+  .pta-modal__select {
+    background: var(--pta-bg3); border: 1px solid var(--pta-border-dim);
+    border-radius: 3px; padding: 7px 10px;
+    color: var(--pta-text-bright); font-family: var(--pta-mono); font-size: 13px; outline: none;
+  }
   .pta-modal__input:focus,
-  .pta-modal__select:focus { border-color: var(--pta-accent); }
-  .pta-modal__actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+  .pta-modal__select:focus { border-color: var(--pta-prompt); }
+  .pta-modal__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--pta-bg2);
+    border-top: 1px solid var(--pta-border);
+  }
 </style>
