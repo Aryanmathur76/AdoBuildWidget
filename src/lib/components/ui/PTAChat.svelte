@@ -9,6 +9,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { marked } from 'marked';
+  import { ptaOpen } from '$lib/stores/ptaStore';
 
   const API_BASE = import.meta.env.VITE_PTA_API_BASE || 'http://localhost:8000';
   const API_KEY  = import.meta.env.VITE_PTA_API_KEY  || '';
@@ -33,6 +34,8 @@
   // ── State ──────────────────────────────────────────────────────────────────
 
   let isOpen:       boolean     = false;
+  $: ptaOpen.set(isOpen);   // keep store in sync so other components can react
+
   let sessionId:    string|null = null;
   let messages:     Message[]   = [];
   let activeTools:  ActiveTool[] = [];

@@ -14,6 +14,7 @@
     import { WeeklyTestResults } from "../WeeklyTestResults/index.js";
     import { env } from "$env/dynamic/public";
     import type { PipelineConfig } from "$lib/utils/buildQualityUtils.js";
+    import { ptaOpen } from "$lib/stores/ptaStore";
     import TrashIcon from "@lucide/svelte/icons/trash-2";
     import Loader2 from "@lucide/svelte/icons/loader-2";
     import { toast } from "svelte-sonner";
@@ -46,13 +47,21 @@
     let current = $state(0);
     let visibleSlides = $state<number[]>([0, 1, 2]); // Default to first 3
 
+    // Track PTA panel open state from the shared store
+    let ptaIsOpen = $state(false);
     $effect(() => {
+        const unsub = ptaOpen.subscribe(v => { ptaIsOpen = v; });
+        return unsub;
+    });
+
+    $effect(() => {
+        const slidesVisible = ptaIsOpen ? 2 : 3;
         if (carouselApi) {
             current = carouselApi.selectedScrollSnap() + 1;
-            visibleSlides = Array.from({ length: 3 }, (_, i) => (current - 1) + i).filter(i => i >= 0 && i < count);
+            visibleSlides = Array.from({ length: slidesVisible }, (_, i) => (current - 1) + i).filter(i => i >= 0 && i < count);
             carouselApi.on("select", () => {
                 current = carouselApi!.selectedScrollSnap() + 1;
-                visibleSlides = Array.from({ length: 3 }, (_, i) => (current - 1) + i).filter(i => i >= 0 && i < count);
+                visibleSlides = Array.from({ length: ptaIsOpen ? 2 : 3 }, (_, i) => (current - 1) + i).filter(i => i >= 0 && i < count);
             });
         }
     });
@@ -290,35 +299,35 @@
             <div class="h-full flex-1 min-h-0 px-2 pb-2">
                 <Carousel.Root opts={{ align: "start", slidesToScroll: 1 }} class="h-full flex flex-col" setApi={(api) => carouselApi = api}>
                     <Carousel.Content class="h-full flex-1 min-h-0 -ml-2">
-                        <Carousel.Item class="h-full pl-2 basis-1/3">
+                        <Carousel.Item class="h-full pl-2 {ptaIsOpen ? 'basis-1/2' : 'basis-1/3'}">
                             <Card class="h-full bg-card border border-border">
                                 <CardContent class="flex-1 min-h-0 p-2 pt-0 flex flex-col overflow-auto h-full">
                                     <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} />
                                 </CardContent>
                             </Card>
                         </Carousel.Item>
-                        <Carousel.Item class="h-full pl-2 basis-1/3">
+                        <Carousel.Item class="h-full pl-2 {ptaIsOpen ? 'basis-1/2' : 'basis-1/3'}">
                             <Card class="h-full bg-card border border-border">
                                 <CardContent class="flex-1 min-h-0 p-2 pt-0 flex flex-col overflow-auto h-full">
                                     <WeeklyView viewMode={heatmapViewMode} />
                                 </CardContent>
                             </Card>
                         </Carousel.Item>
-                        <Carousel.Item class="h-full pl-2 basis-1/3">
+                        <Carousel.Item class="h-full pl-2 {ptaIsOpen ? 'basis-1/2' : 'basis-1/3'}">
                             <Card class="h-full bg-card border border-border">
                                 <CardContent class="flex-1 min-h-0 p-2 pt-0 flex flex-col overflow-auto h-full">
                                     <PipelineAnalytics />
                                 </CardContent>
                             </Card>
                         </Carousel.Item>
-                        <Carousel.Item class="h-full pl-2 basis-1/3">
+                        <Carousel.Item class="h-full pl-2 {ptaIsOpen ? 'basis-1/2' : 'basis-1/3'}">
                             <Card class="h-full bg-card border border-border">
                                 <CardContent class="flex-1 min-h-0 p-2 pt-0 flex flex-col overflow-auto h-full">
                                     <MonthlyTestResults />
                                 </CardContent>
                             </Card>
                         </Carousel.Item>
-                        <Carousel.Item class="h-full pl-2 basis-1/3">
+                        <Carousel.Item class="h-full pl-2 {ptaIsOpen ? 'basis-1/2' : 'basis-1/3'}">
                             <Card class="h-full bg-card border border-border">
                                 <CardContent class="flex-1 min-h-0 p-2 pt-0 flex flex-col overflow-auto h-full">
                                     <WeeklyTestResults />
