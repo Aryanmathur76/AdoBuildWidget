@@ -33,8 +33,18 @@
 
   // ── State ──────────────────────────────────────────────────────────────────
 
-  let isOpen:       boolean     = false;
-  $: ptaOpen.set(isOpen);   // keep store in sync so other components can react
+  let isOpen:       boolean = false;
+  let isMinimized:  boolean = false;
+  let isMaximized:  boolean = false;
+
+  // Carousel treats minimized as "closed" so main content gets its space back
+  $: ptaOpen.set(isOpen && !isMinimized);
+
+  // Computed wrapper class driven by the three states
+  $: wrapperClass = !isOpen            ? '' :
+                    isMinimized        ? 'pta-side-wrapper--minimized' :
+                    isMaximized        ? 'pta-side-wrapper--maximized' :
+                                        'pta-side-wrapper--open';
 
   let sessionId:    string|null = null;
   let messages:     Message[]   = [];
@@ -118,6 +128,8 @@
     activeTools  = [];
     lastResponse = null;
     isLoading    = false;
+    isMinimized  = false;
+    isMaximized  = false;
     await initSession();
   }
 
@@ -247,11 +259,22 @@
     }
   }
 
-  // ── Toggle ────────────────────────────────────────────────────────────────
+  // ── Window controls ────────────────────────────────────────────────────────
 
   function toggle(): void {
     isOpen = !isOpen;
+    if (!isOpen) { isMinimized = false; isMaximized = false; }
     if (isOpen) tick().then(() => inputEl?.focus());
+  }
+
+  function minimize(): void {
+    isMinimized = !isMinimized;
+    if (isMinimized) isMaximized = false;
+  }
+
+  function maximize(): void {
+    isMaximized = !isMaximized;
+    if (isMaximized) isMinimized = false;
   }
 </script>
 
@@ -264,15 +287,15 @@
 {/if}
 
 <!-- ── Side panel wrapper — always in DOM, CSS drives width ───────────────── -->
-<div class="pta-side-wrapper" class:pta-side-wrapper--open={isOpen}>
+<div class="pta-side-wrapper {wrapperClass}">
 <div class="pta-panel">
 
   <!-- Title bar -->
   <div class="pta-titlebar">
     <div class="pta-titlebar__controls">
       <button type="button" class="pta-dot pta-dot--close" onclick={toggle} title="Close" aria-label="Close"></button>
-      <span class="pta-dot pta-dot--min" title="Minimize"></span>
-      <span class="pta-dot pta-dot--max" title="Maximize"></span>
+      <button type="button" class="pta-dot pta-dot--min" onclick={minimize} title={isMinimized ? 'Restore' : 'Minimize'} aria-label={isMinimized ? 'Restore' : 'Minimize'}></button>
+      <button type="button" class="pta-dot pta-dot--max" onclick={maximize} title={isMaximized ? 'Restore' : 'Expand'} aria-label={isMaximized ? 'Restore' : 'Expand'}></button>
     </div>
     <div class="pta-titlebar__tab">
       <span class="pta-titlebar__tab-icon">&gt;_</span>
@@ -520,10 +543,16 @@
   .pta-side-wrapper--open {
     width: 420px;
   }
+  .pta-side-wrapper--minimized {
+    width: 52px;   /* just enough to show all three dots */
+  }
+  .pta-side-wrapper--maximized {
+    width: min(680px, 45vw);
+  }
 
   /* ── Panel — full-height flex column inside the wrapper ──────────────────── */
   .pta-panel {
-    width: 420px;
+    width: 100%;
     min-width: 420px;   /* prevents reflow while wrapper animates */
     height: 100%;
     display: flex;
@@ -563,8 +592,8 @@
   }
   .pta-dot:hover { opacity: 0.75; }
   .pta-dot--close { background: #ff5f57; }
-  .pta-dot--min   { background: #febc2e; }
-  .pta-dot--max   { background: #28c840; }
+  .pta-dot--min   { background: #febc2e; border: none; }
+  .pta-dot--max   { background: #28c840; border: none; }
 
   .pta-titlebar__tab {
     display: flex;
