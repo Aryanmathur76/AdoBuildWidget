@@ -265,7 +265,7 @@
   <!-- Title bar -->
   <div class="pta-titlebar">
     <div class="pta-titlebar__controls">
-      <span class="pta-dot pta-dot--close" onclick={toggle} title="Close"></span>
+      <button type="button" class="pta-dot pta-dot--close" onclick={toggle} title="Close" aria-label="Close"></button>
       <span class="pta-dot pta-dot--min" title="Minimize"></span>
       <span class="pta-dot pta-dot--max" title="Maximize"></span>
     </div>
