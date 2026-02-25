@@ -1056,6 +1056,24 @@
     .pta-panel {
       min-width: 0;
       border-left: none;
+      overflow-x: hidden;   /* belt-and-suspenders: nothing escapes the panel */
+    }
+
+    /* Terminal content must not cause horizontal scroll */
+    .pta-terminal {
+      overflow-x: hidden;
+      padding: 12px;        /* tighter side padding on narrow screens */
+    }
+
+    /* Welcome rule is a long fixed string of box-drawing chars — clip it */
+    .pta-welcome__rule {
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    /* Tool args already have max-width/overflow:hidden but enforce on mobile */
+    .pta-tool__args {
+      max-width: 60vw;
     }
 
     /* Keyboard shortcut hint is irrelevant on touch – reclaim the space */
