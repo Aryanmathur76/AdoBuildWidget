@@ -445,13 +445,33 @@
 {/if}
 
 <style>
-  /* ── Design tokens ────────────────────────────────────────────────────────── */
+  /* ── Design tokens — light mode (uses site theme variables) ─────────────── */
   :root {
-    --pta-bg:          #1e1e1e;
-    --pta-bg2:         #252526;
-    --pta-bg3:         #2d2d2d;
-    --pta-border:      #474747;
-    --pta-border-dim:  #3a3a3a;
+    --pta-bg:          var(--background);
+    --pta-bg2:         var(--card);
+    --pta-bg3:         var(--secondary);
+    --pta-border:      var(--border);
+    --pta-border-dim:  color-mix(in srgb, var(--border) 60%, var(--background));
+    --pta-text:        var(--muted-foreground);
+    --pta-text-dim:    color-mix(in srgb, var(--muted-foreground) 60%, var(--background));
+    --pta-text-bright: var(--foreground);
+    --pta-prompt:      #0066b8;    /* Azure blue — darkened for light bg */
+    --pta-green:       #006f5c;    /* Dark teal */
+    --pta-yellow:      #7a5c00;    /* Dark amber — for code on light bg */
+    --pta-orange:      #8f4a1f;    /* Dark orange — tool args */
+    --pta-red:         #cc0000;
+    --pta-cyan:        #004f8a;    /* Dark cyan */
+    --pta-mono:        'Cascadia Code', 'Cascadia Mono', 'Fira Code', 'Consolas', 'Courier New', monospace;
+    --pta-ui-font:     'Segoe UI', system-ui, sans-serif;
+  }
+
+  /* ── Design tokens — dark mode (original terminal palette) ──────────────── */
+  :global(.dark) {
+    --pta-bg:          var(--background);
+    --pta-bg2:         var(--card);
+    --pta-bg3:         var(--secondary);
+    --pta-border:      var(--border);
+    --pta-border-dim:  #2e2e2e;
     --pta-text:        #cccccc;
     --pta-text-dim:    #6a6a6a;
     --pta-text-bright: #ffffff;
@@ -461,8 +481,6 @@
     --pta-orange:      #ce9178;    /* Tool args */
     --pta-red:         #f44747;
     --pta-cyan:        #9cdcfe;
-    --pta-mono:        'Cascadia Code', 'Cascadia Mono', 'Fira Code', 'Consolas', 'Courier New', monospace;
-    --pta-ui-font:     'Segoe UI', system-ui, sans-serif;
   }
 
   /* ── FAB — shown only when panel is closed ───────────────────────────────── */
@@ -483,7 +501,7 @@
     font-family: var(--pta-mono);
     font-size: 13px;
     font-weight: 600;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
     transition: background 0.12s, border-color 0.12s, color 0.12s;
     user-select: none;
   }
