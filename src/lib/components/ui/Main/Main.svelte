@@ -1,3 +1,8 @@
+<script module lang="ts">
+    // Persists across SvelteKit client-side navigations but resets on hard refresh
+    let bootHasPlayed = false;
+</script>
+
 <script lang="ts">
     import { slide } from "svelte/transition";
     import * as Tabs from "$lib/components/ui/tabs/index.js";
@@ -54,8 +59,8 @@
     let canScrollPrev = $state(false);
     let canScrollNext = $state(true);
     const FLASH_DELAYS = [0, 100, 200, 300, 400].sort(() => Math.random() - 0.5);
-    let bootVisible = $state(true);
-    let appReady = $state(false);
+    let bootVisible = $state(!bootHasPlayed);
+    let appReady = $state(bootHasPlayed);
     let bootPhase = $state<'visible' | 'deleting'>('visible');
     // Animated boot sequence state
     const BOOT_LINES = [
@@ -110,6 +115,7 @@
     // Boot splash: animated typewriter sequence
     $effect(() => {
         if (typeof window === 'undefined') return;
+        if (bootHasPlayed) return;
         let cancelled = false;
         const timers: ReturnType<typeof setTimeout>[] = [];
         const t = (fn: () => void, delay: number) => {
@@ -150,7 +156,7 @@
             t(() => { bootTypedLines = bootTypedLines.slice(0, len); },
               delay + 350 + (BOOT_LINES.length - i) * 45);
         }
-        t(() => { bootVisible = false; appReady = true; },
+        t(() => { bootVisible = false; appReady = true; bootHasPlayed = true; },
           delay + 350 + BOOT_LINES.length * 45 + 100);
 
         return () => { cancelled = true; timers.forEach(clearTimeout); };
