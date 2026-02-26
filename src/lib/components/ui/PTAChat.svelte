@@ -9,7 +9,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { marked } from 'marked';
-  import { ptaOpen, ptaInject } from '$lib/stores/ptaStore';
+  import { ptaOpen, ptaInject, ptaWidth } from '$lib/stores/ptaStore';
 
   const API_BASE = import.meta.env.VITE_PTA_API_BASE || 'http://localhost:8000';
   const API_KEY  = import.meta.env.VITE_PTA_API_KEY  || '';
@@ -48,6 +48,9 @@
   // When docked, the main content shrinks to accommodate the panel.
   // When floating, the panel overlays — no layout accommodation needed.
   $: ptaOpen.set(isOpen && !isFloating);
+
+  // Publish current docked width so Main can adapt the carousel layout.
+  $: ptaWidth.set(isOpen && !isFloating ? panelWidth : 0);
 
   // Fetch pipeline context when panel first opens
   $: if (isOpen && !contextLoaded) {
@@ -206,8 +209,8 @@
     await initSession();
   }
 
-  onMount(async () => {
-    await initSession();
+  onMount(() => {
+    initSession();
 
     function onEscape(e: KeyboardEvent): void {
       if (e.key === 'Escape' && isOpen && document.activeElement !== inputEl) {
@@ -383,7 +386,7 @@
   function onDockResizePointerMove(e: PointerEvent): void {
     if (!isDockResizing) return;
     // Panel is flush to the right edge; left boundary is at clientX
-    panelWidth = Math.max(280, Math.min(760, window.innerWidth - e.clientX));
+    panelWidth = Math.max(280, Math.min(Math.floor(window.innerWidth * 2 / 3), window.innerWidth - e.clientX));
   }
 
   function onDockResizePointerUp(): void { isDockResizing = false; }
