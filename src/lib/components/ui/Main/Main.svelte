@@ -115,7 +115,8 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.font = `${FS}px monospace`;
-            ctx.fillStyle = 'rgba(50,150,255,0.8)';
+            const isDark = document.documentElement.classList.contains('dark');
+            ctx.fillStyle = isDark ? 'rgba(50,150,255,0.8)' : 'rgba(20,80,200,0.85)';
 
             for (let i = 0; i < drops.length; i++) {
                 if (drops[i] < 0) { drops[i]++; continue; }
@@ -333,7 +334,7 @@
                     <div class="flex items-baseline justify-between gap-4 leading-5">
                         <span class="text-muted-foreground">{line.text}</span>
                         {#if line.suffix}
-                            <span class="text-blue-400 shrink-0 text-[10px]">[{line.suffix}]</span>
+                            <span class="text-blue-600 dark:text-blue-400 shrink-0 text-[10px]">[{line.suffix}]</span>
                         {/if}
                     </div>
                 {/each}
@@ -342,7 +343,7 @@
                     <div class="flex items-baseline justify-between gap-4 leading-5">
                         <span class="text-foreground">{bootCurrentText}<span class="cursor-blink">_</span></span>
                         {#if bootCurrentSuffix}
-                            <span class="text-blue-400 shrink-0 text-[10px]">[{bootCurrentSuffix}]</span>
+                            <span class="text-blue-600 dark:text-blue-400 shrink-0 text-[10px]">[{bootCurrentSuffix}]</span>
                         {/if}
                     </div>
                 {/if}
