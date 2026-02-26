@@ -220,13 +220,10 @@
                 {/if}
             </Dialog>
         {/if}
-        <div
-            class="flex-container"
-            style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%;"
-        >
-            <div class="flex flex-col items-start min-w-0 flex-1">
-                <div class="flex items-center gap-2 pb-1">
-                    <div class="font-semibold text-[1.1rem] leading-[1.2] truncate">
+        <div class="flex flex-col gap-2 w-full">
+            <div class="flex flex-col items-start min-w-0 w-full">
+                <div class="flex items-center gap-2 pb-1 flex-wrap">
+                    <div class="font-semibold text-[1.1rem] leading-[1.2]">
                         {pipelineName}
                     </div>
                     <PipelineStatusBadge {status} />
@@ -304,14 +301,14 @@
             </div>
             {#if passCount !== null && failCount !== null && passCount + failCount > 0}
                 {@const totalTests = passCount + (failCount ?? 0) + (notRunCount ?? 0)}
-                {@const passPercentage = totalTests > 0 ? Math.round((passCount / totalTests) * 100) : 0}
+                {@const passPercentage = totalTests > 0 ? ((passCount / totalTests) * 100).toFixed(2) : '0.00'}
                 {@const passWidth = totalTests > 0 ? (passCount / totalTests) * 100 : 0}
                 {@const failWidth = totalTests > 0 ? ((failCount ?? 0) / totalTests) * 100 : 0}
                 {@const notRunWidth = totalTests > 0 ? ((notRunCount ?? 0) / totalTests) * 100 : 0}
-                
-                <div class="flex-shrink-0 flex flex-col gap-2 test-bar-container">
+
+                <div class="flex flex-col gap-1 w-full">
                     <!-- Progress bar -->
-                    <div class="flex h-6 w-[200px] sm:w-[300px] overflow-hidden rounded-md border border-border bg-muted test-progress-bar">
+                    <div class="flex h-6 w-full overflow-hidden rounded-md border border-border bg-muted test-progress-bar">
                         {#if passWidth > 0}
                             <div
                                 class="{getTestPassColor()} flex items-center justify-center text-xs font-medium text-white"
@@ -336,7 +333,7 @@
                     </div>
                     
                     <!-- Stats row -->
-                    <div class="flex items-center justify-between flex-wrap gap-y-0.5 text-xs w-[200px] sm:w-[300px] test-stats-row">
+                    <div class="flex items-center justify-between flex-wrap gap-y-0.5 text-xs w-full test-stats-row">
                         <div class="flex items-center gap-3 whitespace-nowrap">
                             <span class="text-lime-600 dark:text-lime-500 font-medium whitespace-nowrap">
                                 <span class="sm:hidden">P:</span>
@@ -364,29 +361,11 @@
                     </div>
                 </div>
             {:else}
-                <div class="flex-shrink-0 flex items-center justify-center w-[200px] sm:w-[300px] test-bar-container pb-1">
-                    <span class="text-xs text-muted-foreground">No test data</span>
-                </div>
+                <div class="text-xs text-muted-foreground pb-1">No test data</div>
             {/if}
         </div>
     </Card.Content>
 </Card.Root>
 
 <style>
-    @media (max-width: 450px) {
-        .flex-container {
-            flex-direction: column !important;
-            align-items: stretch !important;
-        }
-        
-        .test-bar-container {
-            width: 100% !important;
-            align-items: stretch !important;
-        }
-        
-        .test-progress-bar,
-        .test-stats-row {
-            width: 100% !important;
-        }
-    }
 </style>

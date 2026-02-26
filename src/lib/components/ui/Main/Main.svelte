@@ -17,6 +17,7 @@
     import { PipelineAnalytics } from "../PipelineAnalytics/index.js";
     import { MonthlyTestResults } from "../MonthlyTestResults/index.js";
     import { WeeklyTestResults } from "../WeeklyTestResults/index.js";
+    import { DailyDigest } from "../DailyDigest/index.js";
     import { env } from "$env/dynamic/public";
     import type { PipelineConfig } from "$lib/utils/buildQualityUtils.js";
     import { ptaOpen } from "$lib/stores/ptaStore";
@@ -34,7 +35,7 @@
     });
 
     // State
-    const VALID_TABS = ["Monthly", "Weekly", "Analytics", "TestResults"];
+    const VALID_TABS = ["Today", "Monthly", "Weekly", "Analytics", "TestResults"];
     let currentTab = $state(
         typeof window !== 'undefined'
             ? (() => {
@@ -53,7 +54,7 @@
     let todayQuality = $state<string>("unknown");
     let carouselApi = $state<CarouselAPI>();
     let isClearingCache = $state(false);
-    const count = 5; // Hardcoded for 5 carousel items
+    const count = 6; // Hardcoded for 6 carousel items
     let current = $state(0);
     let visibleSlides = $state<number[]>([0, 1, 2]); // Default to first 3
     let canScrollPrev = $state(false);
@@ -322,6 +323,9 @@
                         </div>
                     </div>
                     <main class="flex-1 min-h-0 overflow-hidden" style={appReady ? `animation:flash-in 280ms ease-out both;animation-delay:${FLASH_DELAYS[4]}ms` : 'opacity:0'}>
+                        <Tabs.Content value="Today" class="h-full overflow-auto p-1">
+                            <DailyDigest />
+                        </Tabs.Content>
                         <Tabs.Content value="Monthly" class="h-full overflow-auto">
                             <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} isMainView={true} />
                         </Tabs.Content>
@@ -343,6 +347,12 @@
                             <Sidebar.GroupLabel>Views</Sidebar.GroupLabel>
                             <Sidebar.GroupContent>
                                 <Sidebar.Menu>
+                                    <Sidebar.MenuItem>
+                                        <Sidebar.MenuButton onclick={() => { currentTab = "Today"; sidebar?.toggle(); }} class={currentTab === "Today" ? "bg-accent border-l-2 border-primary py-3 min-h-[44px]" : "border-l-2 border-transparent py-3 min-h-[44px]"}>
+                                            <span class="material-symbols-outlined" style="font-size: 1.5em;">today</span>
+                                            <span>Daily Digest</span>
+                                        </Sidebar.MenuButton>
+                                    </Sidebar.MenuItem>
                                     <Sidebar.MenuItem>
                                         <Sidebar.MenuButton onclick={() => { currentTab = "Monthly"; sidebar?.toggle(); }} class={currentTab === "Monthly" ? "bg-accent border-l-2 border-primary py-3 min-h-[44px]" : "border-l-2 border-transparent py-3 min-h-[44px]"}>
                                             <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
@@ -441,6 +451,13 @@
             <div class="h-full flex-1 min-h-0 px-2 pt-2 pb-2" style={appReady ? `animation:flash-in 280ms ease-out both;animation-delay:${FLASH_DELAYS[2]}ms` : 'opacity:0'}>
                 <Carousel.Root opts={{ align: "start", slidesToScroll: 1 }} class="h-full flex flex-col" setApi={(api) => carouselApi = api}>
                     <Carousel.Content class="h-full flex-1 min-h-0 -ml-2">
+                        <Carousel.Item class="h-full pl-2 {ptaIsOpen ? 'basis-1/2' : 'basis-1/3'}">
+                            <Card class="h-full bg-card border border-border">
+                                <CardContent class="flex-1 min-h-0 p-2 pt-0 flex flex-col overflow-auto h-full">
+                                    <DailyDigest />
+                                </CardContent>
+                            </Card>
+                        </Carousel.Item>
                         <Carousel.Item class="h-full pl-2 {ptaIsOpen ? 'basis-1/2' : 'basis-1/3'}">
                             <Card class="h-full bg-card border border-border">
                                 <CardContent class="flex-1 min-h-0 p-2 pt-0 flex flex-col overflow-auto h-full">
