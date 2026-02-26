@@ -97,7 +97,7 @@
                                 pipelineName: name,
                                 pipelineGroup: null,
                                 pipelineType: 'release',
-                                pipelineId: Number(p.id),
+                                pipelineId: Number(data?.id ?? p.id),
                                 status: data?.status ?? 'unknown',
                                 passCount: data?.passedTestCount ?? null,
                                 failCount: data?.failedTestCount ?? null,
