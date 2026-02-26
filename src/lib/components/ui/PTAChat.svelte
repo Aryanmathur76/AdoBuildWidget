@@ -147,9 +147,13 @@
     return marked(text, { breaks: true, gfm: true }) as string;
   }
 
-  async function scrollToBottom(): Promise<void> {
+  async function scrollToBottom(force = false): Promise<void> {
     await tick();
-    if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
+    if (!messagesEl) return;
+    const distFromBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight;
+    if (force || distFromBottom < 80) {
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
   }
 
   // ── Typewriter ─────────────────────────────────────────────────────────────
@@ -161,8 +165,7 @@
       i = Math.min(i + charsPerTick, text.length);
       messages[idx] = { ...messages[idx], content: text.slice(0, i) };
       messages = [...messages];
-      await tick();
-      if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
+      await scrollToBottom();
       await new Promise(r => setTimeout(r, 16));  // ~60fps
     }
     messages[idx] = { ...messages[idx], content: text };
@@ -229,7 +232,7 @@
     messages = [...messages, { role: 'user', content: text, thinking: false, error: false }];
     const assistantIdx = messages.length;
     messages = [...messages, { role: 'assistant', content: '', thinking: true, error: false }];
-    await scrollToBottom();
+    await scrollToBottom(true);
 
     // Build the message sent to the API — silently prepend pipeline context on first message
     let apiMessage = text;
@@ -308,7 +311,7 @@
       activeTools = [];
     } finally {
       isLoading = false;
-      await scrollToBottom();
+      await scrollToBottom(true);
       inputEl?.focus();
     }
   }
@@ -730,7 +733,9 @@
   .pta-side-wrapper {
     position: relative;   /* anchor for the resize handle */
     flex-shrink: 0;
-    height: 100%;
+    display: flex;
+    flex-direction: column;
+    /* height comes from align-self:stretch (default) in app-body flex row */
     /* width is set via inline style; CSS transition gives a smooth open */
     transition: width 0.18s ease-out;
     will-change: width;
@@ -755,8 +760,9 @@
 
   /* ── Panel — shared by docked and floating ───────────────────────────────── */
   .pta-panel {
+    flex: 1;
+    min-height: 0;
     width: 100%;
-    height: 100%;
     display: flex;
     flex-direction: column;
     background: var(--pta-bg);
@@ -881,11 +887,10 @@
   /* ── Terminal output area ────────────────────────────────────────────────── */
   .pta-terminal {
     flex: 1;
+    min-height: 0;      /* required: allows flex item to shrink below content height so overflow-y:auto engages */
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 14px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
     line-height: 1.55;
   }
   .pta-terminal::-webkit-scrollbar       { width: 5px; }
@@ -943,6 +948,7 @@
     align-items: flex-start;
     gap: 8px;
     min-height: 20px;
+    margin-bottom: 2px;
   }
 
   /* User command */
