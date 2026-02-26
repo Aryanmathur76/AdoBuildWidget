@@ -220,7 +220,7 @@
 
 </script>
 
-<div class="h-full p-4 lg:p-0 lg:pt-1 lg:pb-0 flex flex-col gap-4">
+<div class="h-full p-0 pt-1 flex flex-col gap-4">
     <div class="flex items-start justify-between gap-2">
         <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono flex items-center gap-2">
             ▶ Monthly Test Results

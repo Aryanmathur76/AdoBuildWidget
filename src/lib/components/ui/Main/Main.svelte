@@ -323,19 +323,19 @@
                         </div>
                     </div>
                     <main class="flex-1 min-h-0 overflow-hidden" style={appReady ? `animation:flash-in 280ms ease-out both;animation-delay:${FLASH_DELAYS[4]}ms` : 'opacity:0'}>
-                        <Tabs.Content value="Today" class="h-full overflow-auto p-1">
+                        <Tabs.Content value="Today" class="h-full overflow-auto p-2 pt-0">
                             <DailyDigest />
                         </Tabs.Content>
-                        <Tabs.Content value="Monthly" class="h-full overflow-auto">
+                        <Tabs.Content value="Monthly" class="h-full overflow-auto p-2 pt-0">
                             <MonthlyHeatmapView viewMode={heatmapViewMode} onTodayQualityChange={(q) => todayQuality = q} isMainView={true} />
                         </Tabs.Content>
-                        <Tabs.Content value="Weekly" class="h-full overflow-auto">
+                        <Tabs.Content value="Weekly" class="h-full overflow-auto p-2 pt-0">
                             <WeeklyView viewMode={heatmapViewMode} />
                         </Tabs.Content>
-                        <Tabs.Content value="Analytics" class="h-full overflow-auto">
+                        <Tabs.Content value="Analytics" class="h-full overflow-auto p-2 pt-0">
                             <PipelineAnalytics />
                         </Tabs.Content>
-                        <Tabs.Content value="TestResults" class="h-full overflow-auto p-1">
+                        <Tabs.Content value="TestResults" class="h-full overflow-auto p-2 pt-0">
                             <MonthlyTestResults />
                         </Tabs.Content>
                     </main>
