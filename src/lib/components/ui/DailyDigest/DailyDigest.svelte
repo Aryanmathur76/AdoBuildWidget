@@ -186,20 +186,22 @@
                 <Skeleton class="h-[72px] w-full rounded-lg" />
             {/each}
         {:else}
-            {#each rows as row}
-                <BuildCard
-                    pipelineName={row.pipelineName}
-                    pipelineGroup={row.pipelineGroup}
-                    pipelineType={row.pipelineType}
-                    pipelineId={row.pipelineId}
-                    link={row.link}
-                    status={row.status}
-                    passCount={row.passCount}
-                    failCount={row.failCount}
-                    notRunCount={row.notRunCount}
-                    completedDate={row.completedDate}
-                    date={todayStr}
-                />
+            {#each rows as row, i}
+                <div class="card-enter" style="animation-delay: {i * 65}ms">
+                    <BuildCard
+                        pipelineName={row.pipelineName}
+                        pipelineGroup={row.pipelineGroup}
+                        pipelineType={row.pipelineType}
+                        pipelineId={row.pipelineId}
+                        link={row.link}
+                        status={row.status}
+                        passCount={row.passCount}
+                        failCount={row.failCount}
+                        notRunCount={row.notRunCount}
+                        completedDate={row.completedDate}
+                        date={todayStr}
+                    />
+                </div>
             {/each}
             {#if rows.length === 0}
                 <div class="text-xs text-muted-foreground text-center py-4">No pipelines configured</div>
@@ -209,7 +211,7 @@
 
     <!-- Footer — always pinned at bottom -->
     {#if !isLoading && (totalPass > 0 || totalFail > 0)}
-        <div class="border-t border-border pt-1.5 pb-1 flex items-center justify-between gap-2 text-xs shrink-0">
+        <div class="footer-enter border-t border-border pt-1.5 pb-1 flex items-center justify-between gap-2 text-xs shrink-0">
             <div class="flex items-center gap-3">
                 <span class="text-lime-600 dark:text-lime-500 font-medium">Pass: {totalPass}</span>
                 {#if totalFail > 0}
@@ -220,3 +222,21 @@
         </div>
     {/if}
 </div>
+
+<style>
+    @keyframes cardEnter {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .card-enter {
+        animation: cardEnter 0.28s ease both;
+    }
+
+    @keyframes footerEnter {
+        from { opacity: 0; transform: translateY(5px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .footer-enter {
+        animation: footerEnter 0.3s ease both;
+    }
+</style>

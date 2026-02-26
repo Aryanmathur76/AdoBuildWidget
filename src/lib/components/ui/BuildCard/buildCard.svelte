@@ -298,7 +298,7 @@
 
                 <div class="flex flex-col gap-1 w-full">
                     <!-- Progress bar -->
-                    <div class="flex h-6 w-full overflow-hidden rounded-md border border-border bg-muted test-progress-bar">
+                    <div class="flex h-6 w-full overflow-hidden rounded-md border border-border bg-muted test-progress-bar bar-reveal">
                         {#if passWidth > 0}
                             <div
                                 class="{getTestPassColor()} flex items-center justify-center text-xs font-medium text-white"
@@ -323,7 +323,7 @@
                     </div>
                     
                     <!-- Stats row -->
-                    <div class="flex items-center justify-between flex-wrap gap-y-0.5 text-xs w-full test-stats-row">
+                    <div class="flex items-center justify-between flex-wrap gap-y-0.5 text-xs w-full test-stats-row stats-enter">
                         <div class="flex items-center gap-3 whitespace-nowrap">
                             <span class="text-lime-600 dark:text-lime-500 font-medium whitespace-nowrap">
                                 <span class="sm:hidden">P:</span>
@@ -358,4 +358,21 @@
 </Card.Root>
 
 <style>
+    @keyframes barReveal {
+        from { clip-path: inset(0 100% 0 0); }
+        to   { clip-path: inset(0 0% 0 0); }
+    }
+    .bar-reveal {
+        animation: barReveal 0.55s cubic-bezier(0.4, 0, 0.2, 1) both;
+        animation-delay: 0.08s;
+    }
+
+    @keyframes statsEnter {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+    }
+    .stats-enter {
+        animation: statsEnter 0.35s ease both;
+        animation-delay: 0.45s;
+    }
 </style>
