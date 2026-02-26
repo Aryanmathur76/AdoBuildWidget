@@ -330,12 +330,9 @@
     }
 </script>
 
-<div class="flex-1 flex flex-col px-4 pb-4 ">
-    <div class="flex items-center justify-between mb-3">
-        <h3 class="text-lg font-semibold flex items-center gap-2">
-            <span class="material-symbols-outlined" style="font-size: 1.5em;">view_module</span>
-            Daily Tests - Monthly
-        </h3>
+<div class="flex-1 flex flex-col px-0 pt-1 pb-4">
+    <div class="flex items-start justify-between mb-3">
+        <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono">▶ Daily Tests · Monthly</span>
         <button onclick={() => {
             analyzeBestBuild();
         }} disabled={analyzingBestBuild} class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors disabled:opacity-50" title="Find the best build day this month">

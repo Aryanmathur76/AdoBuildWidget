@@ -127,8 +127,9 @@
 </script>
 
 <div class="flex flex-col h-full">
-    <!-- Header row -->
-    <div class="flex items-center gap-2 pt-2 pb-1.5 px-1 border-b border-border shrink-0">
+    <!-- Title + status inline -->
+    <div class="flex items-center gap-2 pt-1 pb-1.5 border-b border-border shrink-0">
+        <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono">▶ Today's Results</span>
         {#if overallQuality !== 'unknown'}
             <span class="relative inline-flex shrink-0">
                 <span class="animate-ping absolute inline-flex w-2 h-2 rounded-full {getBuildStatusColor(overallQuality).split(' ')[0]} opacity-50"></span>
@@ -137,11 +138,6 @@
             <span class="text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded {getBuildStatusColor(overallQuality)}">
                 {overallQuality.toUpperCase()}
             </span>
-        {:else}
-            <span class="relative inline-flex shrink-0">
-                <span class="relative w-2 h-2 rounded-full inline-block bg-zinc-500"></span>
-            </span>
-            <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">—</span>
         {/if}
         <span class="ml-auto text-xs text-muted-foreground shrink-0">{formattedDate}</span>
     </div>
@@ -176,7 +172,7 @@
 
     <!-- Footer — always pinned at bottom -->
     {#if !isLoading && (totalPass > 0 || totalFail > 0)}
-        <div class="border-t border-border pt-1.5 pb-1 px-1 flex items-center justify-between gap-2 text-xs shrink-0">
+        <div class="border-t border-border pt-1.5 pb-1 flex items-center justify-between gap-2 text-xs shrink-0">
             <div class="flex items-center gap-3">
                 <span class="text-lime-600 dark:text-lime-500 font-medium">Pass: {totalPass}</span>
                 {#if totalFail > 0}

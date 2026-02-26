@@ -82,12 +82,9 @@
     }
 </script>
 
-<div class="flex flex-col h-full">
+<div class="flex flex-col h-full pt-1">
     <div class="flex items-center gap-2 mb-4">
-        <span class="material-symbols-outlined text-primary" style="font-size: 1.5em;">event_repeat</span>
-        <div class="flex flex-col">
-            <h3 class="text-lg font-semibold">Sprint Test Results</h3>
-        </div>
+        <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono">▶ Sprint Test Results</span>
         <Badge class="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs ml-auto">
             Beta
         </Badge>

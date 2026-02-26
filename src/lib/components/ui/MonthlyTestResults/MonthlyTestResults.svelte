@@ -220,16 +220,14 @@
 
 </script>
 
-<div class="h-full p-4 lg:p-0 lg:pb-0 lg:pt-0 flex flex-col gap-4">
-    <div class="flex items-center justify-between gap-2">
-        <h3 class="text-lg font-semibold flex items-center gap-2">
+<div class="h-full p-4 lg:p-0 lg:pt-1 lg:pb-0 flex flex-col gap-4">
+    <div class="flex items-start justify-between gap-2">
+        <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono flex items-center gap-2">
+            ▶ Monthly Test Results
             {#if loading}
-                <span class="material-symbols-outlined animate-spin" style="font-size: 1.5em;">progress_activity</span>
-            {:else}
-                <span class="material-symbols-outlined" style="font-size: 1.5em;">calendar_month</span>
+                <span class="material-symbols-outlined text-muted-foreground animate-spin" style="font-size: 13px; line-height: 1;">progress_activity</span>
             {/if}
-            Monthly Test Run Analysis
-        </h3>
+        </span>
 
         <div class="flex items-center gap-2">
             <button 

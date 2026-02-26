@@ -224,12 +224,9 @@
     }
 </script>
 
-<div class="h-full p-4 lg:p-0 lg:pb-0 flex flex-col gap-4">
-    <div class="flex items-center justify-between gap-4">
-        <h3 class="text-lg font-semibold flex items-center gap-2">
-            <span class="material-symbols-outlined" style="font-size: 1.5em;">bar_chart</span>
-            Daily Pipeline Analytics
-        </h3>
+<div class="h-full p-4 lg:p-0 lg:pt-1 lg:pb-0 flex flex-col gap-4">
+    <div class="flex items-start justify-between gap-4">
+        <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono">▶ Pipeline Analytics</span>
         <div class="flex items-center gap-2">
             <button
                 class="px-3 py-1.5 text-xs font-medium rounded-md border transition-colors {selectedDays === 7 ? 'border-primary/50 bg-primary/20 text-primary-foreground' : 'border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground'}"
