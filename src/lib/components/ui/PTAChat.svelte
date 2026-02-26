@@ -42,18 +42,12 @@
 
   // ── State ──────────────────────────────────────────────────────────────────
 
-  let isOpen:       boolean = false;
-  let isMinimized:  boolean = false;
-  let isMaximized:  boolean = false;
+  let isOpen:     boolean = false;
+  let isFloating: boolean = false;  // false = docked side panel, true = free-floating
 
-  // Carousel treats minimized as "closed" so main content gets its space back
-  $: ptaOpen.set(isOpen && !isMinimized);
-
-  // Computed wrapper class driven by the three states
-  $: wrapperClass = !isOpen            ? '' :
-                    isMinimized        ? 'pta-side-wrapper--minimized' :
-                    isMaximized        ? 'pta-side-wrapper--maximized' :
-                                        'pta-side-wrapper--open';
+  // When docked, the main content shrinks to accommodate the panel.
+  // When floating, the panel overlays — no layout accommodation needed.
+  $: ptaOpen.set(isOpen && !isFloating);
 
   // Fetch pipeline context when panel first opens
   $: if (isOpen && !contextLoaded) {
@@ -65,7 +59,6 @@
     const pending = $ptaInject;
     ptaInject.set(null);
     isOpen = true;
-    isMinimized = false;
     inputText = pending;
     tick().then(() => inputEl?.focus());
   }
@@ -99,6 +92,30 @@
 
   let messagesEl: HTMLDivElement;
   let inputEl:    HTMLTextAreaElement;
+
+  // ── Panel dimensions ───────────────────────────────────────────────────────
+
+  let panelWidth  = 420;   // docked width AND floating width
+  let panelHeight = 560;   // floating only
+
+  // Floating position (-1 = use default on first pop-out)
+  let panelX = -1;
+  let panelY = -1;
+
+  // Docked left-edge resize
+  let isDockResizing = false;
+
+  // Floating titlebar drag
+  let isDragging  = false;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+
+  // Floating corner resize
+  let isResizing   = false;
+  let resizeStartX = 0;
+  let resizeStartY = 0;
+  let resizeStartW = 0;
+  let resizeStartH = 0;
 
   // ── Today's context (for suggestions + silent context injection) ───────────
   let todayContext:    PipelineContext[] = [];
@@ -182,8 +199,6 @@
     activeTools     = [];
     lastResponse    = null;
     isLoading       = false;
-    isMinimized     = false;
-    isMaximized     = false;
     contextInjected = false;
     await initSession();
   }
@@ -194,8 +209,7 @@
     function onEscape(e: KeyboardEvent): void {
       if (e.key === 'Escape' && isOpen && document.activeElement !== inputEl) {
         isOpen     = false;
-        isMinimized = false;
-        isMaximized = false;
+        isFloating = false;
       }
     }
     document.addEventListener('keydown', onEscape);
@@ -251,7 +265,7 @@
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';   // keep incomplete last line
+        buffer = lines.pop() ?? '';
 
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
@@ -276,8 +290,8 @@
             lastResponse = event.response ?? '';
             messages[assistantIdx] = { ...messages[assistantIdx], content: '', thinking: false, error: false };
             messages = [...messages];
+            activeTools = [];   // clear tools before typewrite starts
             await typewrite(event.response ?? '', assistantIdx);
-            activeTools = [];
 
           } else if (event.type === 'error') {
             messages[assistantIdx] = { ...messages[assistantIdx], content: `Error: ${event.message}`, thinking: false, error: true };
@@ -342,24 +356,73 @@
 
   function toggle(): void {
     isOpen = !isOpen;
-    if (!isOpen) { isMinimized = false; isMaximized = false; }
-    if (isOpen) {
-      tick().then(() => inputEl?.focus());
-      setTimeout(() => scrollToBottom(), 250);
+    if (!isOpen) isFloating = false;
+    if (isOpen) tick().then(() => inputEl?.focus());
+  }
+
+  function toggleFloat(): void {
+    isFloating = !isFloating;
+    if (isFloating && panelX === -1) {
+      panelX = Math.max(0, window.innerWidth  - panelWidth  - 24);
+      panelY = Math.max(0, window.innerHeight - panelHeight - 24);
     }
+    tick().then(() => scrollToBottom());
   }
 
-  function minimize(): void {
-    isMinimized = !isMinimized;
-    if (isMinimized) isMaximized = false;
-    if (!isMinimized) setTimeout(() => scrollToBottom(), 250); // restoring
+  // ── Docked left-edge resize ────────────────────────────────────────────────
+
+  function onDockResizePointerDown(e: PointerEvent): void {
+    isDockResizing = true;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    e.preventDefault();
   }
 
-  function maximize(): void {
-    isMaximized = !isMaximized;
-    if (isMaximized) isMinimized = false;
-    setTimeout(() => scrollToBottom(), 250); // reflow after resize settles
+  function onDockResizePointerMove(e: PointerEvent): void {
+    if (!isDockResizing) return;
+    // Panel is flush to the right edge; left boundary is at clientX
+    panelWidth = Math.max(280, Math.min(760, window.innerWidth - e.clientX));
   }
+
+  function onDockResizePointerUp(): void { isDockResizing = false; }
+
+  // ── Floating titlebar drag ─────────────────────────────────────────────────
+
+  function onTitlebarPointerDown(e: PointerEvent): void {
+    if (!isFloating) return;
+    if ((e.target as HTMLElement).closest('button')) return;
+    isDragging  = true;
+    dragOffsetX = e.clientX - panelX;
+    dragOffsetY = e.clientY - panelY;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }
+
+  function onTitlebarPointerMove(e: PointerEvent): void {
+    if (!isDragging) return;
+    panelX = Math.max(0, Math.min(window.innerWidth  - panelWidth,  e.clientX - dragOffsetX));
+    panelY = Math.max(0, Math.min(window.innerHeight - panelHeight, e.clientY - dragOffsetY));
+  }
+
+  function onTitlebarPointerUp(): void { isDragging = false; }
+
+  // ── Floating corner resize ─────────────────────────────────────────────────
+
+  function onResizePointerDown(e: PointerEvent): void {
+    isResizing   = true;
+    resizeStartX = e.clientX;
+    resizeStartY = e.clientY;
+    resizeStartW = panelWidth;
+    resizeStartH = panelHeight;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    e.stopPropagation();
+  }
+
+  function onResizePointerMove(e: PointerEvent): void {
+    if (!isResizing) return;
+    panelWidth  = Math.max(320, resizeStartW + (e.clientX - resizeStartX));
+    panelHeight = Math.max(280, resizeStartH + (e.clientY - resizeStartY));
+  }
+
+  function onResizePointerUp(): void { isResizing = false; }
 </script>
 
 <!-- ── FAB — only visible when panel is closed ────────────────────────────── -->
@@ -370,17 +433,17 @@
 </button>
 {/if}
 
-<!-- ── Side panel wrapper — always in DOM, CSS drives width ───────────────── -->
-<div class="pta-side-wrapper {wrapperClass}">
-<div class="pta-panel">
-
+<!-- ── Shared panel content (used by both docked and floating wrappers) ────── -->
+{#snippet panelContent()}
   <!-- Title bar -->
-  <div class="pta-titlebar">
-    <div class="pta-titlebar__controls">
-      <button type="button" class="pta-dot pta-dot--close" onclick={toggle} title="Close" aria-label="Close"></button>
-      <button type="button" class="pta-dot pta-dot--min" onclick={minimize} title={isMinimized ? 'Restore' : 'Minimize'} aria-label={isMinimized ? 'Restore' : 'Minimize'}></button>
-      <button type="button" class="pta-dot pta-dot--max" onclick={maximize} title={isMaximized ? 'Restore' : 'Expand'} aria-label={isMaximized ? 'Restore' : 'Expand'}></button>
-    </div>
+  <div
+    class="pta-titlebar"
+    onpointerdown={onTitlebarPointerDown}
+    onpointermove={onTitlebarPointerMove}
+    onpointerup={onTitlebarPointerUp}
+    style="cursor: {isFloating ? (isDragging ? 'grabbing' : 'grab') : 'default'}"
+  >
+    <button type="button" class="pta-close-btn" onclick={toggle} title="Close" aria-label="Close">×</button>
     <div class="pta-titlebar__tab">
       <span class="pta-titlebar__tab-icon">&gt;_</span>
       Pipeline Triage Agent
@@ -394,6 +457,9 @@
       {/if}
       <button class="pta-tbtn" onclick={newSession} title="Start a new session">
         &#x2295; New
+      </button>
+      <button class="pta-tbtn pta-tbtn--icon" onclick={toggleFloat} title={isFloating ? 'Dock panel' : 'Pop out'}>
+        {isFloating ? '⤡' : '⤢'}
       </button>
     </div>
   </div>
@@ -502,9 +568,44 @@
     </span>
     <span class="pta-status__right">Enter&nbsp;·&nbsp;send &nbsp;|&nbsp; Shift+Enter&nbsp;·&nbsp;newline</span>
   </div>
+{/snippet}
 
+<!-- ── Docked side panel (default) ───────────────────────────────────────── -->
+{#if isOpen && !isFloating}
+<div
+  class="pta-side-wrapper"
+  style="width:{panelWidth}px;"
+>
+  <!-- Left-edge drag handle for width resizing -->
+  <div
+    class="pta-dock-resize"
+    class:pta-dock-resize--active={isDockResizing}
+    onpointerdown={onDockResizePointerDown}
+    onpointermove={onDockResizePointerMove}
+    onpointerup={onDockResizePointerUp}
+  ></div>
+  <div class="pta-panel">
+    {@render panelContent()}
+  </div>
 </div>
-</div><!-- /.pta-side-wrapper -->
+{/if}
+
+<!-- ── Floating panel (pop-out mode) ─────────────────────────────────────── -->
+{#if isOpen && isFloating}
+<div
+  class="pta-panel pta-panel--floating"
+  style="left:{panelX}px; top:{panelY}px; width:{panelWidth}px; height:{panelHeight}px;"
+>
+  {@render panelContent()}
+  <!-- Bottom-right corner resize handle -->
+  <div
+    class="pta-resize-handle"
+    onpointerdown={onResizePointerDown}
+    onpointermove={onResizePointerMove}
+    onpointerup={onResizePointerUp}
+  ></div>
+</div>
+{/if}
 
 <!-- ── Save RCA modal ─────────────────────────────────────────────────────── -->
 {#if showSaveModal}
@@ -561,7 +662,7 @@
 {/if}
 
 <style>
-  /* ── Design tokens — light mode (uses site theme variables) ─────────────── */
+  /* ── Design tokens — light mode ──────────────────────────────────────────── */
   :root {
     --pta-bg:          var(--background);
     --pta-bg2:         var(--card);
@@ -571,17 +672,17 @@
     --pta-text:        var(--muted-foreground);
     --pta-text-dim:    color-mix(in srgb, var(--muted-foreground) 60%, var(--background));
     --pta-text-bright: var(--foreground);
-    --pta-prompt:      #0066b8;    /* Azure blue — darkened for light bg */
-    --pta-green:       #006f5c;    /* Dark teal */
-    --pta-yellow:      #7a5c00;    /* Dark amber — for code on light bg */
-    --pta-orange:      #8f4a1f;    /* Dark orange — tool args */
+    --pta-prompt:      #0066b8;
+    --pta-green:       #006f5c;
+    --pta-yellow:      #7a5c00;
+    --pta-orange:      #8f4a1f;
     --pta-red:         #cc0000;
-    --pta-cyan:        #004f8a;    /* Dark cyan */
+    --pta-cyan:        #004f8a;
     --pta-mono:        'Cascadia Code', 'Cascadia Mono', 'Fira Code', 'Consolas', 'Courier New', monospace;
     --pta-ui-font:     'Segoe UI', system-ui, sans-serif;
   }
 
-  /* ── Design tokens — dark mode (original terminal palette) ──────────────── */
+  /* ── Design tokens — dark mode ───────────────────────────────────────────── */
   :global(.dark) {
     --pta-bg:          var(--background);
     --pta-bg2:         var(--card);
@@ -591,10 +692,10 @@
     --pta-text:        #cccccc;
     --pta-text-dim:    #6a6a6a;
     --pta-text-bright: #ffffff;
-    --pta-prompt:      #569cd6;    /* Azure blue */
-    --pta-green:       #4ec9b0;    /* Terminal teal-green */
-    --pta-yellow:      #dcdcaa;    /* Terminal yellow */
-    --pta-orange:      #ce9178;    /* Tool args */
+    --pta-prompt:      #569cd6;
+    --pta-green:       #4ec9b0;
+    --pta-yellow:      #dcdcaa;
+    --pta-orange:      #ce9178;
     --pta-red:         #f44747;
     --pta-cyan:        #9cdcfe;
   }
@@ -625,28 +726,36 @@
   .pta-fab__icon   { font-size: 15px; font-weight: 700; letter-spacing: -0.03em; }
   .pta-fab__label  { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
 
-  /* ── Side-panel wrapper — flex item, animates width ─────────────────────── */
+  /* ── Docked side-panel wrapper ───────────────────────────────────────────── */
   .pta-side-wrapper {
-    width: 0;
-    overflow: hidden;
+    position: relative;   /* anchor for the resize handle */
     flex-shrink: 0;
+    height: 100%;
+    /* width is set via inline style; CSS transition gives a smooth open */
+    transition: width 0.18s ease-out;
     will-change: width;
-    transition: width 0.22s ease-out;
-  }
-  .pta-side-wrapper--open {
-    width: 420px;
-  }
-  .pta-side-wrapper--minimized {
-    width: 52px;   /* just enough to show all three dots */
-  }
-  .pta-side-wrapper--maximized {
-    width: min(680px, 45vw);
   }
 
-  /* ── Panel — full-height flex column inside the wrapper ──────────────────── */
+  /* Left-edge drag handle */
+  .pta-dock-resize {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    cursor: col-resize;
+    z-index: 2;   /* above the panel's border */
+    background: transparent;
+    transition: background 0.15s;
+  }
+  .pta-dock-resize:hover,
+  .pta-dock-resize--active {
+    background: color-mix(in srgb, var(--pta-prompt) 30%, transparent);
+  }
+
+  /* ── Panel — shared by docked and floating ───────────────────────────────── */
   .pta-panel {
     width: 100%;
-    min-width: 420px;   /* prevents reflow while wrapper animates */
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -656,6 +765,21 @@
     font-family: var(--pta-mono);
     font-size: 13px;
     color: var(--pta-text);
+  }
+
+  /* Floating variant overrides */
+  .pta-panel--floating {
+    position: fixed;
+    z-index: 9001;
+    border: 1px solid var(--pta-border);
+    border-radius: 6px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    animation: pta-slide-up 0.18s ease both;
+  }
+
+  @keyframes pta-slide-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
   /* ── Title bar ───────────────────────────────────────────────────────────── */
@@ -668,25 +792,27 @@
     border-bottom: 1px solid var(--pta-border);
     flex-shrink: 0;
     padding: 0 10px;
+    user-select: none;
   }
 
-  .pta-titlebar__controls {
+  /* Close button */
+  .pta-close-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    border: 1px solid var(--pta-border-dim);
+    background: transparent;
+    color: var(--pta-text-dim);
+    font-size: 14px;
+    cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-right: 12px;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.1s, color 0.1s;
+    margin-right: 8px;
   }
-  .pta-dot {
-    width: 11px;
-    height: 11px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: opacity 0.12s;
-  }
-  .pta-dot:hover { opacity: 0.75; }
-  .pta-dot--close { background: #ff5f57; }
-  .pta-dot--min   { background: #febc2e; border: none; }
-  .pta-dot--max   { background: #28c840; border: none; }
+  .pta-close-btn:hover { background: var(--pta-bg3); color: var(--pta-red); }
 
   .pta-titlebar__tab {
     display: flex;
@@ -744,6 +870,13 @@
   .pta-tbtn--confirm:hover:not(:disabled){ background: rgba(78,201,176,0.1); }
   .pta-tbtn--cancel                      { color: var(--pta-text-dim); }
   .pta-tbtn:disabled                     { opacity: 0.35; cursor: default; }
+
+  /* Icon-only button (float/dock toggle) */
+  .pta-tbtn--icon {
+    padding: 4px 6px;
+    font-size: 13px;
+    line-height: 1;
+  }
 
   /* ── Terminal output area ────────────────────────────────────────────────── */
   .pta-terminal {
@@ -867,12 +1000,19 @@
   .pta-line--output { flex-direction: column; padding-left: 0; margin: 4px 0 6px; }
 
   /* Error */
-  .pta-line--error     { gap: 8px; font-size: 12.5px; }
-  .pta-error-badge     { color: var(--pta-red); flex-shrink: 0; font-size: 11px; }
-  .pta-error-text      { color: var(--pta-red); opacity: 0.85; }
+  .pta-line--error  { gap: 8px; font-size: 12.5px; }
+  .pta-error-badge  { color: var(--pta-red); flex-shrink: 0; font-size: 11px; }
+  .pta-error-text   { color: var(--pta-red); opacity: 0.85; }
 
   /* ── Markdown output ─────────────────────────────────────────────────────── */
-  .pta-output-md { font-size: 13px; line-height: 1.65; color: var(--pta-text); word-break: break-word; max-width: 100%; }
+  .pta-output-md {
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--pta-text);
+    word-break: break-word;
+    max-width: 100%;
+    overflow: hidden;   /* contain partial markdown renders (tables, wide code blocks) */
+  }
 
   .pta-output-md :global(h2) {
     font-size: 14px; font-weight: 700; color: var(--pta-text-bright);
@@ -893,7 +1033,7 @@
     font-family: var(--pta-mono); font-size: 12px;
     background: var(--pta-bg3); padding: 1px 5px; border-radius: 3px; color: var(--pta-yellow);
   }
-  .pta-output-md :global(pre)  {
+  .pta-output-md :global(pre) {
     background: var(--pta-bg2); border: 1px solid var(--pta-border-dim);
     border-radius: 3px; padding: 10px 12px; overflow-x: auto; margin: 6px 0;
   }
@@ -913,7 +1053,7 @@
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    padding: 10px 14px 10px;
+    padding: 10px 14px;
     background: var(--pta-bg);
     border-top: 1px solid var(--pta-border);
     flex-shrink: 0;
@@ -923,8 +1063,6 @@
     font-size: 14px;
     transition: color 0.15s;
   }
-
-  /* Input row greyed out while agent is generating */
   .pta-input-row--busy {
     opacity: 0.45;
     pointer-events: none;
@@ -968,6 +1106,19 @@
   .pta-status__dot   { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
   .pta-status__dot--ok  { background: var(--pta-bg); }
   .pta-status__dot--err { background: var(--pta-red); }
+
+  /* ── Floating resize handle (bottom-right corner) ────────────────────────── */
+  .pta-resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 14px;
+    height: 14px;
+    cursor: se-resize;
+    background: linear-gradient(135deg, transparent 50%, var(--pta-border) 50%);
+    opacity: 0.4;
+  }
+  .pta-resize-handle:hover { opacity: 0.8; }
 
   /* ── Save modal ──────────────────────────────────────────────────────────── */
   .pta-overlay {
@@ -1026,59 +1177,45 @@
     border-top: 1px solid var(--pta-border);
   }
 
-  /* ── Mobile: full-screen chat panel ─────────────────────────────────────── */
+  /* ── Mobile: full-screen panel ───────────────────────────────────────────── */
   @media (max-width: 767px) {
-    /* Nudge FAB above the home indicator on newer phones */
     .pta-fab {
       bottom: max(24px, env(safe-area-inset-bottom));
       right: max(24px, env(safe-area-inset-right));
     }
 
-    /* Full-screen overlay when open or maximized */
-    .pta-side-wrapper--open,
-    .pta-side-wrapper--maximized {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      width: 100%;
-      /*
-       * 100dvh = "dynamic" viewport height.
-       * Unlike 100vh, it shrinks when the soft keyboard appears so the panel
-       * resizes rather than getting clipped behind the keyboard.
-       */
-      height: 100dvh;
-      z-index: 9001;
-      transition: none;   /* skip the width-slide animation on mobile */
+    /* Force full-screen regardless of docked or floating */
+    .pta-side-wrapper {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100dvh !important;
+      transition: none;
+    }
+    .pta-panel--floating {
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100dvh !important;
+      border-radius: 0;
+      border: none;
+      animation: none;
     }
 
-    /* Strip the desktop min-width so the panel actually fills the screen */
-    .pta-panel {
-      min-width: 0;
-      border-left: none;
-      overflow-x: hidden;   /* belt-and-suspenders: nothing escapes the panel */
-    }
+    /* Hide resize handles on touch */
+    .pta-dock-resize  { display: none; }
+    .pta-resize-handle { display: none; }
 
-    /* Terminal content must not cause horizontal scroll */
     .pta-terminal {
       overflow-x: hidden;
-      padding: 12px;        /* tighter side padding on narrow screens */
+      padding: 12px;
     }
-
-    /* Welcome rule is a long fixed string of box-drawing chars — clip it */
     .pta-welcome__rule {
       overflow: hidden;
       white-space: nowrap;
     }
-
-    /* Tool args already have max-width/overflow:hidden but enforce on mobile */
-    .pta-tool__args {
-      max-width: 60vw;
-    }
-
-    /* Keyboard shortcut hint is irrelevant on touch – reclaim the space */
-    .pta-status__right {
-      display: none;
-    }
+    .pta-tool__args    { max-width: 60vw; }
+    .pta-status__right { display: none; }
   }
 </style>
