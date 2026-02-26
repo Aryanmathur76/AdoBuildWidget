@@ -84,7 +84,8 @@ const columns: ColumnDef<TestCase>[] = [
   }
 ];
 
-let pagination = $state<PaginationState>({ pageIndex: 0, pageSize: 4 });
+const _pageSize = typeof window !== 'undefined' ? Math.max(8, Math.floor((window.innerHeight - 320) / 38)) : 10;
+let pagination = $state<PaginationState>({ pageIndex: 0, pageSize: _pageSize });
 let sorting = $state<SortingState>([]);
 let columnFilters = $state<ColumnFiltersState>([]);
 let rowSelection = $state<RowSelectionState>({});
@@ -188,7 +189,7 @@ const table = createSvelteTable({
     </DropdownMenu.Content>
   </DropdownMenu.Root>
  </div>
- <div class="rounded-md border" style="max-height: {maxHeight}; overflow-y: auto;" >
+ <div class="rounded-md border" style="max-height: 62vh; overflow-y: auto;" >
   <Table.Root>
    <Table.Header>
     {#each table.getHeaderGroups() as headerGroup (headerGroup.id)}

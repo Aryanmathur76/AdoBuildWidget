@@ -63,40 +63,30 @@
         passCount !== null &&
         failCount !== null &&
         passCount + failCount > 0 &&
-        pipelineId &&
+        pipelineId != null &&
+        !isNaN(pipelineId) &&
         pipelineType &&
         date
     ) {
         isLoading = true;
         testCases = null;
         testCasesError = null;
-        
-        const cleanDate = date.length > 10 ? date.slice(0, 10) : date;
-        
-        // First get the release/build data to extract the releaseId/buildId
-        const fetchPromise = pipelineType === 'release' 
-            ? pipelineDataService.fetchReleaseDataSilent(cleanDate, pipelineId.toString())
-            : pipelineDataService.fetchBuildDataSilent(cleanDate, pipelineId.toString());
-        
-        fetchPromise
-            .then(async (pipelineData) => {
-                if (!pipelineData && pipelineType === 'build') {
-                    // For builds, we require pipeline data
-                    throw new Error(`No ${pipelineType} data found for ${cleanDate}`);
-                }
 
-                const response = await fetch(
-                    `/api/test-cases?pipelineId=${pipelineId}&pipelineType=${pipelineType}&date=${encodeURIComponent(cleanDate)}`
-                );
-                const data = await response.json();
-                testCases = data.testCases;
-                
+        const cleanDate = date.length > 10 ? date.slice(0, 10) : date;
+
+        fetch(`/api/test-cases?pipelineId=${pipelineId}&pipelineType=${pipelineType}&date=${encodeURIComponent(cleanDate)}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    testCasesError = data.error + (data.details ? `: ${data.details}` : '');
+                } else {
+                    testCases = data.testCases ?? [];
+                }
                 isLoading = false;
             })
-            .catch((error) => {
-                testCases = null;
-                isLoading = false;
+            .catch(error => {
                 testCasesError = `Failed to load test cases: ${error.message}`;
+                isLoading = false;
             });
     }
 
@@ -187,7 +177,7 @@
         {#if passCount !== null && failCount !== null && passCount + failCount > 0}
             <Dialog bind:open={dialogOpen}>
                 {#if dialogOpen}
-                    <DialogContent>
+                    <DialogContent class="!w-[min(92vw,900px)] !max-w-[min(92vw,900px)]">
                         <DialogTitle>
                             <div class="flex flex-col gap-1">
                                 {#if pipelineGroup}
@@ -208,7 +198,7 @@
                                                 isLoading={false}
                                             />
                                         {:else if testCasesError}
-                                            <div class="text-xs text-red-500">
+                                            <div class="text-xs text-red-500 p-3 bg-red-50 dark:bg-red-950/30 rounded border border-red-200 dark:border-red-800">
                                                 {testCasesError}
                                             </div>
                                         {/if}

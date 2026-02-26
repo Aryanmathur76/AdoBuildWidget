@@ -41,14 +41,14 @@
 
     let dotFrame = $state(0);
     $effect(() => {
-        if (isLoading || overallQuality === 'inProgress' || overallQuality === 'unknown') {
+        if (isLoading || overallQuality === 'inProgress') {
             const id = setInterval(() => { dotFrame = (dotFrame + 1) % 3; }, 700);
             return () => clearInterval(id);
         }
     });
 
     let statusLabel = $derived.by(() => {
-        if (isLoading || overallQuality === 'inProgress' || overallQuality === 'unknown') {
+        if (isLoading || overallQuality === 'inProgress') {
             const d = ['.', '..', '...'][dotFrame];
             return `[INPROGRESS${d}]`;
         }
@@ -65,7 +65,7 @@
         if (overallQuality === 'bad') return 'color: var(--failure)';
         if (overallQuality === 'inProgress') return 'color: var(--in-progress)';
         if (overallQuality === 'interrupted') return 'color: var(--interrupted)';
-        return 'color: var(--in-progress)'; // loading / unknown
+        return 'color: var(--in-progress)'; // loading state only
     });
 
     $effect(() => {
@@ -85,61 +85,63 @@
                 return;
             }
 
-            const results = await Promise.all(
-                pipelineConfig.pipelines.map(async (p): Promise<CardRow[]> => {
-                    const id = String(p.id);
-                    const name = p.displayName ?? `Pipeline ${id}`;
+            try {
+                const results = await Promise.all(
+                    pipelineConfig.pipelines.map(async (p): Promise<CardRow[]> => {
+                        const id = String(p.id);
+                        const name = p.displayName ?? `Pipeline ${id}`;
 
-                    if (p.type === 'release') {
-                        const data = await pipelineDataService.fetchReleaseDataSilent(todayStr, id);
-                        return [{
-                            pipelineName: name,
-                            pipelineGroup: null,
-                            pipelineType: 'release',
-                            pipelineId: Number(p.id),
-                            status: data?.status ?? null,
-                            passCount: data?.passedTestCount ?? null,
-                            failCount: data?.failedTestCount ?? null,
-                            notRunCount: data?.notRunTestCount ?? null,
-                            completedDate: data?.completedTime ?? null,
-                            link: data?.link ?? null,
-                        }];
-                    } else {
-                        // One card per test run, flat — no group header
-                        const dataArr = await pipelineDataService.fetchBuildDataSilent(todayStr, id);
-                        const arr = Array.isArray(dataArr) && dataArr.length > 0 ? dataArr : [];
-                        if (arr.length === 0) {
+                        if (p.type === 'release') {
+                            const data = await pipelineDataService.fetchReleaseDataSilent(todayStr, id);
                             return [{
                                 pipelineName: name,
                                 pipelineGroup: null,
-                                pipelineType: 'build',
+                                pipelineType: 'release',
                                 pipelineId: Number(p.id),
-                                status: null,
-                                passCount: null,
-                                failCount: null,
-                                notRunCount: null,
-                                completedDate: null,
-                                link: null,
+                                status: data?.status ?? 'unknown',
+                                passCount: data?.passedTestCount ?? null,
+                                failCount: data?.failedTestCount ?? null,
+                                notRunCount: data?.notRunTestCount ?? null,
+                                completedDate: data?.completedTime ?? null,
+                                link: data?.link ?? null,
                             }];
+                        } else {
+                            const dataArr = await pipelineDataService.fetchBuildDataSilent(todayStr, id);
+                            const arr = Array.isArray(dataArr) && dataArr.length > 0 ? dataArr : [];
+                            if (arr.length === 0) {
+                                return [{
+                                    pipelineName: name,
+                                    pipelineGroup: null,
+                                    pipelineType: 'build',
+                                    pipelineId: Number(p.id),
+                                    status: 'unknown',
+                                    passCount: null,
+                                    failCount: null,
+                                    notRunCount: null,
+                                    completedDate: null,
+                                    link: null,
+                                }];
+                            }
+                            return arr.map((b: any) => ({
+                                pipelineName: b.testRunName || name,
+                                pipelineGroup: name,
+                                pipelineType: 'build' as const,
+                                pipelineId: Number(b.id ?? p.id),
+                                status: b.status ?? 'unknown',
+                                passCount: b.passedTestCount ?? null,
+                                failCount: b.failedTestCount ?? null,
+                                notRunCount: b.notRunTestCount ?? null,
+                                completedDate: b.completedTime ?? null,
+                                link: b.link ?? null,
+                            }));
                         }
-                        return arr.map((b: any) => ({
-                            pipelineName: b.testRunName || name,
-                            pipelineGroup: name,
-                            pipelineType: 'build' as const,
-                            pipelineId: Number(b.id ?? p.id),
-                            status: b.status ?? null,
-                            passCount: b.passedTestCount ?? null,
-                            failCount: b.failedTestCount ?? null,
-                            notRunCount: b.notRunTestCount ?? null,
-                            completedDate: b.completedTime ?? null,
-                            link: b.link ?? null,
-                        }));
-                    }
-                })
-            );
+                    })
+                );
 
-            rows = results.flat();
-            isLoading = false;
+                rows = results.flat();
+            } finally {
+                isLoading = false;
+            }
         }
 
         load();
@@ -155,6 +157,16 @@
 
     const pipelineCount = pipelineConfig?.pipelines?.length ?? 1;
 
+    function getQualityBgVar(quality: string): string {
+        switch (quality) {
+            case 'good':        return 'var(--success)';
+            case 'ok':          return 'var(--partially-succeeded)';
+            case 'bad':         return 'var(--failure)';
+            case 'inProgress':  return 'var(--in-progress)';
+            case 'interrupted': return 'var(--interrupted)';
+            default:            return 'transparent';
+        }
+    }
 </script>
 
 <div class="flex flex-col h-full">
