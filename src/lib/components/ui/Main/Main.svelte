@@ -64,20 +64,71 @@
     let appReady = $state(bootHasPlayed);
     let bootPhase = $state<'visible' | 'deleting'>('visible');
     // Animated boot sequence state
+    const _bootCfg = (() => {
+        try { return env.PUBLIC_AZURE_PIPELINE_CONFIG ? JSON.parse(env.PUBLIC_AZURE_PIPELINE_CONFIG) : null; } catch { return null; }
+    })();
+    const _bootPipelines: any[] = _bootCfg?.pipelines ?? [];
+    const _totalPipelines = _bootPipelines.length;
+    const _releaseCount = _bootPipelines.filter((p: any) => p.type === 'release').length;
+
     const BOOT_LINES = [
-        { text: "ESTABLISHING NETWORK INTERFACE",  suffix: "OK"               },
-        { text: "CONNECTING TO AZURE DEVOPS",      suffix: "OK"               },
-        { text: "AUTHENTICATING SERVICE PRINCIPAL",suffix: "OK"               },
-        { text: "FETCHING PIPELINE CONFIGURATION", suffix: "3 PIPELINES"      },
-        { text: "LOADING BUILD HISTORY [90 DAYS]", suffix: "OK"               },
-        { text: "SCANNING RELEASE DEFINITIONS",    suffix: "2 FOUND"          },
-        { text: "WARMING BUILD DATA CACHE",        suffix: "HIT"              },
-        { text: "SYSTEM READY",                    suffix: ""                 },
-    ] as const;
+        { text: "ESTABLISHING NETWORK INTERFACE",  suffix: "OK"                                                              },
+        { text: "CONNECTING TO AZURE DEVOPS",      suffix: "OK"                                                              },
+        { text: "AUTHENTICATING SERVICE PRINCIPAL",suffix: "OK"                                                              },
+        { text: "FETCHING PIPELINE CONFIGURATION", suffix: _totalPipelines > 0 ? `${_totalPipelines} PIPELINE${_totalPipelines !== 1 ? 'S' : ''}` : "OK" },
+        { text: "LOADING BUILD HISTORY [90 DAYS]", suffix: "OK"                                                              },
+        { text: "SCANNING RELEASE DEFINITIONS",    suffix: _releaseCount > 0 ? `${_releaseCount} FOUND` : "NONE"            },
+        { text: "WARMING BUILD DATA CACHE",        suffix: "HIT"                                                             },
+        { text: "SYSTEM READY",                    suffix: ""                                                                },
+    ];
     type BootLine = { text: string; suffix: string };
     let bootTypedLines = $state<BootLine[]>([]);
     let bootCurrentText = $state('');
     let bootCurrentSuffix = $state('');
+    let matrixCanvas = $state<HTMLCanvasElement | null>(null);
+
+    $effect(() => {
+        if (!matrixCanvas || !bootVisible || bootPhase === 'deleting') return;
+        const canvas = matrixCanvas;
+        const ctx = canvas.getContext('2d')!;
+
+        const resize = () => {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        };
+        resize();
+
+        const CHARS = '01ABCDEF░▒▓▪■□◆01234567▄▀';
+        const FS = 13;
+        let cols = Math.floor(canvas.width / FS);
+        let drops = Array.from({ length: cols }, () => -Math.floor(Math.random() * 30));
+
+        let animId: number;
+        let last = 0;
+
+        function frame(t: number) {
+            animId = requestAnimationFrame(frame);
+            if (t - last < 65) return;
+            last = t;
+
+            ctx.fillStyle = 'rgba(0,0,0,0.07)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.font = `${FS}px monospace`;
+            ctx.fillStyle = 'rgba(50,150,255,0.8)';
+
+            for (let i = 0; i < drops.length; i++) {
+                if (drops[i] < 0) { drops[i]++; continue; }
+                const ch = CHARS[Math.floor(Math.random() * CHARS.length)];
+                ctx.fillText(ch, i * FS, drops[i] * FS);
+                if (drops[i] * FS > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+
+        animId = requestAnimationFrame(frame);
+        return () => cancelAnimationFrame(animId);
+    });
 
     // Track PTA panel open state from the shared store.
     // Delay the carousel switch until the panel animation finishes (220ms) so
@@ -272,7 +323,8 @@
     {#if bootVisible}
         <div class="fixed inset-0 z-[10000] bg-background flex flex-col items-center justify-center font-mono overflow-hidden"
              style="pointer-events: {bootPhase !== 'visible' ? 'none' : 'all'};">
-            <div class="text-xs tracking-wide w-[380px] max-w-[90vw]">
+            <canvas bind:this={matrixCanvas} class="absolute inset-0 w-full h-full opacity-20" aria-hidden="true"></canvas>
+            <div class="relative z-10 text-xs tracking-wide w-[380px] max-w-[90vw]">
                 <!-- Title -->
                 <div class="text-primary font-bold mb-1 text-sm">▶ DELTAV BUILD HEALTH</div>
                 <div class="border-t border-border/50 mb-3"></div>
@@ -281,7 +333,7 @@
                     <div class="flex items-baseline justify-between gap-4 leading-5">
                         <span class="text-muted-foreground">{line.text}</span>
                         {#if line.suffix}
-                            <span class="text-green-500 shrink-0 text-[10px]">[{line.suffix}]</span>
+                            <span class="text-blue-400 shrink-0 text-[10px]">[{line.suffix}]</span>
                         {/if}
                     </div>
                 {/each}
@@ -290,7 +342,7 @@
                     <div class="flex items-baseline justify-between gap-4 leading-5">
                         <span class="text-foreground">{bootCurrentText}<span class="cursor-blink">_</span></span>
                         {#if bootCurrentSuffix}
-                            <span class="text-green-500 shrink-0 text-[10px]">[{bootCurrentSuffix}]</span>
+                            <span class="text-blue-400 shrink-0 text-[10px]">[{bootCurrentSuffix}]</span>
                         {/if}
                     </div>
                 {/if}
