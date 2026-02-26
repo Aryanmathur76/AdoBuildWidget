@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { Badge } from '$lib/components/ui/badge/index.js';
+    import { typewriter } from '$lib/utils/typewriter.js';
 
     interface SprintTestResult {
         sprintName: string;
@@ -84,7 +85,7 @@
 
 <div class="flex flex-col h-full pt-1">
     <div class="flex items-center gap-2 mb-4">
-        <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono">▶ Sprint Test Results</span>
+        <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono inline-flex items-center gap-1.5"><span class="text-muted-foreground opacity-60">>_</span><span use:typewriter>Sprint Test Results</span></span>
         <Badge class="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs ml-auto">
             Beta
         </Badge>

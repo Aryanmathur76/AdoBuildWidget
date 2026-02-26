@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import { typewriter } from '$lib/utils/typewriter.js';
     import { slide } from 'svelte/transition';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import { goto } from '$app/navigation';
@@ -222,8 +223,8 @@
 
 <div class="h-full p-0 pt-1 flex flex-col gap-4">
     <div class="flex items-start justify-between gap-2">
-        <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono flex items-center gap-2">
-            ▶ Monthly Test Results
+        <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono inline-flex items-center gap-1.5">
+            <span class="text-muted-foreground opacity-60">>_</span><span use:typewriter>Monthly Test Results</span>
             {#if loading}
                 <span class="material-symbols-outlined text-muted-foreground animate-spin" style="font-size: 13px; line-height: 1;">progress_activity</span>
             {/if}

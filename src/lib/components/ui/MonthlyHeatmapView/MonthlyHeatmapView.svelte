@@ -13,6 +13,7 @@
     } from "$lib/utils/buildQualityUtils.js";
     import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
     import { getBuildStatusColor } from "$lib/constants/colors.js";
+    import { typewriter } from "$lib/utils/typewriter.js";
     import { env } from "$env/dynamic/public";
 
     // Props
@@ -332,7 +333,7 @@
 
 <div class="flex-1 flex flex-col px-0 pt-1 pb-4">
     <div class="flex items-start justify-between mb-3">
-        <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono">▶ Daily Tests · Monthly</span>
+        <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono inline-flex items-center gap-1.5"><span class="text-muted-foreground opacity-60">>_</span><span use:typewriter>Daily Tests · Monthly</span></span>
         <button onclick={() => {
             analyzeBestBuild();
         }} disabled={analyzingBestBuild} class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground transition-colors disabled:opacity-50" title="Find the best build day this month">

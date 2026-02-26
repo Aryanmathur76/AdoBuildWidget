@@ -7,6 +7,7 @@
     import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import { env } from "$env/dynamic/public";
     import { pipelineDataService } from "$lib/stores/pipelineDataService.js";
+    import { typewriter } from "$lib/utils/typewriter.js";
     import { 
         getDateString, 
         getLastNDays,
@@ -226,7 +227,7 @@
 
 <div class="h-full p-0 pt-1 flex flex-col gap-4">
     <div class="flex items-start justify-between gap-4">
-        <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono">▶ Pipeline Analytics</span>
+        <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono inline-flex items-center gap-1.5"><span class="text-muted-foreground opacity-60">>_</span><span use:typewriter>Pipeline Analytics</span></span>
         <div class="flex items-center gap-2">
             <button
                 class="px-3 py-1.5 text-xs font-medium rounded-md border transition-colors {selectedDays === 7 ? 'border-primary/50 bg-primary/20 text-primary-foreground' : 'border-input/50 bg-background/20 hover:bg-accent/20 hover:text-accent-foreground'}"

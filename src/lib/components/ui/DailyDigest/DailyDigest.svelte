@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { typewriter } from '$lib/utils/typewriter.js';
     import BuildCard from '$lib/components/ui/BuildCard/buildCard.svelte';
     import { Skeleton } from '$lib/components/ui/skeleton/index.js';
     import { pipelineDataService } from '$lib/stores/pipelineDataService.js';
@@ -37,6 +38,35 @@
     let overallQuality = $state('unknown');
     let isLoading = $state(true);
     let rows = $state<CardRow[]>([]);
+
+    let dotFrame = $state(0);
+    $effect(() => {
+        if (isLoading || overallQuality === 'inProgress' || overallQuality === 'unknown') {
+            const id = setInterval(() => { dotFrame = (dotFrame + 1) % 3; }, 700);
+            return () => clearInterval(id);
+        }
+    });
+
+    let statusLabel = $derived.by(() => {
+        if (isLoading || overallQuality === 'inProgress' || overallQuality === 'unknown') {
+            const d = ['.', '..', '...'][dotFrame];
+            return `[INPROGRESS${d}]`;
+        }
+        if (overallQuality === 'good') return '[GOOD]';
+        if (overallQuality === 'ok') return '[OK]';
+        if (overallQuality === 'bad') return '[ISSUES]';
+        if (overallQuality === 'interrupted') return '[INTERRUPTED]';
+        return '';
+    });
+
+    let statusColor = $derived.by(() => {
+        if (overallQuality === 'good') return 'color: var(--success)';
+        if (overallQuality === 'ok') return 'color: var(--partially-succeeded)';
+        if (overallQuality === 'bad') return 'color: var(--failure)';
+        if (overallQuality === 'inProgress') return 'color: var(--in-progress)';
+        if (overallQuality === 'interrupted') return 'color: var(--interrupted)';
+        return 'color: var(--in-progress)'; // loading / unknown
+    });
 
     $effect(() => {
         if (typeof window === 'undefined') return;
@@ -124,20 +154,15 @@
     );
 
     const pipelineCount = pipelineConfig?.pipelines?.length ?? 1;
+
 </script>
 
 <div class="flex flex-col h-full">
     <!-- Title + status inline -->
-    <div class="flex items-center gap-2 pt-1 pb-1.5 border-b border-border shrink-0">
-        <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono">▶ Today's Results</span>
-        {#if overallQuality !== 'unknown'}
-            <span class="relative inline-flex shrink-0">
-                <span class="animate-ping absolute inline-flex w-2 h-2 rounded-full {getBuildStatusColor(overallQuality).split(' ')[0]} opacity-50"></span>
-                <span class="relative w-2 h-2 rounded-full inline-block {getBuildStatusColor(overallQuality).split(' ')[0]}"></span>
-            </span>
-            <span class="text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded {getBuildStatusColor(overallQuality)}">
-                {overallQuality.toUpperCase()}
-            </span>
+    <div class="flex items-center gap-2 pt-1 pb-1.5 border-b border-border shrink-0 rounded-t">
+        <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono inline-flex items-center gap-1.5"><span class="opacity-50">>_</span><span use:typewriter>Today's Results</span></span>
+        {#if statusLabel}
+            <span class="font-mono text-xs" style={statusColor}>{statusLabel}</span>
         {/if}
         <span class="ml-auto text-xs text-muted-foreground shrink-0">{formattedDate}</span>
     </div>

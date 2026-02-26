@@ -11,6 +11,7 @@
     import { curveStep } from "d3-shape";
     import { getPipelineConfig } from "$lib/utils.js";
     import { getBuildStatusColor } from "$lib/constants/colors.js";
+    import { typewriter } from "$lib/utils/typewriter.js";
     import { getTestQuality } from "$lib/constants/thresholds.js";
     import {
         getDateString,
@@ -221,7 +222,7 @@
 <div class="w-full flex-1 min-h-0" transition:slide={{ duration: 300 }}>
     <Card class="h-full flex flex-col py-0 border-0 bg-transparent shadow-none">
         <CardContent class="p-0 xl:pb-0 pt-1 flex flex-col h-full">
-            <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono mb-3 block">▶ Daily Tests · Weekly</span>
+            <span class="text-xs font-bold uppercase tracking-widest text-primary font-mono mb-3 inline-flex items-center gap-1.5"><span class="text-muted-foreground opacity-60">>_</span><span use:typewriter>Daily Tests · Weekly</span></span>
             <!-- Day labels and buttons row -->
             <div class="mb-4">
                 <div class="grid grid-cols-7 gap-0.5 mb-2">
@@ -243,14 +244,6 @@
                             {/if}
                         </div>
                     {/each}
-                </div>
-                <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-2">
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block bg-[var(--success)]"></span>Good</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block bg-[var(--partially-succeeded)]"></span>OK</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block bg-[var(--failure)]"></span>Bad</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block bg-[var(--in-progress)]"></span>In Progress</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block bg-[var(--interrupted)]"></span>Interrupted</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 inline-block bg-muted/60 border border-border/40"></span>No Data</span>
                 </div>
             </div>
 
