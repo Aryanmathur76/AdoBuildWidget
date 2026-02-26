@@ -263,6 +263,17 @@
   }
 </script>
 
+<style>
+    @keyframes barGrow {
+        from { transform: scaleY(0); }
+        to   { transform: scaleY(1); }
+    }
+    .bar-grow {
+        transform-origin: bottom center;
+        animation: barGrow 0.35s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+    }
+</style>
+
 {#if dayObj}
   <Popover.Root bind:open={showPopover}>
     <Popover.Trigger
@@ -313,12 +324,12 @@
             </span>
           </div>
           <div class="h-3/4 flex items-end justify-center w-full gap-0.5 px-1 pt-1">
-            {#each pipelineData as pipeline (pipeline.id)}
+            {#each pipelineData as pipeline, i (pipeline.id)}
               {@const totalTests = pipeline.passCount + pipeline.failCount + pipeline.notRunCount}
               {@const passRate = totalTests > 0 ? (pipeline.passCount / totalTests) * 100 : 0}
               {@const barHeight = totalTests > 0 ? Math.max(10, (passRate / 100) * 80) : 10}
               {@const barColor = getBarColor(passRate, pipeline.status, totalTests)}
-              <div class="flex-1 {barColor} rounded-xs transition-all duration-200 max-w-4" style="height: {barHeight}%; min-width: 3px;"></div>
+              <div class="flex-1 {barColor} rounded-xs max-w-4 bar-grow" style="height: {barHeight}%; min-width: 3px; animation-delay: {i * 60}ms"></div>
             {/each}
           </div>
         </div>
