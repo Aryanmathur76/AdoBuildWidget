@@ -17,8 +17,8 @@
     const todayDate = new Date();
     const todayStr = getDateString(todayDate);
     const formattedDate = todayDate.toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
+        weekday: 'short',
+        month: 'short',
         day: 'numeric',
     });
 
