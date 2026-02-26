@@ -3,6 +3,7 @@
 	import { ModeWatcher } from "mode-watcher";
 	import favicon from '$lib/assets/favicon.svg';
 	import PTAChat from '$lib/components/ui/PTAChat.svelte';
+	import { Toaster } from '$lib/components/ui/sonner';
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { env } from '$env/dynamic/public';
@@ -27,6 +28,7 @@
 
 <div class="w-full h-screen flex flex-col bg-background overflow-hidden">
   <ModeWatcher />
+  <Toaster position="top-center" richColors />
   <div class="app-body">
     <main class="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
       {@render children?.()}

@@ -4,7 +4,6 @@
     import * as Card from "$lib/components/ui/card/index.js";
     import PipelineStatusBadge from "$lib/components/ui/PipelineStatusBadge/pipelineStatusBadge.svelte";
     import { toast } from "svelte-sonner";
-    import { Toaster } from "$lib/components/ui/sonner";
     import * as Chart from "$lib/components/ui/chart/index.js";
     import {
         Dialog,
@@ -142,7 +141,6 @@
     } satisfies Chart.ChartConfig;
 </script>
 
-<Toaster position="top-center" richColors />
 <Card.Root class="shadow-lg border-1 border-accent rounded-lg py-2">
     <link
         href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined"
