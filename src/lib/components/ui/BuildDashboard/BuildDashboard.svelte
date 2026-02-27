@@ -218,7 +218,16 @@
                                 pipelineId={pipeline.id}
                                 completedDate={pipeline.completedTime}
                                 date={selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString() : null}
-                                stages={(pipeline.envs ?? []).filter((e) => e.name !== 'PTA').map((e) => ({ name: e.name, status: e.status ?? 'notStarted' }))}
+                                stages={(pipeline.envs ?? []).filter((e) => e.name !== 'PTA').map((e) => {
+                                    const lastStep = e.deploySteps?.[e.deploySteps.length - 1];
+                                    const active = e.status === 'inProgress' || e.status === 'queued';
+                                    return {
+                                        name: e.name,
+                                        status: e.status ?? 'notStarted',
+                                        startTime: lastStep?.queuedOn ?? e.queuedOn ?? null,
+                                        finishTime: active ? null : (lastStep?.lastModifiedOn ?? null),
+                                    };
+                                })}
                             />
                         </div>
                     {/each}

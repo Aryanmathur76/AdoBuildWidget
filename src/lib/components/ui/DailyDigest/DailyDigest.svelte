@@ -25,6 +25,8 @@
     type Stage = {
         name: string;
         status: string;
+        startTime?: string | null;
+        finishTime?: string | null;
     };
 
     type CardRow = {
@@ -57,7 +59,16 @@
             const data = await pipelineDataService.fetchReleaseDataSilent(todayStr, id);
             const stages: Stage[] = (data?.envs ?? [])
                 .filter((e: any) => e.name !== 'PTA')
-                .map((e: any) => ({ name: e.name, status: e.status ?? 'notStarted' }));
+                .map((e: any) => {
+                    const lastStep = e.deploySteps?.[e.deploySteps.length - 1];
+                    const active = e.status === 'inProgress' || e.status === 'queued';
+                    return {
+                        name: e.name,
+                        status: e.status ?? 'notStarted',
+                        startTime: lastStep?.queuedOn ?? e.queuedOn ?? null,
+                        finishTime: active ? null : (lastStep?.lastModifiedOn ?? null),
+                    };
+                });
             return [{
                 pipelineName: name,
                 pipelineGroup: null,

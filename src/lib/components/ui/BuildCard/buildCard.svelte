@@ -18,7 +18,7 @@
     import { getTestPassColor, getTestFailColor, getTestNoDataColor } from "$lib/constants/colors";
     import { ptaInject } from "$lib/stores/ptaStore";
 
-    type Stage = { name: string; status: string; };
+    type Stage = { name: string; status: string; startTime?: string | null; finishTime?: string | null; };
 
     export let pipelineName: string = "PipelineName";
     export let pipelineGroup: string | null = null; // Pipeline group name for display in dialogs
@@ -50,6 +50,32 @@
         const h = Math.floor(totalMinutes / 60);
         const m = totalMinutes % 60;
         return h > 0 ? `${h}h ${m}m` : `${m}m`;
+    }
+
+    function formatStageDuration(ms: number): string {
+        if (ms < 0) return '';
+        const s = Math.floor(ms / 1000);
+        if (s < 60) return `${s}s`;
+        const m = Math.floor(s / 60);
+        const remS = s % 60;
+        if (m < 60) return remS > 0 ? `${m}m ${remS}s` : `${m}m`;
+        const h = Math.floor(m / 60);
+        const remM = m % 60;
+        return remM > 0 ? `${h}h ${remM}m` : `${h}h`;
+    }
+
+    function stageDuration(stage: Stage): string | null {
+        if (!stage.startTime || stage.status === 'notStarted') return null;
+        const start = new Date(stage.startTime).getTime();
+        if (isNaN(start)) return null;
+        if (stage.status === 'inProgress' || stage.status === 'queued') {
+            return formatStageDuration(now - start);
+        }
+        if (stage.finishTime) {
+            const end = new Date(stage.finishTime).getTime();
+            if (!isNaN(end) && end > start) return formatStageDuration(end - start);
+        }
+        return null;
     }
 
     function stageColor(s: string): string {
@@ -495,9 +521,13 @@
                         <div class="text-xs text-muted-foreground">No stage data available</div>
                     {:else}
                         {#each resolvedStages as stage}
+                            {@const dur = stageDuration(stage)}
                             <div class="flex items-center gap-2 text-xs">
                                 <span style="color: {stageColor(stage.status)}; line-height: 1; font-size: 10px;">●</span>
                                 <span class="flex-1 truncate">{stage.name}</span>
+                                {#if dur}
+                                    <span class="tabular-nums shrink-0" style="color: {stageColor(stage.status)}; opacity: 0.8;">{dur}</span>
+                                {/if}
                                 <span class="text-muted-foreground shrink-0">{stageStatusLabel(stage.status)}</span>
                             </div>
                         {/each}

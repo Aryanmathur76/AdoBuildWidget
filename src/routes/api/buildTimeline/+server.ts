@@ -47,6 +47,8 @@ export async function GET({ url }: { url: URL }) {
             .map((r: any) => ({
                 name: r.name,
                 status: mapTimelineState(r.state, r.result ?? null),
+                startTime: r.startTime ?? null,
+                finishTime: r.finishTime ?? null,
             }));
 
         return { stages };
