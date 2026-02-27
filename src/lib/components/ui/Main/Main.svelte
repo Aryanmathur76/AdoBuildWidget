@@ -326,15 +326,13 @@
                         <span class="text-primary font-bold tracking-widest uppercase text-xs">▶ DELTAV BUILD HEALTH<span class="cursor-blink">_</span></span>
                         <div class="flex items-center gap-2">
                             <button onclick={() => heatmapViewMode = heatmapViewMode === "graph" ? "simple" : "graph"} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors" title={heatmapViewMode === "graph" ? "Switch to simple view" : "Switch to graph view"} aria-label="Toggle view mode">
-                                <span class="material-symbols-outlined" style="font-size: 1em;">
-                                    {#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}
-                                </span>
+                                <span class="material-symbols-outlined" style="font-size: 14px; line-height: 1;">{#if heatmapViewMode === "graph"}bar_chart{:else}view_day{/if}</span>
                             </button>
                             <button onclick={() => helpDialogOpen = true} class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors" title="Get help about this widget" aria-label="Help">
-                                <span class="material-symbols-outlined" style="font-size: 1em;">help</span>
+                                <span class="material-symbols-outlined" style="font-size: 14px; line-height: 1;">help</span>
                             </button>
                             <Sidebar.Trigger class="flex items-center gap-1 px-2 py-0.5 text-xs border border-border hover:bg-accent hover:text-accent-foreground transition-colors" title="Open menu">
-                                <span class="material-symbols-outlined" style="font-size: 1em; line-height: 1;">settings</span>
+                                <span class="material-symbols-outlined" style="font-size: 14px; line-height: 1;">settings</span>
                             </Sidebar.Trigger>
                         </div>
                     </div>
