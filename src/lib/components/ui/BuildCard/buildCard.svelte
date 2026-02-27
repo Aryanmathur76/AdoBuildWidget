@@ -60,6 +60,7 @@
             case 'failed':
             case 'rejected': return 'var(--failure)';
             case 'canceled': return 'var(--interrupted)';
+            case 'partiallySucceeded': return 'var(--partially-succeeded)';
             default: return 'var(--muted-foreground)';
         }
     }
