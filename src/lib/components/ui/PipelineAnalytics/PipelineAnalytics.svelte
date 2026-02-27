@@ -302,6 +302,7 @@
                                                 height: { type: "tween", duration: 500, easing: cubicInOut },
                                             },
                                         },
+                                        xAxis: { ticks: selectedDays <= 7 ? 1 : selectedDays <= 14 ? 2 : 4 },
                                         highlight: { area: false },
                                     }}
                                 >
