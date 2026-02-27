@@ -51,6 +51,32 @@
     let rows = $state<CardRow[]>([]);
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
     let isRefreshingVisible = $state(false);
+    let reloadTick = $state(0);
+    let lastFetchedAt = $state<Date | null>(null);
+    let nowTick = $state(Date.now());
+
+    $effect(() => {
+        const id = setInterval(() => { nowTick = Date.now(); }, 30_000);
+        return () => clearInterval(id);
+    });
+
+    let stalenessLabel = $derived.by(() => {
+        if (!lastFetchedAt) return '';
+        const diffMs = nowTick - lastFetchedAt.getTime();
+        const diffMin = Math.floor(diffMs / 60_000);
+        if (diffMin < 1) return 'just now';
+        if (diffMin < 60) return `${diffMin}m ago`;
+        return `${Math.floor(diffMin / 60)}h ago`;
+    });
+
+    function handleRefresh() {
+        if (!pipelineConfig?.pipelines) return;
+        pipelineConfig.pipelines.forEach(p => {
+            const prefix = p.type === 'release' ? 'release' : 'build';
+            pipelineDataService.clearLocalCache(`${prefix}:${todayStr}:${String(p.id)}`);
+        });
+        reloadTick++;
+    }
 
     async function fetchPipelineRow(p: any): Promise<CardRow[]> {
         const id = String(p.id);
@@ -155,6 +181,7 @@
     });
 
     $effect(() => {
+        reloadTick; // reactive dependency — incrementing triggers a reload
         if (typeof window === 'undefined') return;
 
         let isRefreshing = false;
@@ -178,6 +205,7 @@
                     pipelineConfig.pipelines.map((p) => fetchPipelineRow(p))
                 );
                 rows = results.flat();
+                lastFetchedAt = new Date();
             } finally {
                 isLoading = false;
             }
@@ -242,6 +270,23 @@
                 <span class="w-1.5 h-1.5 rounded-full bg-[var(--in-progress)] animate-pulse"
                       title="Refreshing pipeline data..."></span>
             {/if}
+            {#if stalenessLabel && !isLoading}
+                <span class="text-xs text-muted-foreground/60" title="Last fetched at {lastFetchedAt?.toLocaleTimeString()}">{stalenessLabel}</span>
+            {/if}
+            <button
+                onclick={handleRefresh}
+                disabled={isLoading || isRefreshingVisible}
+                class="p-0.5 rounded hover:bg-accent/30 transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40"
+                title="Refresh pipeline data"
+                aria-label="Refresh"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 2v6h-6"/>
+                    <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+                    <path d="M3 22v-6h6"/>
+                    <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+                </svg>
+            </button>
             <span class="text-xs text-muted-foreground">{formattedDate}</span>
         </span>
     </div>
