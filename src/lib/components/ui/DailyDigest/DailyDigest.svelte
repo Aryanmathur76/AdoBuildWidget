@@ -32,6 +32,7 @@
         pipelineGroup: string | null;
         pipelineType: 'build' | 'release';
         pipelineId: number;
+        definitionId: number;
         status: string | null;
         passCount: number | null;
         failCount: number | null;
@@ -45,6 +46,70 @@
     let overallQuality = $state('unknown');
     let isLoading = $state(true);
     let rows = $state<CardRow[]>([]);
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    let isRefreshingVisible = $state(false);
+
+    async function fetchPipelineRow(p: any): Promise<CardRow[]> {
+        const id = String(p.id);
+        const name = p.displayName ?? `Pipeline ${id}`;
+
+        if (p.type === 'release') {
+            const data = await pipelineDataService.fetchReleaseDataSilent(todayStr, id);
+            const stages: Stage[] = (data?.envs ?? [])
+                .filter((e: any) => e.name !== 'PTA')
+                .map((e: any) => ({ name: e.name, status: e.status ?? 'notStarted' }));
+            return [{
+                pipelineName: name,
+                pipelineGroup: null,
+                pipelineType: 'release',
+                pipelineId: Number(data?.id ?? p.id),
+                definitionId: Number(p.id),
+                status: data?.status ?? 'unknown',
+                passCount: data?.passedTestCount ?? null,
+                failCount: data?.failedTestCount ?? null,
+                notRunCount: data?.notRunTestCount ?? null,
+                completedDate: data?.completedTime ?? null,
+                link: data?.link ?? null,
+                startTime: data?.createdOn ?? null,
+                stages,
+            }];
+        } else {
+            const dataArr = await pipelineDataService.fetchBuildDataSilent(todayStr, id);
+            const arr = Array.isArray(dataArr) && dataArr.length > 0 ? dataArr : [];
+            if (arr.length === 0) {
+                return [{
+                    pipelineName: name,
+                    pipelineGroup: null,
+                    pipelineType: 'build',
+                    pipelineId: Number(p.id),
+                    definitionId: Number(p.id),
+                    status: 'unknown',
+                    passCount: null,
+                    failCount: null,
+                    notRunCount: null,
+                    completedDate: null,
+                    link: null,
+                    startTime: null,
+                    stages: null,
+                }];
+            }
+            return arr.map((b: any) => ({
+                pipelineName: b.testRunName || name,
+                pipelineGroup: name,
+                pipelineType: 'build' as const,
+                pipelineId: Number(b.id ?? p.id),
+                definitionId: Number(p.id),
+                status: b.status ?? 'unknown',
+                passCount: b.passedTestCount ?? null,
+                failCount: b.failedTestCount ?? null,
+                notRunCount: b.notRunTestCount ?? null,
+                completedDate: b.completedTime ?? null,
+                link: b.link ?? null,
+                startTime: b.startTime ?? null,
+                stages: null,
+            }));
+        }
+    }
 
     let dotFrame = $state(0);
     $effect(() => {
@@ -78,6 +143,8 @@
     $effect(() => {
         if (typeof window === 'undefined') return;
 
+        let isRefreshing = false;
+
         async function load() {
             try {
                 const qRes = await fetch(`/api/getDayQuality?date=${todayStr}`);
@@ -94,73 +161,37 @@
 
             try {
                 const results = await Promise.all(
-                    pipelineConfig.pipelines.map(async (p): Promise<CardRow[]> => {
-                        const id = String(p.id);
-                        const name = p.displayName ?? `Pipeline ${id}`;
-
-                        if (p.type === 'release') {
-                            const data = await pipelineDataService.fetchReleaseDataSilent(todayStr, id);
-                            const stages: Stage[] = (data?.envs ?? [])
-                                .filter((e: any) => e.name !== 'PTA')
-                                .map((e: any) => ({ name: e.name, status: e.status ?? 'notStarted' }));
-                            return [{
-                                pipelineName: name,
-                                pipelineGroup: null,
-                                pipelineType: 'release',
-                                pipelineId: Number(data?.id ?? p.id),
-                                status: data?.status ?? 'unknown',
-                                passCount: data?.passedTestCount ?? null,
-                                failCount: data?.failedTestCount ?? null,
-                                notRunCount: data?.notRunTestCount ?? null,
-                                completedDate: data?.completedTime ?? null,
-                                link: data?.link ?? null,
-                                startTime: data?.createdOn ?? null,
-                                stages,
-                            }];
-                        } else {
-                            const dataArr = await pipelineDataService.fetchBuildDataSilent(todayStr, id);
-                            const arr = Array.isArray(dataArr) && dataArr.length > 0 ? dataArr : [];
-                            if (arr.length === 0) {
-                                return [{
-                                    pipelineName: name,
-                                    pipelineGroup: null,
-                                    pipelineType: 'build',
-                                    pipelineId: Number(p.id),
-                                    status: 'unknown',
-                                    passCount: null,
-                                    failCount: null,
-                                    notRunCount: null,
-                                    completedDate: null,
-                                    link: null,
-                                    startTime: null,
-                                    stages: null,
-                                }];
-                            }
-                            return arr.map((b: any) => ({
-                                pipelineName: b.testRunName || name,
-                                pipelineGroup: name,
-                                pipelineType: 'build' as const,
-                                pipelineId: Number(b.id ?? p.id),
-                                status: b.status ?? 'unknown',
-                                passCount: b.passedTestCount ?? null,
-                                failCount: b.failedTestCount ?? null,
-                                notRunCount: b.notRunTestCount ?? null,
-                                completedDate: b.completedTime ?? null,
-                                link: b.link ?? null,
-                                startTime: b.startTime ?? null,
-                                stages: null,
-                            }));
-                        }
-                    })
+                    pipelineConfig.pipelines.map((p) => fetchPipelineRow(p))
                 );
-
                 rows = results.flat();
             } finally {
                 isLoading = false;
             }
+
+            if (refreshTimer) clearTimeout(refreshTimer);
+
+            const inProgressRows = rows.filter(r => r.status === 'inProgress');
+            if (inProgressRows.length > 0) {
+                refreshTimer = setTimeout(async () => {
+                    if (isRefreshing) return;
+                    isRefreshing = true;
+                    isRefreshingVisible = true;
+
+                    inProgressRows.forEach(r => {
+                        const prefix = r.pipelineType === 'release' ? 'release' : 'build';
+                        pipelineDataService.clearLocalCache(`${prefix}:${todayStr}:${String(r.definitionId)}`);
+                    });
+
+                    await load();
+
+                    isRefreshing = false;
+                    isRefreshingVisible = false;
+                }, 60_000);
+            }
         }
 
         load();
+        return () => { if (refreshTimer) clearTimeout(refreshTimer); };
     });
 
     let totalPass = $derived(rows.reduce((s, r) => s + (r.passCount ?? 0), 0));
@@ -192,7 +223,13 @@
         {#if statusLabel}
             <span class="font-mono text-xs" style={statusColor}>{statusLabel}</span>
         {/if}
-        <span class="ml-auto text-xs text-muted-foreground shrink-0">{formattedDate}</span>
+        <span class="ml-auto flex items-center gap-1.5 shrink-0">
+            {#if isRefreshingVisible}
+                <span class="w-1.5 h-1.5 rounded-full bg-[var(--in-progress)] animate-pulse"
+                      title="Refreshing pipeline data..."></span>
+            {/if}
+            <span class="text-xs text-muted-foreground">{formattedDate}</span>
+        </span>
     </div>
 
     <!-- Pipeline cards — scrollable, fills remaining space -->
@@ -209,6 +246,7 @@
                         pipelineGroup={row.pipelineGroup}
                         pipelineType={row.pipelineType}
                         pipelineId={row.pipelineId}
+                        definitionId={row.definitionId}
                         link={row.link}
                         status={row.status}
                         passCount={row.passCount}

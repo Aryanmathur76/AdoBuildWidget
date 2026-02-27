@@ -10,7 +10,7 @@ import { getAzureDevOpsEnvVars } from '$lib/utils';
 import type { Build } from '$lib/types/build';
 
 import { getBuildPipelineStatus } from '$lib/utils/getBuildPipelineStatus';
-import { getOrSetDailyTestCache } from '$lib/utils/dailyTestCache';
+import { getOrSetDailyTestCache, shortenDailyTestCacheTtl } from '$lib/utils/dailyTestCache';
 
 export async function GET({ url }: { url: URL }) {
     const date = url.searchParams.get('date');
@@ -262,5 +262,9 @@ export async function GET({ url }: { url: URL }) {
     //#endregion
         return buildsToReturn;
     }, 3600);
+
+    const isInProgress = Array.isArray(data) && data.some((b: any) => b.status === 'inProgress');
+    if (isInProgress) await shortenDailyTestCacheTtl(cacheKey, 90);
+
     return json(data);
 }

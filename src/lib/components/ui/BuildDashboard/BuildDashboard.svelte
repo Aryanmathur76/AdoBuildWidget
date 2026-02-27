@@ -218,6 +218,7 @@
                                 pipelineId={pipeline.id}
                                 completedDate={pipeline.completedTime}
                                 date={selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString() : null}
+                                stages={(pipeline.envs ?? []).filter((e) => e.name !== 'PTA').map((e) => ({ name: e.name, status: e.status ?? 'notStarted' }))}
                             />
                         </div>
                     {/each}

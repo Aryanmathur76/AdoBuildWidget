@@ -6,7 +6,8 @@
       "Bash(grep:*)",
       "Bash(head:*)",
       "Bash(find:*)",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(git:*)"
     ]
   }
 }

@@ -10,7 +10,7 @@ import { getAzureDevOpsEnvVars } from '$lib/utils';
 import type { Release } from '$lib/types/release';
 
 import { getLatestRelease, getReleasePipelineStatus, calculateReleaseCompletionTime } from '$lib/utils/getReleasePipelineStatus';
-import { getOrSetDailyTestCache } from '$lib/utils/dailyTestCache';
+import { getOrSetDailyTestCache, shortenDailyTestCacheTtl } from '$lib/utils/dailyTestCache';
 
 export async function GET({ url }: { url: URL }) {
     const date = url.searchParams.get('date');
@@ -236,5 +236,9 @@ export async function GET({ url }: { url: URL }) {
 
         return release;
     }, 3600);
+
+    const isInProgress = data !== null && !Array.isArray(data) && data?.status === 'inProgress';
+    if (isInProgress) await shortenDailyTestCacheTtl(cacheKey, 90);
+
     return json(data);
 }

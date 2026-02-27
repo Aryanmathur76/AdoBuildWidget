@@ -27,3 +27,7 @@ export async function getOrSetDailyTestCache(key: string, fetchFn: () => Promise
   }
   return freshData;
 }
+
+export async function shortenDailyTestCacheTtl(key: string, ttlSeconds: number): Promise<void> {
+    try { await redis.expire(key, ttlSeconds); } catch {}
+}

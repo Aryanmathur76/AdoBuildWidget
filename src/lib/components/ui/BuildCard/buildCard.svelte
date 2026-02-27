@@ -31,6 +31,7 @@
     export let date: string | null = null;
     export let startTime: string | null = null;
     export let stages: Stage[] | null = null;
+    export let definitionId: number | null = null;
 
     let dialogOpen = false;
     let isLoading = false;
@@ -112,6 +113,12 @@
         if (status === 'inProgress') {
             tickId = setInterval(() => { now = Date.now(); }, 5000);
         }
+
+        // Auto-fetch timeline for in-progress builds so stage bar shows without expanding
+        if (pipelineType === 'build' && status === 'inProgress' && pipelineId && !stagesFetched) {
+            loadBuildTimeline();
+        }
+
         return () => { if (tickId) clearInterval(tickId); };
     });
     let testCases:
@@ -125,6 +132,15 @@
     // Lazy-fetch build timeline on expand
     $: if (expanded && pipelineType === 'build' && stages === null && pipelineId && !stagesFetched && !stagesLoading) {
         loadBuildTimeline();
+    }
+
+    // Re-fetch final stage snapshot when build transitions out of inProgress
+    let prevStatus: string | null = null;
+    $: {
+        if (pipelineType === 'build' && stagesFetched && prevStatus === 'inProgress' && status !== 'inProgress') {
+            loadBuildTimeline();
+        }
+        prevStatus = status;
     }
 
     // Duration label
@@ -393,6 +409,17 @@
                     <slot />
                 </div>
             </div>
+            {#if resolvedStages.length > 0}
+                <div class="flex h-1.5 w-full overflow-hidden rounded-full gap-px mt-0.5 mb-1">
+                    {#each resolvedStages as stage}
+                        <div
+                            class="flex-1 h-full transition-colors duration-300"
+                            style="background-color: {stageColor(stage.status)}; opacity: {stage.status === 'notStarted' ? 0.25 : 1};"
+                            title="{stage.name}: {stageStatusLabel(stage.status)}"
+                        ></div>
+                    {/each}
+                </div>
+            {/if}
             {#if passCount !== null && failCount !== null && passCount + failCount > 0}
                 {@const totalTests = passCount + (failCount ?? 0) + (notRunCount ?? 0)}
                 {@const passPercentage = totalTests > 0 ? ((passCount / totalTests) * 100).toFixed(2) : '0.00'}
