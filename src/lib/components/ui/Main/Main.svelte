@@ -85,52 +85,6 @@
     let bootTypedLines = $state<BootLine[]>([]);
     let bootCurrentText = $state('');
     let bootCurrentSuffix = $state('');
-    let matrixCanvas = $state<HTMLCanvasElement | null>(null);
-
-    $effect(() => {
-        if (!matrixCanvas || !bootVisible || bootPhase === 'deleting') return;
-        const canvas = matrixCanvas;
-        const ctx = canvas.getContext('2d')!;
-
-        const resize = () => {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-        };
-        resize();
-
-        const CHARS = '01ABCDEF░▒▓▪■□◆01234567▄▀';
-        const FS = 13;
-        let cols = Math.floor(canvas.width / FS);
-        let drops = Array.from({ length: cols }, () => -Math.floor(Math.random() * 30));
-
-        let animId: number;
-        let last = 0;
-
-        function frame(t: number) {
-            animId = requestAnimationFrame(frame);
-            if (t - last < 65) return;
-            last = t;
-
-            ctx.fillStyle = 'rgba(0,0,0,0.07)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.font = `${FS}px monospace`;
-            const isDark = document.documentElement.classList.contains('dark');
-            ctx.fillStyle = isDark ? 'rgba(50,150,255,0.8)' : 'rgba(20,80,200,0.85)';
-
-            for (let i = 0; i < drops.length; i++) {
-                if (drops[i] < 0) { drops[i]++; continue; }
-                const ch = CHARS[Math.floor(Math.random() * CHARS.length)];
-                ctx.fillText(ch, i * FS, drops[i] * FS);
-                if (drops[i] * FS > canvas.height && Math.random() > 0.975) drops[i] = 0;
-                drops[i]++;
-            }
-        }
-
-        animId = requestAnimationFrame(frame);
-        return () => cancelAnimationFrame(animId);
-    });
-
     // Track PTA panel open state from the shared store.
     // Delay the carousel switch until the panel animation finishes (220ms) so
     // Embla's ResizeObserver and the flex-width transition don't compete.
@@ -334,8 +288,7 @@
     {#if bootVisible}
         <div class="fixed inset-0 z-[10000] bg-background flex flex-col items-center justify-center font-mono overflow-hidden"
              style="pointer-events: {bootPhase !== 'visible' ? 'none' : 'all'};">
-            <canvas bind:this={matrixCanvas} class="absolute inset-0 w-full h-full opacity-20" aria-hidden="true"></canvas>
-            <div class="relative z-10 text-xs tracking-wide w-[380px] max-w-[90vw]">
+            <div class="text-xs tracking-wide w-[380px] max-w-[90vw]">
                 <!-- Title -->
                 <div class="text-primary font-bold mb-1 text-sm">▶ DELTAV BUILD HEALTH</div>
                 <div class="border-t border-border/50 mb-3"></div>
