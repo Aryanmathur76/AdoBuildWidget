@@ -18,7 +18,7 @@
     import { getTestPassColor, getTestFailColor, getTestNoDataColor } from "$lib/constants/colors";
     import { ptaInject } from "$lib/stores/ptaStore";
 
-    type Stage = { name: string; status: string; startTime?: string | null; finishTime?: string | null; };
+    type Stage = { name: string; status: string; startTime?: string | null; finishTime?: string | null; attempts?: number | null; };
 
     export let pipelineName: string = "PipelineName";
     export let pipelineGroup: string | null = null; // Pipeline group name for display in dialogs
@@ -456,7 +456,7 @@
                                     <div class="bg-popover text-popover-foreground text-xs rounded-md shadow-md px-2 py-1.5 whitespace-nowrap border border-border">
                                         <div class="font-medium">{stage.name}</div>
                                         <div class="text-muted-foreground mt-0.5">
-                                            {stageStatusLabel(stage.status)}{#if dur}&nbsp;·&nbsp;{dur}{/if}
+                                            {stageStatusLabel(stage.status)}{#if dur}&nbsp;·&nbsp;{dur}{/if}{#if stage.attempts}&nbsp;·&nbsp;<span class="text-amber-500">{stage.attempts} attempts</span>{/if}
                                         </div>
                                     </div>
                                 </div>
@@ -543,6 +543,9 @@
                             <div class="flex items-center gap-2 text-xs">
                                 <span style="color: {stageColor(stage.status)}; line-height: 1; font-size: 10px;">●</span>
                                 <span class="flex-1 truncate">{stage.name}</span>
+                                {#if stage.attempts}
+                                    <span class="shrink-0 text-[10px] font-medium text-amber-500" title="{stage.attempts} attempts">×{stage.attempts}</span>
+                                {/if}
                                 {#if dur}
                                     <span class="tabular-nums shrink-0" style="color: {stageColor(stage.status)}; opacity: 0.8;">{dur}</span>
                                 {/if}

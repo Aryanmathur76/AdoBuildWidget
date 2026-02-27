@@ -41,15 +41,31 @@ export async function GET({ url }: { url: URL }) {
         if (!res.ok) return { stages: [] };
 
         const timeline = await res.json();
-        const stages = (timeline.records ?? [])
-            .filter((r: any) => r.type === 'Stage' || r.type === 'Phase')
-            .sort((a: any, b: any) => (a.order ?? 999) - (b.order ?? 999))
-            .map((r: any) => ({
-                name: r.name,
-                status: mapTimelineState(r.state, r.result ?? null),
-                startTime: r.startTime ?? null,
-                finishTime: r.finishTime ?? null,
-            }));
+        const allRecords = (timeline.records ?? [])
+            .filter((r: any) => r.type === 'Stage' || r.type === 'Phase');
+
+        // Group by order+name to collapse retries into a single stage entry
+        const groups = new Map<string, any[]>();
+        for (const r of allRecords) {
+            const key = `${String(r.order ?? 999).padStart(4, '0')}:${r.name}`;
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key)!.push(r);
+        }
+
+        const stages = [...groups.entries()]
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([_, recs]) => {
+                const latest = recs.reduce((a: any, b: any) =>
+                    (a.attempt ?? 1) >= (b.attempt ?? 1) ? a : b);
+                const totalAttempts = Math.max(...recs.map((r: any) => r.attempt ?? 1));
+                return {
+                    name: latest.name,
+                    status: mapTimelineState(latest.state, latest.result ?? null),
+                    startTime: latest.startTime ?? null,
+                    finishTime: latest.finishTime ?? null,
+                    attempts: totalAttempts > 1 ? totalAttempts : null,
+                };
+            });
 
         return { stages };
     }, 30);

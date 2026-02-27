@@ -219,13 +219,15 @@
                                 completedDate={pipeline.completedTime}
                                 date={selectedDate ? selectedDate.toDate(getLocalTimeZone()).toISOString() : null}
                                 stages={(pipeline.envs ?? []).filter((e) => e.name !== 'PTA').map((e) => {
-                                    const lastStep = e.deploySteps?.[e.deploySteps.length - 1];
+                                    const steps = e.deploySteps ?? [];
+                                    const lastStep = steps[steps.length - 1];
                                     const active = e.status === 'inProgress' || e.status === 'queued';
                                     return {
                                         name: e.name,
                                         status: e.status ?? 'notStarted',
                                         startTime: lastStep?.queuedOn ?? e.queuedOn ?? null,
                                         finishTime: active ? null : (lastStep?.lastModifiedOn ?? null),
+                                        attempts: steps.length > 1 ? steps.length : null,
                                     };
                                 })}
                             />

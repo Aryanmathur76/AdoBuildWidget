@@ -27,6 +27,7 @@
         status: string;
         startTime?: string | null;
         finishTime?: string | null;
+        attempts?: number | null;
     };
 
     type CardRow = {
@@ -60,13 +61,15 @@
             const stages: Stage[] = (data?.envs ?? [])
                 .filter((e: any) => e.name !== 'PTA')
                 .map((e: any) => {
-                    const lastStep = e.deploySteps?.[e.deploySteps.length - 1];
+                    const steps = e.deploySteps ?? [];
+                    const lastStep = steps[steps.length - 1];
                     const active = e.status === 'inProgress' || e.status === 'queued';
                     return {
                         name: e.name,
                         status: e.status ?? 'notStarted',
                         startTime: lastStep?.queuedOn ?? e.queuedOn ?? null,
                         finishTime: active ? null : (lastStep?.lastModifiedOn ?? null),
+                        attempts: steps.length > 1 ? steps.length : null,
                     };
                 });
             return [{
