@@ -437,14 +437,32 @@
                 </div>
             </div>
             {#if resolvedStages.length > 0}
-                <div class="flex h-1.5 w-full overflow-hidden rounded-full gap-px mt-0.5 mb-1">
-                    {#each resolvedStages as stage}
-                        <div
-                            class="flex-1 h-full transition-colors duration-300"
-                            style="background-color: {stageColor(stage.status)}; opacity: {stage.status === 'notStarted' ? 0.25 : 1};"
-                            title="{stage.name}: {stageStatusLabel(stage.status)}"
-                        ></div>
-                    {/each}
+                <div class="relative mt-0.5 mb-1">
+                    <!-- Visual bar -->
+                    <div class="flex h-1.5 w-full overflow-hidden rounded-full gap-px">
+                        {#each resolvedStages as stage}
+                            <div
+                                class="flex-1 h-full transition-colors duration-300"
+                                style="background-color: {stageColor(stage.status)}; opacity: {stage.status === 'notStarted' ? 0.25 : 1};"
+                            ></div>
+                        {/each}
+                    </div>
+                    <!-- Hover targets (taller than the bar for easier interaction) -->
+                    <div class="absolute inset-x-0 flex" style="top: -5px; bottom: -5px;">
+                        {#each resolvedStages as stage}
+                            {@const dur = stageDuration(stage)}
+                            <div class="relative flex-1 group cursor-default">
+                                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 pointer-events-none">
+                                    <div class="bg-popover text-popover-foreground text-xs rounded-md shadow-md px-2 py-1.5 whitespace-nowrap border border-border">
+                                        <div class="font-medium">{stage.name}</div>
+                                        <div class="text-muted-foreground mt-0.5">
+                                            {stageStatusLabel(stage.status)}{#if dur}&nbsp;·&nbsp;{dur}{/if}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
                 </div>
             {/if}
             {#if passCount !== null && failCount !== null && passCount + failCount > 0}
