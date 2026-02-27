@@ -3,6 +3,7 @@
     export let pipelineId: number | null = null;
     import * as Card from "$lib/components/ui/card/index.js";
     import PipelineStatusBadge from "$lib/components/ui/PipelineStatusBadge/pipelineStatusBadge.svelte";
+    import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import { toast } from "svelte-sonner";
     import * as Chart from "$lib/components/ui/chart/index.js";
     import {
@@ -17,6 +18,8 @@
     import { getTestPassColor, getTestFailColor, getTestNoDataColor } from "$lib/constants/colors";
     import { ptaInject } from "$lib/stores/ptaStore";
 
+    type Stage = { name: string; status: string; };
+
     export let pipelineName: string = "PipelineName";
     export let pipelineGroup: string | null = null; // Pipeline group name for display in dialogs
     export let link: string | null = null;
@@ -26,9 +29,62 @@
     export let notRunCount: number | null = null;
     export let completedDate: string | null = null;
     export let date: string | null = null;
+    export let startTime: string | null = null;
+    export let stages: Stage[] | null = null;
 
     let dialogOpen = false;
     let isLoading = false;
+
+    // Duration ticker
+    let now = Date.now();
+
+    // Expand / stage state
+    let expanded = false;
+    let resolvedStages: Stage[] = [];
+    let stagesLoading = false;
+    let stagesFetched = false;
+
+    function formatDuration(ms: number): string {
+        const totalMinutes = Math.floor(ms / 60000);
+        const h = Math.floor(totalMinutes / 60);
+        const m = totalMinutes % 60;
+        return h > 0 ? `${h}h ${m}m` : `${m}m`;
+    }
+
+    function stageColor(s: string): string {
+        switch (s) {
+            case 'succeeded': return 'var(--success)';
+            case 'inProgress':
+            case 'queued': return 'var(--in-progress)';
+            case 'failed':
+            case 'rejected': return 'var(--failure)';
+            case 'canceled': return 'var(--interrupted)';
+            default: return 'var(--muted-foreground)';
+        }
+    }
+
+    function stageStatusLabel(s: string): string {
+        switch (s) {
+            case 'succeeded': return 'Passed';
+            case 'inProgress': return 'Running';
+            case 'queued': return 'Queued';
+            case 'failed': return 'Failed';
+            case 'rejected': return 'Rejected';
+            case 'canceled': return 'Canceled';
+            case 'partiallySucceeded': return 'Partial';
+            default: return 'Not Started';
+        }
+    }
+
+    function loadBuildTimeline() {
+        stagesLoading = true;
+        stagesFetched = true;
+        fetch(`/api/buildTimeline?buildId=${pipelineId}`)
+            .then(r => r.json())
+            .then(d => { resolvedStages = d.stages ?? []; })
+            .catch(() => {})
+            .finally(() => { stagesLoading = false; });
+    }
 
     // RCA state (release pipelines only)
     let rcaSummary: string | null = null;
@@ -51,11 +107,42 @@
                 })
                 .catch(() => {}); // Silent fail — RCA is non-critical
         }
+
+        let tickId: ReturnType<typeof setInterval> | null = null;
+        if (status === 'inProgress') {
+            tickId = setInterval(() => { now = Date.now(); }, 5000);
+        }
+        return () => { if (tickId) clearInterval(tickId); };
     });
     let testCases:
         | import("$lib/components/ui/TestChart/testChart.svelte").TestCase[]
         | null = null;
     let testCasesError: string | null = null;
+
+    // Sync pre-populated stages for releases
+    $: if (stages !== null) { resolvedStages = stages; }
+
+    // Lazy-fetch build timeline on expand
+    $: if (expanded && pipelineType === 'build' && stages === null && pipelineId && !stagesFetched && !stagesLoading) {
+        loadBuildTimeline();
+    }
+
+    // Duration label
+    $: durationLabel = (() => {
+        if (!startTime) return null;
+        const start = new Date(startTime).getTime();
+        if (status === 'inProgress') {
+            return `Running for ${formatDuration(now - start)}`;
+        }
+        if (completedDate) {
+            const end = new Date(completedDate).getTime();
+            return `Ran for ${formatDuration(end - start)}`;
+        }
+        return null;
+    })();
+
+    // Show expand button: releases with stages, or any build
+    $: showExpand = (Array.isArray(stages) && stages.length > 0) || pipelineType === 'build';
 
     $: if (
         dialogOpen &&
@@ -274,10 +361,29 @@
                             smart_toy
                         </span>
                     </button>
+                    {#if showExpand}
+                        <button
+                            title="Toggle stages"
+                            aria-label="Toggle stage list"
+                            on:click={() => expanded = !expanded}
+                            style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;"
+                        >
+                            <span
+                                class="material-icons-outlined text-muted-foreground hover:text-primary"
+                                style="font-size: 18px; line-height: 1; vertical-align: middle;"
+                            >
+                                {expanded ? 'expand_less' : 'expand_more'}
+                            </span>
+                        </button>
+                    {/if}
                 </div>
                 <div class="text-xs text-muted-foreground mb-1">
                     {#if completedDate && status != "unknown" && status != "inProgress"}
                         Completed on {new Date(completedDate).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })} {new Date(completedDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                        {#if durationLabel}&nbsp;·&nbsp;{durationLabel}{/if}
+                        {#if pipelineId}&nbsp;·&nbsp;<span class="opacity-50">{pipelineType === 'release' ? 'Release' : 'Build'} ID: {pipelineId}</span>{/if}
+                    {:else if status === 'inProgress' && durationLabel}
+                        {durationLabel}
                         {#if pipelineId}&nbsp;·&nbsp;<span class="opacity-50">{pipelineType === 'release' ? 'Release' : 'Build'} ID: {pipelineId}</span>{/if}
                     {:else if pipelineId}
                         <span class="opacity-50">{pipelineType === 'release' ? 'Release' : 'Build'} ID: {pipelineId}</span>
@@ -350,6 +456,25 @@
                 </div>
             {:else}
                 <div class="text-xs text-muted-foreground pb-1">No test data</div>
+            {/if}
+            {#if expanded}
+                <div class="mt-1.5 border-t border-border pt-2 flex flex-col gap-1">
+                    {#if stagesLoading}
+                        <Skeleton class="h-4 w-3/4 rounded" />
+                        <Skeleton class="h-4 w-1/2 rounded" />
+                        <Skeleton class="h-4 w-2/3 rounded" />
+                    {:else if resolvedStages.length === 0}
+                        <div class="text-xs text-muted-foreground">No stage data available</div>
+                    {:else}
+                        {#each resolvedStages as stage}
+                            <div class="flex items-center gap-2 text-xs">
+                                <span style="color: {stageColor(stage.status)}; line-height: 1; font-size: 10px;">●</span>
+                                <span class="flex-1 truncate">{stage.name}</span>
+                                <span class="text-muted-foreground shrink-0">{stageStatusLabel(stage.status)}</span>
+                            </div>
+                        {/each}
+                    {/if}
+                </div>
             {/if}
         </div>
     </Card.Content>

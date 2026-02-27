@@ -22,6 +22,11 @@
         day: 'numeric',
     });
 
+    type Stage = {
+        name: string;
+        status: string;
+    };
+
     type CardRow = {
         pipelineName: string;
         pipelineGroup: string | null;
@@ -33,6 +38,8 @@
         notRunCount: number | null;
         completedDate: string | null;
         link: string | null;
+        startTime: string | null;
+        stages: Stage[] | null;
     };
 
     let overallQuality = $state('unknown');
@@ -93,6 +100,9 @@
 
                         if (p.type === 'release') {
                             const data = await pipelineDataService.fetchReleaseDataSilent(todayStr, id);
+                            const stages: Stage[] = (data?.envs ?? [])
+                                .filter((e: any) => e.name !== 'PTA')
+                                .map((e: any) => ({ name: e.name, status: e.status ?? 'notStarted' }));
                             return [{
                                 pipelineName: name,
                                 pipelineGroup: null,
@@ -104,6 +114,8 @@
                                 notRunCount: data?.notRunTestCount ?? null,
                                 completedDate: data?.completedTime ?? null,
                                 link: data?.link ?? null,
+                                startTime: data?.createdOn ?? null,
+                                stages,
                             }];
                         } else {
                             const dataArr = await pipelineDataService.fetchBuildDataSilent(todayStr, id);
@@ -120,6 +132,8 @@
                                     notRunCount: null,
                                     completedDate: null,
                                     link: null,
+                                    startTime: null,
+                                    stages: null,
                                 }];
                             }
                             return arr.map((b: any) => ({
@@ -133,6 +147,8 @@
                                 notRunCount: b.notRunTestCount ?? null,
                                 completedDate: b.completedTime ?? null,
                                 link: b.link ?? null,
+                                startTime: b.startTime ?? null,
+                                stages: null,
                             }));
                         }
                     })
@@ -200,6 +216,8 @@
                         notRunCount={row.notRunCount}
                         completedDate={row.completedDate}
                         date={todayStr}
+                        startTime={row.startTime}
+                        stages={row.stages}
                     />
                 </div>
             {/each}
