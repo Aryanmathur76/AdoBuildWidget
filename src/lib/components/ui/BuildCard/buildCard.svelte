@@ -187,6 +187,9 @@
     // Show expand button: releases with stages, or any build
     $: showExpand = (Array.isArray(stages) && stages.length > 0) || pipelineType === 'build';
 
+    // Total retries across all stages (attempts - 1 per stage)
+    $: totalRetries = resolvedStages.reduce((sum, s) => sum + Math.max(0, (s.attempts ?? 1) - 1), 0);
+
     $: if (
         dialogOpen &&
         passCount !== null &&
@@ -345,6 +348,15 @@
                         {pipelineName}
                     </div>
                     <PipelineStatusBadge {status} />
+                    {#if totalRetries > 0}
+                        <span
+                            class="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded px-1 py-0.5 shrink-0"
+                            title="{totalRetries} {totalRetries === 1 ? 'retry' : 'retries'} across stages"
+                        >
+                            <span class="material-icons-outlined" style="font-size: 11px; line-height: 1;">refresh</span>
+                            {totalRetries}
+                        </span>
+                    {/if}
                     {#if link}
                         <button
                             title="Copy link"
