@@ -54,8 +54,13 @@ class PipelineDataServiceImpl implements PipelineDataService {
     }
 
     clearLocalCache(key?: string): void {
-        if (key) this.localCache.delete(key);
-        else this.localCache.clear();
+        if (key) {
+            this.localCache.delete(key);
+            this.inFlightRequests.delete(key);
+        } else {
+            this.localCache.clear();
+            this.inFlightRequests.clear();
+        }
     }
 
     /**

@@ -70,13 +70,40 @@
         return `${Math.floor(diffMin / 60)}h ago`;
     });
 
-    function handleRefresh() {
+    async function handleRefresh() {
         if (!pipelineConfig?.pipelines) return;
         isManualRefreshing = true;
+
+        // Build list of Redis cache keys to clear
+        const redisKeysToDelete: string[] = [];
         pipelineConfig.pipelines.forEach(p => {
-            const prefix = p.type === 'release' ? 'release' : 'build';
-            pipelineDataService.clearLocalCache(`${prefix}:${todayStr}:${String(p.id)}`);
+            const id = String(p.id);
+            if (p.type === 'release') {
+                redisKeysToDelete.push(`release:${todayStr}:${id}`);
+            } else if (p.type === 'build/release') {
+                redisKeysToDelete.push(`build:${todayStr}:${id}`);
+                redisKeysToDelete.push(`release:${todayStr}:${id}`);
+            } else {
+                redisKeysToDelete.push(`build:${todayStr}:${id}`);
+            }
         });
+
+        try {
+            // Clear Redis cache on the server
+            await fetch('/api/clearCacheKeys', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keys: redisKeysToDelete })
+            });
+        } catch (err) {
+            console.error('Failed to clear server cache:', err);
+        }
+
+        // Clear local client-side cache
+        redisKeysToDelete.forEach(key => {
+            pipelineDataService.clearLocalCache(key);
+        });
+
         reloadTick++;
     }
 
