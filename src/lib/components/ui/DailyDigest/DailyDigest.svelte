@@ -75,7 +75,7 @@
         isManualRefreshing = true;
 
         // Build list of Redis cache keys to clear
-        const redisKeysToDelete: string[] = [];
+        const redisKeysToDelete: string[] = [`dayquality:${todayStr}`];
         pipelineConfig.pipelines.forEach(p => {
             const id = String(p.id);
             if (p.type === 'release') {
