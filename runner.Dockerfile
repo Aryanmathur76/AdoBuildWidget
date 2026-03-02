@@ -1,10 +1,20 @@
 FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl git jq ca-certificates \
-    sudo nodejs npm \
+    curl git jq ca-certificates gnupg zip \
+    sudo \
     libicu72 liblttng-ust1 libssl3 zlib1g \
+    python3 python3-pip \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 20 (copied from host to avoid corporate SSL issues)
+COPY node20.tar.gz /tmp/node20.tar.gz
+RUN tar xz -C /usr/local --strip-components=1 -f /tmp/node20.tar.gz && \
+    rm /tmp/node20.tar.gz && \
+    node --version && npm --version
+
+# Install Azure CLI
+RUN pip3 install --break-system-packages --no-cache-dir azure-cli
 
 # Create runner user
 RUN useradd -m -s /bin/bash runner && \
