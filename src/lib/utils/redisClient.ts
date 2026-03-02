@@ -5,7 +5,6 @@ import { env } from '$env/dynamic/private';
 const redisOptions: any = {
   host: env.REDIS_HOST || '127.0.0.1',
   port: parseInt(env.REDIS_PORT || '6379', 10),
-  lazyConnect: true,  // don't connect at import time (avoids errors during Vite build)
 };
 
 if (env.REDIS_PASSWORD) {
