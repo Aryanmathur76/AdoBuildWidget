@@ -1,0 +1,72 @@
+trigger:
+- sandbox/aryan/buildwidget
+
+pool:
+  name: 'Svelte Build Containers'
+
+variables:
+  workingDir: '$(System.DefaultWorkingDirectory)/Azure/WebApps/AdoBuildWidget'
+
+steps:
+
+- checkout: self
+  fetchDepth: 1
+  fetchFilter: 'blob:none'
+  sparseCheckoutDirectories: 'Azure/WebApps/AdoBuildWidget'
+
+- script: |
+    node --version
+    npm --version
+  displayName: 'Verify Node.js'
+
+- script: npm ci
+  displayName: 'Install dependencies'
+  workingDirectory: $(workingDir)
+
+# Run only unit tests (server project, no browser tests)
+- script: npm run test -- --project=server --reporter=verbose --reporter=junit --outputFile.junit=test-results.xml
+  displayName: 'Run unit tests'
+  workingDirectory: $(workingDir)
+  continueOnError: true
+
+# Publish test results
+- task: PublishTestResults@2
+  displayName: 'Publish test results'
+  condition: always()
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: '$(workingDir)/test-results.xml'
+    failTaskOnFailedTests: true
+    testRunTitle: 'Unit Tests'
+
+- script: npm run build
+  displayName: 'Build application'
+  workingDirectory: $(workingDir)
+
+# Copy package files for production dependencies
+- script: |
+    cp package.json build/
+    cp package-lock.json build/
+  displayName: 'Copy package files'
+  workingDirectory: $(workingDir)
+
+- task: ArchiveFiles@2
+  displayName: 'Zip deployment package'
+  inputs:
+    rootFolderOrFile: '$(workingDir)/build'
+    includeRootFolder: false
+    archiveType: 'zip'
+    archiveFile: '$(Build.ArtifactStagingDirectory)/app.zip'
+    replaceExistingArchive: true
+
+- task: AzureRmWebAppDeployment@5
+  displayName: 'Deploy to Azure App Service'
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'Test Automation Resource Manager'
+    appType: 'webAppLinux'
+    WebAppName: 'BWDev'
+    packageForLinux: '$(Build.ArtifactStagingDirectory)/app.zip'
+    RuntimeStack: 'NODE|22-lts'
+    DeploymentTypeLinux: 'oneDeploy'
+    StartupCommand: 'npm install --omit=dev && node index.js'
